@@ -1,159 +1,120 @@
-# Turborepo starter
+# Hệ Thống Quản Trị Nhân Sự Tích Hợp AI Multi-Agent
 
-This Turborepo starter is maintained by the Turborepo core team.
+> **Đồ án Khóa Luận Tốt Nghiệp**  
+> Kiến trúc Monorepo hiện đại kết hợp NestJS 11, PostgreSQL, Prisma, Next.js, React Native và Hệ thống AI Multi-Agent điều phối qua n8n & Google Gemini 3.5 Flash.
 
-## Using this example
+---
 
-Run the following command:
+## 🏛️ Kiến Trúc Hệ Thống (System Architecture)
 
-```sh
-npx create-turbo@latest
+```
+┌───────────────────────────────────────────────────────────┐
+│                     Client Apps Layer                     │
+│  - Web Portal (Next.js 14, Tailwind CSS, shadcn/ui)       │
+│  - Mobile App (React Native, Expo, NativeWind)            │
+│  - Zalo OA / Chatbot Interface                            │
+└──────────────┬─────────────────────────────┬──────────────┘
+               │                             │
+               ▼ HTTP / WebSocket            ▼ Webhook
+┌──────────────────────────────┐    ┌──────────────────────────┐
+│        NestJS Backend        │    │    n8n Multi-Agent Flow   │
+│   (Port 3001 - Fastify/Rest) │◄──►│ (Port 5678 - AI Engine)  │
+│  - Auth (JWT, RBAC)          │x-  │  - WF01: Router Agent    │
+│  - Employees, Attendance     │api-│  - WF02: HR Q&A Agent    │
+│  - Payroll, Contracts, Leave │key │  - WF03: Training Agent  │
+│  - AI Context & Session Mgmt │    │  - WF04: Zalo CSKH Agent │
+└──────────────┬───────────────┘    └────────────┬─────────────┘
+               │                                 │
+               ▼ Prisma ORM                      ▼ Gemini API
+┌──────────────────────────────┐    ┌──────────────────────────┐
+│     PostgreSQL 16 Database   │    │ Google Gemini 3.5 Flash  │
+│ (Port 5432 - Schema public)  │    │  (Generative AI Model)   │
+└──────────────────────────────┘    └──────────────────────────┘
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## 📦 Cấu Trúc Monorepo (Turborepo)
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```tree
+khoa-luan/
+├── apps/
+│   ├── api/                 # NestJS 11 API Backend (Port 3001)
+│   ├── web/                 # Next.js HR Web Portal (Port 3000)
+│   └── mobile/              # React Native Mobile App (Expo)
+├── packages/
+│   ├── database/            # Prisma Schema, Migrations & Database Client
+│   ├── shared-types/        # TypeScript interfaces dùng chung (Auth, Employee, HR)
+│   └── typescript-config/   # Base tsconfig cho NestJS & React Native
+├── n8n-workflows/           # 4 AI Multi-Agent Workflows (JSON exports)
+│   ├── 01-router-agent.json
+│   ├── 02-hr-qa-agent.json
+│   ├── 03-training-agent.json
+│   └── 04-zalo-cskh.json
+├── docs/                    # Architecture Decision Records (ADR)
+├── Khóa Luận/               # Toàn bộ tài liệu báo cáo & nhật ký đồng bộ Obsidian
+├── scripts/                 # Automation & E2E Test scripts
+├── docker-compose.yml       # Khởi tạo Postgres 16, pgAdmin 4, n8n (ignored)
+└── docker-compose.example.yml # Template cấu hình Docker
 ```
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+## 🚀 Hướng Dẫn Khởi Chạy (Quickstart)
+
+### 1. Yêu cầu hệ thống
+- **Node.js**: `>= 20.x`
+- **pnpm**: `>= 9.x`
+- **Docker Desktop**
+
+### 2. Cài đặt Dependencies
+```bash
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### 3. Cấu hình Môi trường & Khởi động Docker Services
+Sao chép template và điền thông tin khóa API:
+```bash
+cp docker-compose.example.yml docker-compose.yml
+cp apps/api/.env.example apps/api/.env
+cp packages/database/.env.example packages/database/.env
+```
+Cập nhật `GEMINI_API_KEY` và `HR_API_KEY` vào `docker-compose.yml` và `apps/api/.env`.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Khởi động các dịch vụ qua Docker:
+```bash
+docker compose up -d
+```
+- **PostgreSQL**: `localhost:5432`
+- **pgAdmin**: `http://localhost:5050`
+- **n8n Workflow**: `http://localhost:5678`
 
-```sh
-turbo build --filter=docs
+### 4. Database Migration & Seed
+```bash
+cd packages/database
+npx prisma migrate dev
+pnpm run db:seed
 ```
 
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+### 5. Khởi chạy Backend API
+```bash
+cd ../../apps/api
+pnpm run start:dev
 ```
+Backend API sẽ chạy tại: `http://localhost:3001/api/v1`
 
-### Develop
+---
 
-To develop all apps and packages, run the following command:
+## 🤖 Hệ Thống AI Multi-Agent (n8n Workflows)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+1. **WF01 - Router Agent**: Tiếp nhận tin nhắn người dùng, phân loại ý định (HR Q&A, Đào tạo Onboarding, CSKH) và điều hướng. Tích hợp nạp ngữ cảnh nhân viên (profile, hợp đồng, chấm công, phép năm) từ NestJS.
+2. **WF02 - HR Q&A Agent**: Trả lời chính sách, thủ tục nhân sự dựa trên kiến thức doanh nghiệp và dữ liệu cá nhân hóa.
+3. **WF03 - Training & Onboarding Agent**: Đào tạo nhân viên mới qua kịch bản tương tác 2 chiều, trắc nghiệm nội quy và đánh giá xử lý tình huống thực tế bằng AI.
+4. **WF04 - Zalo CSKH Agent**: Tương tác đa kênh qua Zalo Official Account, hỗ trợ ứng viên & nhân viên.
 
-```sh
-cd my-turborepo
-turbo dev
-```
+---
 
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+## 🛡️ Bảo Mật & Quản Lý Phiên (Session Management)
+- **Cơ chế Reset phiên On-demand**: Tự động đánh dấu hết hạn phiên chat sau 00:00 hàng ngày (giờ Việt Nam). Nhân viên nhắn tin ngày mới sẽ tự động nhận phiên làm việc mới sạch ngữ cảnh.
+- **Escalate to Human**: Chuyển giao thông minh cho HR khi gặp câu hỏi nhạy cảm hoặc vượt thẩm quyền AI.
+- **Bảo vệ Secret Keys**: Mọi token và API Key được cô lập qua `.env` và `docker-compose.override.yml`, không đẩy lên Git.
