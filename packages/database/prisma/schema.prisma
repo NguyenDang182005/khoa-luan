@@ -1,0 +1,398 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================
+// ENUMS
+// =====================
+
+enum UserRole {
+  ADMIN
+  HR_MANAGER
+  MANAGER
+  EMPLOYEE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+  PROBATION
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  MATERNITY
+  PATERNITY
+  UNPAID
+  EMERGENCY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  REMOTE
+  ON_LEAVE
+}
+
+enum ContractType {
+  FULL_TIME
+  PART_TIME
+  PROBATION
+  FREELANCE
+  INTERNSHIP
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum ChatSessionType {
+  HR_QA
+  CSKH
+  TRAINING
+}
+
+enum NotificationType {
+  PAYROLL
+  LEAVE
+  ATTENDANCE
+  ONBOARDING
+  SYSTEM
+}
+
+enum OnboardingTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+// =====================
+// MODELS
+// =====================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(EMPLOYEE)
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  employee      Employee?
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Department {
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique
+  description String?
+  managerId   String?
+  parentId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  manager   Employee?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  parent    Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children  Department[] @relation("DepartmentHierarchy")
+  employees Employee[]   @relation("EmployeeDepartment")
+  positions Position[]
+
+  @@map("departments")
+}
+
+model Position {
+  id           String  @id @default(cuid())
+  title        String
+  code         String  @unique
+  level        Int     @default(1)
+  departmentId String
+  minSalary    Float?
+  maxSalary    Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  department Department @relation(fields: [departmentId], references: [id])
+  employees  Employee[]
+
+  @@map("positions")
+}
+
+model Employee {
+  id           String           @id @default(cuid())
+  employeeCode String           @unique
+  userId       String           @unique
+  fullName     String
+  email        String           @unique
+  phone        String?
+  gender       Gender?
+  dateOfBirth  DateTime?
+  address      String?
+  avatarUrl    String?
+  nationalId   String?          @unique
+  joinDate     DateTime
+  status       EmploymentStatus @default(PROBATION)
+  departmentId String
+  positionId   String
+  managerId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department      Department     @relation("EmployeeDepartment", fields: [departmentId], references: [id])
+  position        Position       @relation(fields: [positionId], references: [id])
+  manager         Employee?      @relation("EmployeeManager", fields: [managerId], references: [id])
+  subordinates    Employee[]     @relation("EmployeeManager")
+  managedDepts    Department[]   @relation("DepartmentManager")
+  attendances         Attendance[]
+  leaveRequests       LeaveRequest[]       @relation("EmployeeLeave")
+  approvedLeaves      LeaveRequest[]       @relation("ApproverLeave")
+  contracts           Contract[]
+  payrolls            Payroll[]
+  onboardingProgress  OnboardingProgress[]
+  chatSessions        AiChatSession[]
+
+  @@map("employees")
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  employeeId String
+  date       DateTime         @db.Date
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     AttendanceStatus @default(PRESENT)
+  workHours  Float?
+  overtime   Float?
+  note       String?
+  location   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@map("attendances")
+}
+
+model LeaveRequest {
+  id              String      @id @default(cuid())
+  employeeId      String
+  type            LeaveType
+  startDate       DateTime    @db.Date
+  endDate         DateTime    @db.Date
+  totalDays       Float
+  reason          String
+  status          LeaveStatus @default(PENDING)
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee   Employee  @relation("EmployeeLeave", fields: [employeeId], references: [id], onDelete: Cascade)
+  approvedBy Employee? @relation("ApproverLeave", fields: [approvedById], references: [id])
+
+  @@map("leave_requests")
+}
+
+model Contract {
+  id             String       @id @default(cuid())
+  employeeId     String
+  contractNumber String       @unique
+  type           ContractType
+  startDate      DateTime     @db.Date
+  endDate        DateTime?    @db.Date
+  baseSalary     Float
+  allowances     Float        @default(0)
+  signedDate     DateTime     @db.Date
+  isActive       Boolean      @default(true)
+  fileUrl        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("contracts")
+}
+
+model Payroll {
+  id                String        @id @default(cuid())
+  employeeId        String
+  month             Int
+  year              Int
+  baseSalary        Float
+  allowances        Float         @default(0)
+  bonus             Float         @default(0)
+  deductions        Float         @default(0)
+  tax               Float         @default(0)
+  netSalary         Float
+  workingDays       Int
+  actualWorkingDays Int
+  overtimeHours     Float         @default(0)
+  overtimePay       Float         @default(0)
+  status            PayrollStatus @default(DRAFT)
+  paidAt            DateTime?
+  note              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, month, year])
+  @@map("payrolls")
+}
+
+model SalaryConfig {
+  id            String   @id @default(cuid())
+  year          Int      @unique
+  bhxhRate      Float    @default(0.08)   // 8% BHXH nhân viên
+  bhytRate      Float    @default(0.015)  // 1.5% BHYT nhân viên
+  bhtnRate      Float    @default(0.01)   // 1% BHTN nhân viên
+  pitFreeAmount Float    @default(11000000) // Mức giảm trừ gia cảnh (11tr)
+  overtimeRate  Float    @default(1.5)    // Hệ số OT ngày thường
+  otWeekendRate Float    @default(2.0)    // Hệ số OT cuối tuần
+  otHolidayRate Float    @default(3.0)    // Hệ số OT ngày lễ
+  standardWorkHours Float @default(8)     // Số giờ làm tiêu chuẩn/ngày
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("salary_configs")
+}
+
+model OnboardingTask {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  category    String  // e.g. "paperwork", "equipment", "training", "introduction"
+  dueAfterDays Int    @default(7) // Deadline: N ngày sau ngày vào
+  isRequired  Boolean @default(true)
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  progresses OnboardingProgress[]
+
+  @@map("onboarding_tasks")
+}
+
+model OnboardingProgress {
+  id         String               @id @default(cuid())
+  employeeId String
+  taskId     String
+  status     OnboardingTaskStatus @default(PENDING)
+  completedAt DateTime?
+  note       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  task     OnboardingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, taskId])
+  @@map("onboarding_progress")
+}
+
+model AiChatSession {
+  id         String          @id @default(cuid())
+  employeeId String?
+  type       ChatSessionType
+  channel    String          @default("web") // "web" | "mobile" | "zalo"
+  externalId String?         // Zalo userId hoặc mobile deviceId
+  isActive   Boolean         @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee?      @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  messages AiChatMessage[]
+
+  @@map("ai_chat_sessions")
+}
+
+model AiChatMessage {
+  id        String  @id @default(cuid())
+  sessionId String
+  role      String  // "user" | "assistant"
+  content   String  @db.Text
+  metadata  Json?   // intent, score, masked_content, etc.
+
+  createdAt DateTime @default(now())
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chat_messages")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String
+  data       Json?            // Extra payload
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

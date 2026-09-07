@@ -1,0 +1,299 @@
+{
+  "name": "03 - Training Role-play Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "training-input",
+      "name": "Input from Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst st = input.scenarioType || \"general_communication\";\nconst scenarios = {\n  customer_complaint: {\n    role: \"khach hang kho tinh phan nan ve dich vu cham tre\",\n    objective: \"xu ly khieu nai, de xuat giai phap, giu chan khach hang\",\n    difficulty: \"cao\"\n  },\n  colleague_conflict: {\n    role: \"dong nghiep co mau thuan phan cong cong viec\",\n    objective: \"giai quyet mau thuan, duy tri quan he chuyen nghiep\",\n    difficulty: \"trung binh\"\n  },\n  manager_feedback: {\n    role: \"manager feedback hieu suat thap va deadline tre\",\n    objective: \"tiep nhan feedback tich cuc, lap ke hoach cai thien cu the\",\n    difficulty: \"trung binh\"\n  },\n  new_employee_onboarding: {\n    role: \"nhan vien moi tuan dau tien can huong dan lam quen moi truong\",\n    objective: \"hoa nhap nhanh, hieu ro quy dinh va ky vong cong ty\",\n    difficulty: \"thap\"\n  },\n  performance_review: {\n    role: \"HR danh gia hieu suat quy, thao luan muc tieu SMART\",\n    objective: \"danh gia trung thuc, thiet lap muc tieu ro rang, dong thuan\",\n    difficulty: \"cao\"\n  },\n  general_communication: {\n    role: \"doi tac trong cuoc hop dam phan hop dong dich vu\",\n    objective: \"giao tiep hieu qua, dat thoa thuan co loi cho ca hai\",\n    difficulty: \"trung binh\"\n  }\n};\nconst sd = scenarios[st] || scenarios.general_communication;\nreturn [{ json: { ...input, scenarioType: st, scenarioData: sd } }];"
+      },
+      "id": "load-scenario",
+      "name": "Load Scenario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/session",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HR_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ employeeId: $(\"Input from Router\").first().json.employeeId || null, type: \"TRAINING\", channel: $(\"Input from Router\").first().json.channel || \"mobile\", externalId: $(\"Input from Router\").first().json.employeeId || null }) }}",
+        "options": {}
+      },
+      "id": "get-session",
+      "name": "Get/Create Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const session = $input.first().json;\nconst scenario = $(\"Load Scenario\").first().json.scenarioData;\nconst routerInput = $(\"Input from Router\").first().json;\nreturn [{ json: {\n  sessionId: session.id,\n  maskedMessage: routerInput.maskedMessage,\n  employeeId: routerInput.employeeId,\n  scenarioRole: scenario.role,\n  scenarioObjective: scenario.objective,\n  scenarioDifficulty: scenario.difficulty\n} }];"
+      },
+      "id": "prep-agent-input",
+      "name": "Prepare Agent Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $(\"Input from Router\").first().json.maskedMessage }}",
+        "systemMessage": "={{ \"Ban dang dong vai trong kich ban dao tao:\\nVai dien: \" + $json.scenarioRole + \".\\nMuc tieu: \" + $json.scenarioObjective + \".\\nDo kho: \" + $json.scenarioDifficulty + \".\\n\\nHuong dan:\\n1) Phan ung TU NHIEN theo vai dien (tieng Viet, tao thach thuc phu hop do kho)\\n2) Sau do CHAM DIEM cau tra loi TRUOC cua nguoi dung (neu co lich su) theo format:\\n[DANH GIA: chuyen_nghiep=X, dong_cam=X, giai_quyet=X, ro_rang=X, tong=X, nhan_xet=nhan xet ngan gon toi da 50 tu]\\n\\nLuu y: X la so tu 0-10. Neu la tin nhan dau tien thi khong can cham diem, chi bat dau dong vai.\" }}",
+        "options": {
+          "maxIterations": 3,
+          "systemMessage": "={{ \"Ban dang dong vai trong kich ban dao tao:\\nVai dien: \" + $json.scenarioRole + \".\\nMuc tieu: \" + $json.scenarioObjective + \".\\nDo kho: \" + $json.scenarioDifficulty + \".\\n\\nHuong dan:\\n1) Phan ung TU NHIEN theo vai dien (tieng Viet, tao thach thuc phu hop do kho)\\n2) Sau do CHAM DIEM cau tra loi TRUOC cua nguoi dung (neu co lich su) theo format:\\n[DANH GIA: chuyen_nghiep=X, dong_cam=X, giai_quyet=X, ro_rang=X, tong=X, nhan_xet=nhan xet ngan gon toi da 50 tu]\\n\\nLuu y: X la so tu 0-10. Neu la tin nhan dau tien thi khong can cham diem, chi bat dau dong vai.\" }}"
+        }
+      },
+      "id": "training-agent",
+      "name": "Training Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.8,
+          "maxOutputTokens": 1024
+        }
+      },
+      "id": "gemini-training",
+      "name": "Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        880,
+        520
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-api-key",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $(\"Get/Create Session\").first().json.id }}",
+        "tableName": "n8n_chat_histories",
+        "contextWindowLength": 20
+      },
+      "id": "postgres-memory",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        520
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-db",
+          "name": "HR System PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output || \"\";\nconst scoreMatch = output.match(/\\[DANH GIA:([^\\]]+)\\]/);\nlet scoring = null;\nif (scoreMatch) {\n  const p = scoreMatch[1];\n  const ex = (k) => {\n    const m = p.match(new RegExp(k + '=(\\\\d+(?:\\\\.\\\\d+)?)'));\n    return m ? parseFloat(m[1]) : 0;\n  };\n  const nx = p.match(/nhan_xet=(.+)/);\n  scoring = {\n    scores: {\n      professional: ex('chuyen_nghiep'),\n      empathy: ex('dong_cam'),\n      problem_solving: ex('giai_quyet'),\n      clarity: ex('ro_rang')\n    },\n    total: ex('tong'),\n    feedback: nx ? nx[1].trim() : ''\n  };\n}\nconst roleplayResponse = output.replace(/\\[DANH GIA:[^\\]]+\\]/, '').trim();\nconst sessionId = $(\"Get/Create Session\").first().json.id;\nconst scenarioType = $(\"Load Scenario\").first().json.scenarioType;\nreturn [{ json: { roleplayResponse, scoring, sessionId, scenarioType } }];"
+      },
+      "id": "parse-result",
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HR_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"gemini-2.5-flash\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
+        "options": {}
+      },
+      "id": "save-assistant",
+      "name": "Save Assistant Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pr = $(\"Parse Result\").first().json;\nreturn [{ json: { answer: pr.roleplayResponse, roleplayResponse: pr.roleplayResponse, scoring: pr.scoring, sessionId: pr.sessionId, scenarioType: pr.scenarioType, intent: \"TRAINING\" } }];"
+      },
+      "id": "format-training-output",
+      "name": "Format Training Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Input from Router": {
+      "main": [
+        [
+          {
+            "node": "Load Scenario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Scenario": {
+      "main": [
+        [
+          {
+            "node": "Get/Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get/Create Session": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Input": {
+      "main": [
+        [
+          {
+            "node": "Training Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Training Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Save Assistant Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Assistant Message": {
+      "main": [
+        [
+          {
+            "node": "Format Training Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Training Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Training Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

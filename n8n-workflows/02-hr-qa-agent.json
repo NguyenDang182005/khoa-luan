@@ -1,0 +1,424 @@
+{
+  "name": "02 - HR Q&A Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hr-qa",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "hr-input",
+      "name": "Webhook HR QA",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "hr-qa-webhook"
+    },
+    {
+      "parameters": {},
+      "id": "hr-router-input",
+      "name": "Input from Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body=$input.first().json.body||$input.first().json;return[{json:{originalMessage:body.message||body.originalMessage||'',maskedMessage:body.message||body.maskedMessage||'',channel:body.channel||'web',employeeId:body.employeeId||null}}];"
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/session",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ employeeId: $json.employeeId || null, type: \"HR_QA\", channel: $json.channel || \"web\", externalId: $json.employeeId || null }) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "get-session",
+      "name": "Get/Create Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"user\", content: $(\"Normalize Input\").first().json.originalMessage, metadata: { intent: \"HR_QA\" } }) }}",
+        "options": {}
+      },
+      "id": "save-user-msg",
+      "name": "Save User Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ ($(\"Normalize Input\").first().json.employeeId ? \"[Thong tin nguoi dung - Ma nhan vien: \" + $(\"Normalize Input\").first().json.employeeId + \"]\\n\\n\" : \"\") + $(\"Normalize Input\").first().json.maskedMessage }}",
+        "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh.",
+        "options": {
+          "maxIterations": 5,
+          "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh."
+        }
+      },
+      "id": "hr-agent",
+      "name": "HR Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.3,
+          "maxOutputTokens": 1024
+        }
+      },
+      "id": "gemini-hr",
+      "name": "Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        920,
+        540
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "saU5RHwXIHvauhiS",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $(\"Get/Create Session\").first().json.id }}",
+        "tableName": "n8n_chat_histories",
+        "contextWindowLength": 50
+      },
+      "id": "postgres-memory",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "DImvfbYdTqnryV2B",
+          "name": "HR System PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lay thong tin nhan vien: ten, phong ban, luong co ban, hop dong, so ngay phep con. Dung khi can thong tin ca nhan.",
+        "url": "http://host.docker.internal:3001/api/v1/n8n/employee-context/{employee_id}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "employee_id",
+              "description": "Ma nhan vien vi du EMP003",
+              "type": "string"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "tool-employee",
+      "name": "GetEmployeeContext",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lay bang luong chi tiet theo thang/nam: luong gop, khau tru BHXH BHYT BHTN thue TNCN, luong thuc lanh, OT. Dung khi hoi ve luong thang cu the.",
+        "url": "http://host.docker.internal:3001/api/v1/n8n/payroll-context/{employee_id}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "employee_id",
+              "description": "Ma nhan vien vi du EMP003",
+              "type": "string"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "specifyQuery": "keypair",
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "month",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "year",
+              "valueProvider": "modelRequired"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "tool-payroll",
+      "name": "GetPayrollContext",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.output, metadata: { model: \"gemini-2.5-flash\", intent: \"HR_QA\" } }) }}",
+        "options": {}
+      },
+      "id": "save-assistant",
+      "name": "Save Assistant Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const answer = $(\"HR Agent\").first().json.output;\nconst sessionId = $(\"Get/Create Session\").first().json.id;\nconst employeeId = $(\"Normalize Input\").first().json.employeeId;\nreturn [{ json: { answer, sessionId, employeeId, intent: \"HR_QA\" } }];"
+      },
+      "id": "format-hr-output",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook HR QA": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input from Router": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Get/Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get/Create Session": {
+      "main": [
+        [
+          {
+            "node": "Save User Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message": {
+      "main": [
+        [
+          {
+            "node": "HR Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HR Agent": {
+      "main": [
+        [
+          {
+            "node": "Save Assistant Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Assistant Message": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "HR Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "HR Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetEmployeeContext": {
+      "ai_tool": [
+        [
+          {
+            "node": "HR Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetPayrollContext": {
+      "ai_tool": [
+        [
+          {
+            "node": "HR Agent",
+            "type": "ai_tool",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Format Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "meta": {}
+}

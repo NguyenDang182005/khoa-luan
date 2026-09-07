@@ -1,0 +1,458 @@
+{
+  "name": "04 - Zalo OA CSKH Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zalo-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "zalo-webhook",
+      "name": "Zalo OA Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "zalo-cskh-webhook"
+    },
+    {
+      "parameters": {},
+      "id": "cskh-router-input",
+      "name": "Input from Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst userId = body.sender?.id || body.user_id || body.userId || body.employeeId || \"guest\";\nconst text = body.message?.text || (typeof body.message === 'string' ? body.message : '') || body.originalMessage || body.maskedMessage || \"\";\nif (!text) return [];\nreturn [{ json: { userId, message: text, channel: body.channel || \"zalo\", externalId: userId } }];"
+      },
+      "id": "parse-zalo",
+      "name": "Parse Zalo Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/session",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HR_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: \"CSKH\", channel: \"zalo\", externalId: $json.userId }) }}",
+        "options": {}
+      },
+      "id": "get-session",
+      "name": "Get/Create CSKH Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HR_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.id, role: \"user\", content: $(\"Parse Zalo Message\").first().json.message, metadata: { channel: \"zalo\", userId: $(\"Parse Zalo Message\").first().json.userId } }) }}",
+        "options": {}
+      },
+      "id": "save-user-msg",
+      "name": "Save User Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $(\"Parse Zalo Message\").first().json.message }}",
+        "systemMessage": "Ban la nhan vien CSKH chuyen nghiep cua cong ty. Tra loi NGAN GON (toi da 200 tu), than thien, lich su, bang tieng Viet.\nNeu gap tinh huong VUOT PHAM VI CSKH thong thuong (khieu nai nghiem trong, yeu cau boi thuong lon, loi he thong nghiem trong, yeu cau gap lanh dao, van de phap ly), PHAI ket thuc cau tra loi bang:\n[CAN_ESCALATE: mo ta ngan gon ly do can leo thang]\nKhong duoc tu y giai quyet cac van de vuot pham vi — chuyen sang bo phan co tham quyen.",
+        "options": {
+          "maxIterations": 3,
+          "systemMessage": "Ban la nhan vien CSKH chuyen nghiep cua cong ty. Tra loi NGAN GON (toi da 200 tu), than thien, lich su, bang tieng Viet.\nNeu gap tinh huong VUOT PHAM VI CSKH thong thuong (khieu nai nghiem trong, yeu cau boi thuong lon, loi he thong nghiem trong, yeu cau gap lanh dao, van de phap ly), PHAI ket thuc cau tra loi bang:\n[CAN_ESCALATE: mo ta ngan gon ly do can leo thang]\nKhong duoc tu y giai quyet cac van de vuot pham vi — chuyen sang bo phan co tham quyen."
+        }
+      },
+      "id": "cskh-agent",
+      "name": "CSKH Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.5,
+          "maxOutputTokens": 1024
+        }
+      },
+      "id": "gemini-cskh",
+      "name": "Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        900,
+        520
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-api-key",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $(\"Get/Create CSKH Session\").first().json.id }}",
+        "tableName": "n8n_chat_histories",
+        "contextWindowLength": 20
+      },
+      "id": "postgres-memory",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        520
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-db",
+          "name": "HR System PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output || \"\";\nconst session = $(\"Get/Create CSKH Session\").first().json;\nconst userId = $(\"Parse Zalo Message\").first().json.userId;\nconst userMsg = $(\"Parse Zalo Message\").first().json.message;\nconst escalateMatch = output.match(/\\[CAN_ESCALATE:\\s*([^\\]]+)\\]/);\nconst shouldEscalate = !!escalateMatch;\nconst escalateReason = escalateMatch ? escalateMatch[1].trim() : null;\nconst answer = output.replace(/\\[CAN_ESCALATE:[^\\]]*\\]/, '').trim() || \"Xin loi, vui long thu lai sau.\";\nreturn [{ json: { answer, shouldEscalate, escalateReason, sessionId: session.id, userId, userMessage: userMsg } }];"
+      },
+      "id": "parse-output",
+      "name": "Parse CSKH Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HR_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.answer, metadata: { model: \"gemini-2.5-flash\", escalated: $json.shouldEscalate, escalateReason: $json.escalateReason } }) }}",
+        "options": {}
+      },
+      "id": "save-assistant",
+      "name": "Save Assistant Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://openapi.zalo.me/v3.0/oa/message/cs",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "={{ $env.ZALO_OA_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ recipient: { user_id: $json.userId }, message: { text: $json.answer } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send-zalo",
+      "name": "Send Zalo Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.shouldEscalate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-escalate",
+      "name": "Should Escalate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/escalate",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HR_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Parse CSKH Output\").first().json.sessionId, userId: $(\"Parse CSKH Output\").first().json.userId, channel: \"zalo\", lastMessage: $(\"Parse CSKH Output\").first().json.userMessage, reason: $(\"Parse CSKH Output\").first().json.escalateReason || \"AI phat hien vuot pham vi CSKH\" }) }}",
+        "options": {}
+      },
+      "id": "escalate",
+      "name": "Escalate to Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $(\"Parse CSKH Output\").first().json;\nreturn [{ json: { answer: p.answer, shouldEscalate: p.shouldEscalate, escalateReason: p.escalateReason, sessionId: p.sessionId, userId: p.userId, intent: \"CSKH\" } }];"
+      },
+      "id": "format-cskh-output",
+      "name": "Format CSKH Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        160
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Zalo OA Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Zalo Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input from Router": {
+      "main": [
+        [
+          {
+            "node": "Parse Zalo Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Zalo Message": {
+      "main": [
+        [
+          {
+            "node": "Get/Create CSKH Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get/Create CSKH Session": {
+      "main": [
+        [
+          {
+            "node": "Save User Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message": {
+      "main": [
+        [
+          {
+            "node": "CSKH Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSKH Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse CSKH Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSKH Output": {
+      "main": [
+        [
+          {
+            "node": "Save Assistant Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Zalo Reply",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Should Escalate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Escalate?": {
+      "main": [
+        [
+          {
+            "node": "Escalate to Admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CSKH Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "CSKH Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Assistant Message": {
+      "main": [
+        [
+          {
+            "node": "Format CSKH Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

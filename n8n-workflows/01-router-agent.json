@@ -1,0 +1,398 @@
+{
+  "name": "01 - Router Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook /chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "chat-router-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body=$input.first().json.body||{};const text=body.message||\"\";const channel=body.channel||\"web\";const employeeId=body.employeeId||null;const scenarioType=body.scenarioType||null;const masked=text.replace(/\\b(\\d{9}|\\d{12})\\b/g,\"[MASKED_ID]\").replace(/\\b(0[35789]\\d{8})\\b/g,\"[MASKED_PHONE]\").replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g,\"[MASKED_EMAIL]\");return[{json:{originalMessage:text,maskedMessage:masked,channel,employeeId,scenarioType}}];"
+      },
+      "id": "pii-masking",
+      "name": "PII Masking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \"Hay phan loai cau hoi sau vao mot trong cac nhan: HR_QA, TRAINING, CSKH, OTHER.\\nCau hoi: \" + $json.maskedMessage + \"\\nTra ve duy nhat ten nhan, vi du: HR_QA\" }}",
+        "systemMessage": "Ban la bo phan loai intent AI. Nhiem vu: tra ve dung mot ma intent trong cac ma sau: HR_QA (hoi ve nhan su, luong, nghi phep, hop dong, BHXH, luat lao dong), TRAINING (luyen tap giao tiep, role-play), CSKH (khieu nai, cham soc khach hang), OTHER. Tuyet doi khong tra loi cau hoi, chi xuat ten ma intent.",
+        "options": {
+          "maxIterations": 1,
+          "systemMessage": "Ban la bo phan loai intent AI. Nhiem vu: tra ve dung mot ma intent trong cac ma sau: HR_QA (hoi ve nhan su, luong, nghi phep, hop dong, BHXH, luat lao dong), TRAINING (luyen tap giao tiep, role-play), CSKH (khieu nai, cham soc khach hang), OTHER. Tuyet doi khong tra loi cau hoi, chi xuat ten ma intent."
+        }
+      },
+      "id": "intent-agent",
+      "name": "Intent Classifier",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0,
+          "maxOutputTokens": 1024
+        }
+      },
+      "id": "gemini-router",
+      "name": "Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        520
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-api-key",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = ($input.first().json.output || \"\").trim().toUpperCase();\nlet intent = \"OTHER\";\nif (raw.includes(\"HR_QA\")) intent = \"HR_QA\";\nelse if (raw.includes(\"TRAINING\")) intent = \"TRAINING\";\nelse if (raw.includes(\"CSKH\")) intent = \"CSKH\";\nelse {\n  const msg = (($(\"PII Masking\").first().json.maskedMessage || \"\")).toLowerCase();\n  if (/lương|phép|nghỉ|hợp đồng|bhxh|bhyt|chấm công/i.test(msg)) intent = \"HR_QA\";\n  else if (/training|đào tạo|role-play|kịch bản/i.test(msg)) intent = \"TRAINING\";\n  else if (/khiếu nại|khách hàng|sản phẩm|cskh/i.test(msg)) intent = \"CSKH\";\n}\nconst prev = $(\"PII Masking\").first().json;\nreturn [{ json: { ...prev, intent } }];"
+      },
+      "id": "parse-intent",
+      "name": "Parse Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "HR_QA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HR_QA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "TRAINING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TRAINING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "CSKH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CSKH"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "router-switch",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Khong nhan dang duoc yeu cau.\", \"intent\": \"OTHER\" }"
+      },
+      "id": "other-respond",
+      "name": "Respond OTHER",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "value": "oy5rWkKaus7wiacX",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "exec-hr-qa",
+      "name": "Execute HR Q&A Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "value": "7EZ6MXJZzPx1fDlu",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "exec-training",
+      "name": "Execute Training Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "value": "QvguLO7il2BRO1on",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "exec-cskh",
+      "name": "Execute CSKH Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "router-respond",
+      "name": "Respond Chat Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook /chat": {
+      "main": [
+        [
+          {
+            "node": "PII Masking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PII Masking": {
+      "main": [
+        [
+          {
+            "node": "Intent Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classifier": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Execute HR Q&A Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Training Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute CSKH Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond OTHER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Intent Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute HR Q&A Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond Chat Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Training Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond Chat Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute CSKH Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond Chat Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Chat Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

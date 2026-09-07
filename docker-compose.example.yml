@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hr_system_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: hr_system_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hr_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hr-system.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: hr_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=n8n-secret-2024
+      - WEBHOOK_URL=http://localhost:5678
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+      # n8n gọi vào NestJS backend
+      - HR_API_URL=http://host.docker.internal:3001/api/v1
+      - HR_API_KEY=YOUR_HR_API_KEY_HERE
+      # Google Gemini API
+      - GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+      # Zalo OA (set khi có token)
+      - ZALO_OA_ACCESS_TOKEN=
+    volumes:
+      - n8n_data:/home/node/.n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
+  n8n_data:
