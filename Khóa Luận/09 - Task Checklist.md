@@ -136,17 +136,18 @@
 
 ---
 
-## 🌐 Web Portal — Next.js
+## 🌐 Web Portal — Next.js 16 + shadcn/ui ✅ (Hoàn thành 100%)
 
-- [x] Khởi tạo dự án Next.js
-- [ ] Login page
-- [ ] Dashboard
-- [ ] **Trang Notifications** — WebSocket escalation real-time 🔴
-- [ ] Trang chat HR
-- [ ] Quản lý nhân viên
-- [ ] Bảng lương
-
-> ⚠️ **Tối thiểu demo**: Login + Notifications + Chat
+- [x] Khởi tạo dự án Next.js 16 + Tailwind CSS v4 + Base UI (shadcn)
+- [x] **AppShell & Điều Hướng 4 Tầng** (Header ⌘K, Left Rail, Role Switcher Admin/ESS)
+- [x] **Dashboard Điều Hành** (4 KPI Cards, Recharts AreaChart & PieChart, Duyệt phép 1-click)
+- [x] **Quản Lý Nhân Sự & Hợp Đồng** (TanStack Table, Tìm kiếm, Lọc phòng ban, Drawer chi tiết)
+- [x] **Bảng Lương & Rule Engine Tự Động** (Gross-to-Net, BHXH/BHYT/BHTN 10.5%, Thuế 7 bậc, SalaryConfig Dialog)
+- [x] **AI Multi-Agents Command Center** (Chat 4 workflows n8n, Inspector hiển thị Gemini 3.5 Flash, token & sources)
+- [x] **Tiếp Quản CSKH & PII Audit Trail** 🔴 (WebSocket escalation alert nhấp nháy đỏ, Human takeover, Bật lại Bot, Bảng PII Masking)
+- [x] **Báo Cáo Đào Tạo & Radar AI** 📊 (Biểu đồ Spider Chart 4 cánh, Bảng xếp hạng Hybrid Assessment)
+- [x] **Cổng Nhân Viên Tự Phục Vụ (ESS)** 👤 (Chấm công GPS, Phiếu lương số, Đơn nghỉ phép, Floating AI Chatbot Widget)
+- [x] **Kiểm thử trực tiếp trên trình duyệt Chromium** đạt 8/8 hạng mục 100% (2026-09-09)
 
 ---
 
