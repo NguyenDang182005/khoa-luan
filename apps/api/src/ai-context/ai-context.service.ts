@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 /** Guard: validates x-api-key header — used for n8n internal calls */
 @Injectable()
@@ -22,7 +23,11 @@ export class ApiKeyGuard implements CanActivate {
 
 @Injectable()
 export class AiContextService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+    @Optional() private gateway: NotificationsGateway,
+  ) {}
 
   /** Returns full employee context for n8n to inject into LLM prompt.
    *  employeeId param có thể là UUID hoặc employeeCode (VD: "EMP003") */
@@ -184,20 +189,78 @@ export class AiContextService {
     });
   }
 
-  saveMessage(dto: {
+  async getEscalationQueue() {
+    const sessions = await this.prisma.aiChatSession.findMany({
+      where: { type: 'CSKH', isActive: false, channel: 'zalo' },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        employee: { select: { fullName: true, employeeCode: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return sessions.map(s => ({
+      id: s.id,
+      externalId: s.externalId,
+      lastMessage: s.messages[0]?.content ?? '',
+      lastMessageAt: s.messages[0]?.createdAt ?? s.updatedAt,
+      messageCount: s.messages.length,
+      metadata: s.messages[0]?.metadata,
+    }));
+  }
+
+  async saveMessage(dto: {
     sessionId: string;
     role: string;
     content: string;
     metadata?: object;
   }) {
-    return this.prisma.aiChatMessage.create({
+    // 1. Persist message
+    const message = await this.prisma.aiChatMessage.create({
       data: {
         sessionId: dto.sessionId,
         role: dto.role,
         content: dto.content,
         metadata: dto.metadata ?? undefined,
       },
+      include: { session: { select: { type: true } } },
     });
+
+    // 2. Emit WS update only for assistant messages (what the panel tracks)
+    if (dto.role === 'assistant' && this.gateway) {
+      const type = message.session.type as string;
+      const wfMap: Record<string, { wf: string; label: string }> = {
+        HR_QA:    { wf: 'WF02', label: 'HR Q&A' },
+        TRAINING: { wf: 'WF03', label: 'Training' },
+        CSKH:     { wf: 'WF04', label: 'CSKH Zalo' },
+      };
+      const wfInfo = wfMap[type];
+      if (wfInfo) {
+        // Lightweight aggregate — only count messages of this workflow type
+        const messages = await this.prisma.aiChatMessage.findMany({
+          where: { role: 'assistant', session: { type: type as any } },
+          select: { metadata: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        const latencies = messages
+          .map(m => (m.metadata as any)?.latency_ms as number | null)
+          .filter((v): v is number => typeof v === 'number' && v > 0);
+        const avgLatencyMs = latencies.length
+          ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+          : null;
+
+        this.gateway.emitAiActivity({
+          ...wfInfo,
+          total: messages.length,
+          avgLatencyMs,
+          lastActiveAt: message.createdAt.toISOString(),
+        });
+      }
+    }
+
+    return message;
   }
 
   getSessionHistory(sessionId: string) {
@@ -229,23 +292,39 @@ export class AiContextService {
         .catch(() => null);
     }
 
-    // 2. Tạo notification cảnh báo Admin
-    return this.prisma.notification.create({
-      data: {
-        // 'admin-broadcast' là sentinel userId — gateway emit đến room 'admin'
-        userId: 'admin-broadcast',
-        type: 'SYSTEM' as any,
-        title: '🚨 Khiếu nại cần xử lý thủ công',
-        body: `Kênh: ${dto.channel} | User: ${dto.userId} | ${dto.reason}`,
-        data: {
-          sessionId: dto.sessionId,
-          userId: dto.userId,
-          channel: dto.channel,
-          lastMessage: dto.lastMessage,
-          escalatedAt: new Date().toISOString(),
-        },
-      },
+    // 2. Tạo notification cảnh báo cho TỪNG user thuộc nhóm Admin.
+    //    Trước đây dùng sentinel userId 'admin-broadcast' → user không tồn tại
+    //    → FK violation P2003 (Notification.userId reference users.id).
+    const admins = await this.prisma.user.findMany({
+      where: { role: { in: ['ADMIN'] }, isActive: true },
+      select: { id: true },
     });
+
+    const notificationIds: string[] = [];
+    for (const admin of admins) {
+      // Tạo riêng cho từng admin — một notification fail không làm hỏng các admin còn lại
+      const notification = await this.prisma.notification
+        .create({
+          data: {
+            userId: admin.id,
+            type: 'SYSTEM' as any,
+            title: '🚨 Khiếu nại cần xử lý thủ công',
+            body: `Kênh: ${dto.channel} | User: ${dto.userId} | ${dto.reason}`,
+            data: {
+              sessionId: dto.sessionId,
+              userId: dto.userId,
+              channel: dto.channel,
+              lastMessage: dto.lastMessage,
+              escalatedAt: new Date().toISOString(),
+            },
+          },
+          select: { id: true },
+        })
+        .catch(() => null);
+      if (notification) notificationIds.push(notification.id);
+    }
+
+    return { notified: notificationIds.length, notificationIds };
   }
 
   /** Cho phép Admin chủ động bật lại Bot ngay trên Web Portal mà không cần chờ qua 12h đêm */
@@ -254,5 +333,83 @@ export class AiContextService {
       where: { id: sessionId },
       data: { isActive: true },
     });
+  }
+
+  /** GET /agents/conversations — TOÀN BỘ hội thoại CSKH (đang bot + đã escalate). */
+  async getConversations() {
+    const sessions = await this.prisma.aiChatSession.findMany({
+      where: { type: 'CSKH', channel: 'zalo' },
+      include: {
+        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        _count: { select: { messages: true } },
+        employee: { select: { fullName: true, employeeCode: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return sessions.map((s) => ({
+      id: s.id,
+      externalId: s.externalId,
+      escalated: !s.isActive,
+      lastMessage: s.messages[0]?.content ?? '',
+      lastMessageAt: s.messages[0]?.createdAt ?? s.updatedAt,
+      messageCount: s._count.messages,
+      metadata: s.messages[0]?.metadata,
+    }));
+  }
+
+  /** Gửi tin nhắn ra Slack DM của khách (transport demo của kênh Zalo).
+   *  Token SLACK_BOT_TOKEN nằm server-side, không bao giờ xuống browser/n8n response. */
+  async sendSlackDm(externalId: string, content: string) {
+    const token = this.config.get<string>('SLACK_BOT_TOKEN');
+    if (!token) return { delivered: false, reason: 'SLACK_BOT_TOKEN_NOT_CONFIGURED' };
+    if (!externalId || !/^U[A-Z0-9]+$/i.test(externalId)) {
+      return { delivered: false, reason: 'NOT_A_SLACK_USER' };
+    }
+    try {
+      const openRes = await fetch('https://slack.com/api/conversations.open', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: externalId }),
+      });
+      const open = (await openRes.json()) as {
+        ok: boolean;
+        channel?: { id: string };
+        error?: string;
+      };
+      if (!open.ok || !open.channel?.id) {
+        return { delivered: false, reason: `SLACK_OPEN_DM_FAILED:${open.error ?? 'unknown'}` };
+      }
+      const postRes = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: open.channel.id,
+          text: content,
+          // Đánh dấu bot để luồng Events API bỏ qua tin của chính bot (tránh loop)
+          metadata: { event_type: 'hr_agent_reply', event_payload: { source: 'n8n-wf04' } },
+        }),
+      });
+      const post = (await postRes.json()) as { ok: boolean; error?: string; ts?: string };
+      return post.ok
+        ? { delivered: true, ts: post.ts }
+        : { delivered: false, reason: `SLACK_POST_FAILED:${post.error ?? 'unknown'}` };
+    } catch (e) {
+      return { delivered: false, reason: `SLACK_NETWORK_ERROR:${(e as Error).message}` };
+    }
+  }
+
+  /** POST /n8n/outbound-reply — n8n WF04 gọi sau khi AI soạn xong câu trả lời.
+   *  Chọn kênh gửi theo externalId (Slack user id) — kiến trúc giữ tên kênh "zalo". */
+  async deliverOutboundReply(dto: { sessionId?: string; externalId?: string; content: string }) {
+    let externalId = dto.externalId ?? null;
+    if (!externalId && dto.sessionId) {
+      const session = await this.prisma.aiChatSession.findUnique({
+        where: { id: dto.sessionId },
+        select: { externalId: true },
+      });
+      externalId = session?.externalId ?? null;
+    }
+    if (!externalId) return { delivered: false, reason: 'NO_EXTERNAL_ID' };
+    return this.sendSlackDm(externalId, dto.content);
   }
 }

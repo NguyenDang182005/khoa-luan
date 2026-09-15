@@ -61,6 +61,17 @@ Kết nối thành công backend NestJS (`apps/api`) với hệ thống điều 
 
 ## 3. Kết Quả Kiểm Thử E2E (End-to-End Test)
 
+### 🆕 Lượt 5 (14/09): RAG chính sách — Chat "OT cuối tuần" qua Portal → WF01 → WF02
+- **Request:** `POST /agents/chat` (JWT) — message: *"Chinh sach lam them gio ngay nghi cuoi tuan duoc tinh bao nhieu%"*
+- **Hành trình:** WF01 phân loại `HR_QA` → WF02 gọi tool **`SearchPolicyKnowledge`** → NestJS `KnowledgeService` embedding query (Gemini `gemini-embedding-001`, 768 dims) → similarity search trên `policy_chunks` → AI trả lời dựa trên chunk top-1
+- **Response:** *"Theo **Quy chế lương, thưởng và làm thêm giờ** của công ty, làm thêm giờ vào ngày nghỉ hằng tuần được tính **x2.0 lần**."* — trích dẫn đúng tên tài liệu trong kho RAG (prompt gốc không chứa câu chữ này) • Latency: **7.460ms**
+- **Kiểm chứng search API trực tiếp:** query tương tự → top-3 đúng chủ đề, score 0.7351 / 0.6754 / 0.6399 (mode `fallback-cosine` — pgvector OFF trên container hiện tại)
+
+### 🆕 Lượt 6 (14/09): Slack CSKH Transport — challenge + message.im thật
+- **Test 1 — url_verification:** `POST /webhook/slack-events` `{"type":"url_verification","challenge":"…"}` → HTTP 200 echo đúng challenge ✅
+- **Test 2 — message.im:** event giả lập Slack DM → gateway forward → WF04: tạo session + tin User + Gemini trả lời + lưu DB (+2 messages cho `U0SLACK42`) ✅
+- **Điều kiện đã xử lý trước đó:** gateway chạy WF05 recreate (xóa-tạo mới), credential "NestJS API Key" cho các node HTTP, IF operator `true`
+
 ### 🎯 Lượt 1: Tra Cứu Lương Tháng 8/2026 Của `EMP003` (WF01 Router -> WF02 HR QA)
 - **Request:**
   ```http

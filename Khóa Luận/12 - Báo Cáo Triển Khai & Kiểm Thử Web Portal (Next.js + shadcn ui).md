@@ -48,7 +48,7 @@ Hệ thống được phát triển theo cấu trúc Monorepo (`apps/web`), áp 
 - Lưới dữ liệu (TanStack Table) với tìm kiếm tức thời theo tên, mã NV, email.
 - Bộ lọc phòng ban (Kỹ thuật, Nhân sự, CSKH, UI/UX).
 - Thanh tiến độ ngày phép còn lại (9/12 ngày).
-- **Slide-over Drawer:** Xem trọn vẹn hợp đồng, lương đóng bảo hiểm và ghi chú nạp AI Context tự động cho chatbot.
+- **Slide-over Drawer 5 nhóm:** (1) Hồ sơ cá nhân — sửa được phone/địa chỉ/ngày sinh/CCCD (`PATCH /employees/:id`); (2) Nghề vụ & HĐLĐ — quản lý trực tiếp, hợp đồng active + lương; (3) Công & phép — phép năm + tổng hợp chấm công tháng; (4) Lịch sử lương (`GET /payroll/employee/:id`); (5) Trạng thái & tài khoản — switcher trạng thái (`PATCH /employees/:id/status`, validate enum 400 nếu sai) + ghi chú nạp AI Context tự động cho chatbot.
 
 ### 3. Bảng Lương & Rule Engine Tự Động (`/components/views/payroll-view.tsx`)
 - Bảng lương Gross-to-Net chuẩn Luật Lao động Việt Nam:
@@ -56,16 +56,18 @@ Hệ thống được phát triển theo cấu trúc Monorepo (`apps/web`), áp 
   - Giảm trừ gia cảnh (Bản thân 11tr, Phụ thuộc 4.4tr/người).
   - Thuế TNCN lũy tiến 7 bậc.
 - Nút bấm chạy **Rule Engine** tự động tính toán lại toàn bộ doanh nghiệp trong 1.2 giây.
+- **Duyệt hàng loạt:** checkbox chọn từng phiếu / chọn tất cả → `POST /payroll/approve-bulk` (DRAFT→APPROVED) hoặc `paid-bulk` (APPROVED→PAID), dialog xác nhận; duyệt từng phiếu vẫn giữ nguyên.
 - Dialog cài đặt quy chế lương (`SalaryConfig`).
 
 ### 4. Trung Tâm Điều Khiển AI Multi-Agents (`/components/views/ai-agents-view.tsx`)
-- Tương tác chat 2 chiều trực tiếp với 4 workflows n8n.
-- Phản hồi sinh động mô phỏng n8n execution kèm độ trễ (`⚡ 180ms`), model `gemini-3.5-flash`.
-- Right Inspector hiển thị thông số kỹ thuật, accuracy 99.1%, số nguồn trích xuất dữ liệu NestJS và quy tắc reset phiên sau 00:00 VN.
+- Tương tác chat 2 chiều trực tiếp với 4 workflows n8n (qua backend proxy JWT).
+- Độ trễ đo thật từ `/agents/performance` (metadata `latency_ms` lưu khi n8n gọi NestJS), model `gemini-2.5-flash`.
+- Right Inspector hiển thị thông số kỹ thuật, success rate tính từ DB, số nguồn trích xuất dữ liệu NestJS, quy tắc reset phiên sau 00:00 VN, và **thống kê định tuyến intent** (tỷ lệ HR_QA/CSKH/TRAINING/OTHER + số escalation) từ `GET /agents/intent-stats`.
 
 ### 5. Tiếp Quản CSKH & PII Audit Trail (`/components/views/cskh-escalation-view.tsx`) — *Killer Features #2 & #4*
-- **Cảnh báo khẩn cấp:** Banner đỏ rực rỡ với hiệu ứng nhấp nháy mô phỏng nhận WebSocket khi khách hàng Zalo có chỉ số giận dữ > 9/10.
-- **Split Chat Tiếp Quản:** Nhân viên HR/Admin nhắn tin can thiệp trực tiếp thay thế Bot (Mute).
+- **Cảnh báo khẩn cấp:** Banner đỏ rực rỡ với hiệu ứng nhấp nháy nhận WebSocket khi phiên CSKH bị escalate thật từ WF04 (kênh Zalo — transport demo Slack DM).
+- **Tất cả hội thoại:** Tab chuyển giữa "Chờ xử lý" (escalated) và toàn bộ phiên CSKH (`GET /agents/conversations`).
+- **Split Chat Tiếp Quản:** Nhân viên HR/Admin nhắn tin can thiệp trực tiếp thay thế Bot — phản hồi lưu phiên và forward thẳng tới Slack DM khách (`POST /agents/chat-session/:id/reply`).
 - **Nút 1-click [🤖 Bật Lại Bot AI]:** Gọi API On-demand reactivation (`POST /api/v1/n8n/chat/session/:sessionId/reactivate`) giúp bật lại Bot ngay trong ngày mà không cần đợi sang nửa đêm.
 - **Kiểm toán PII Masking:** Bảng đối chiếu song song giữa tin nhắn nội bộ chứa CCCD/SĐT và chuỗi dữ liệu đã che `[MASKED_ID]`, `[MASKED_PHONE]` gửi lên Gemini Cloud.
 
@@ -93,7 +95,9 @@ Hệ thống đã được kiểm thử trực tiếp trên trình duyệt Chrom
 | **Biên dịch TypeScript** | `pnpm --filter web check-types` | `next typegen && tsc --noEmit` hoàn thành với **0 lỗi** | ✅ Pass |
 | **Build Production** | `pnpm --filter web build` | Turbopack biên dịch thành công 4/4 static pages | ✅ Pass |
 | **Hiển thị Dashboard** | Điều hướng Tab 1 | Recharts AreaChart & PieChart hiển thị sắc nét | ✅ Pass |
-| **Drawer Hồ Sơ** | Click "Xem Hồ Sơ" NV-001 | Drawer trượt từ phải sang hiển thị đầy đủ lương & AI context | ✅ Pass |
+| **Drawer Hồ Sơ 5 Nhóm** | Click "Xem Hồ Sơ" | Drawer hiển thị đủ: cá nhân (sửa được), nghề vụ & HĐLĐ, công & phép, lịch sử lương, trạng thái & tài khoản | ✅ Pass |
+| **Sửa Hồ Sơ / Đổi Trạng Thái** | Drawer → "Sửa hồ sơ" / switcher | `PATCH /employees/:id` lưu mới; status sai enum bị backend chặn 400 | ✅ Pass |
+| **Duyệt Lương Hàng Loạt** | Chọn nhiều phiếu DRAFT → Duyệt | `approve-bulk` chuyển DRAFT→APPROVED một lượt, bảng tự refresh | ✅ Pass |
 | **Dialog Quy Chế** | Click "Cài Đặt Quy Chế" | Modal hiện lên với hiệu ứng làm mờ nền (Backdrop blur) | ✅ Pass |
 | **Chat AI Agents** | Chuyển đổi 4 workflows | Chat stream hiển thị các badge và thẻ Inspector cập nhật tương ứng | ✅ Pass |
 | **Tiếp Quản CSKH** | Tab Escalation | Banner đỏ nhấp nháy, chat tiếp quản và tab PII Masking hoạt động chuẩn | ✅ Pass |

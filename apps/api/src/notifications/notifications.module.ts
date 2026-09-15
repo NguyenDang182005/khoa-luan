@@ -5,10 +5,9 @@ import {
   NotificationsService,
 } from './notifications.gateway';
 import { PrismaModule } from '../prisma/prisma.module';
-import { AiContextModule } from '../ai-context/ai-context.module';
 
 @Module({
-  imports: [PrismaModule, AiContextModule],
+  imports: [PrismaModule],
   controllers: [NotificationsController],
   providers: [NotificationsGateway, NotificationsService],
   exports: [NotificationsService, NotificationsGateway],

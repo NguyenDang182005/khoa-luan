@@ -31,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst userId = body.sender?.id || body.user_id || body.userId || body.employeeId || \"guest\";\nconst text = body.message?.text || (typeof body.message === 'string' ? body.message : '') || body.originalMessage || body.maskedMessage || \"\";\nif (!text) return [];\nreturn [{ json: { userId, message: text, channel: body.channel || \"zalo\", externalId: userId } }];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\n// Slack Events API (transport demo của kênh Zalo) — chỉ nhận DM từ người thật\nconst evt = body.event;\nif (evt && evt.type === \"message\" && evt.channel_type === \"im\" && evt.text && !evt.bot_id && evt.subtype === undefined) {\n  return [{ json: { userId: evt.user, message: evt.text, originalMessage: evt.text, channel: \"zalo\", externalId: evt.user } }];\n}\n// Zalo OA / payload test của WF01 Router\nconst userId = body.sender?.id || body.user_id || body.userId || body.employeeId || \"guest\";\nconst raw = body.message?.text || (typeof body.message === 'string' ? body.message : '') || body.originalMessage || body.maskedMessage || \"\";\nif (!raw) return [];\nconst masked = body.maskedMessage || raw;\nreturn [{ json: { userId, message: masked, originalMessage: raw, channel: body.channel || \"zalo\", externalId: userId } }];"
       },
       "id": "parse-zalo",
       "name": "Parse Zalo Message",
@@ -48,15 +48,6 @@
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HR_API_KEY }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: \"CSKH\", channel: \"zalo\", externalId: $json.userId }) }}",
@@ -69,7 +60,13 @@
       "position": [
         680,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -77,18 +74,9 @@
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HR_API_KEY }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $json.id, role: \"user\", content: $(\"Parse Zalo Message\").first().json.message, metadata: { channel: \"zalo\", userId: $(\"Parse Zalo Message\").first().json.userId } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.id, role: \"user\", content: $(\"Parse Zalo Message\").first().json.originalMessage, metadata: { channel: \"zalo\", maskedMessage: $(\"Parse Zalo Message\").first().json.message, userId: $(\"Parse Zalo Message\").first().json.userId } }) }}",
         "options": {}
       },
       "id": "save-user-msg",
@@ -98,7 +86,13 @@
       "position": [
         900,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -121,7 +115,7 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash",
+        "modelName": "models/gemini-2.5-flash",
         "options": {
           "temperature": 0.5,
           "maxOutputTokens": 1024
@@ -165,7 +159,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = $input.first().json.output || \"\";\nconst session = $(\"Get/Create CSKH Session\").first().json;\nconst userId = $(\"Parse Zalo Message\").first().json.userId;\nconst userMsg = $(\"Parse Zalo Message\").first().json.message;\nconst escalateMatch = output.match(/\\[CAN_ESCALATE:\\s*([^\\]]+)\\]/);\nconst shouldEscalate = !!escalateMatch;\nconst escalateReason = escalateMatch ? escalateMatch[1].trim() : null;\nconst answer = output.replace(/\\[CAN_ESCALATE:[^\\]]*\\]/, '').trim() || \"Xin loi, vui long thu lai sau.\";\nreturn [{ json: { answer, shouldEscalate, escalateReason, sessionId: session.id, userId, userMessage: userMsg } }];"
+        "jsCode": "const output = $input.first().json.output || \"\";\nconst session = $(\"Get/Create CSKH Session\").first().json;\nconst userId = $(\"Parse Zalo Message\").first().json.userId;\nconst userMsg = $(\"Parse Zalo Message\").first().json.originalMessage;\nconst escalateMatch = output.match(/\\[CAN_ESCALATE:\\s*([^\\]]+)\\]/);\nconst shouldEscalate = !!escalateMatch;\nconst escalateReason = escalateMatch ? escalateMatch[1].trim() : null;\nconst answer = output.replace(/\\[CAN_ESCALATE:[^\\]]*\\]/, '').trim() || \"Xin loi, vui long thu lai sau.\";\nreturn [{ json: { answer, shouldEscalate, escalateReason, sessionId: session.id, userId, userMessage: userMsg } }];"
       },
       "id": "parse-output",
       "name": "Parse CSKH Output",
@@ -182,15 +176,6 @@
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HR_API_KEY }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.answer, metadata: { model: \"gemini-2.5-flash\", escalated: $json.shouldEscalate, escalateReason: $json.escalateReason } }) }}",
@@ -203,39 +188,42 @@
       "position": [
         1540,
         160
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "https://openapi.zalo.me/v3.0/oa/message/cs",
+        "url": "http://host.docker.internal:3001/api/v1/n8n/outbound-reply",
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "access_token",
-              "value": "={{ $env.ZALO_OA_ACCESS_TOKEN }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ recipient: { user_id: $json.userId }, message: { text: $json.answer } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, externalId: $json.userId, content: $json.answer }) }}",
         "options": {
           "timeout": 10000
         }
       },
       "id": "send-zalo",
-      "name": "Send Zalo Reply",
+      "name": "Send Reply Outbound",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         1540,
         300
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -249,10 +237,11 @@
           "conditions": [
             {
               "leftValue": "={{ $json.shouldEscalate }}",
-              "rightValue": true,
+              "rightValue": "",
               "operator": {
                 "type": "boolean",
-                "operation": "equal"
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -275,15 +264,6 @@
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HR_API_KEY }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Parse CSKH Output\").first().json.sessionId, userId: $(\"Parse CSKH Output\").first().json.userId, channel: \"zalo\", lastMessage: $(\"Parse CSKH Output\").first().json.userMessage, reason: $(\"Parse CSKH Output\").first().json.escalateReason || \"AI phat hien vuot pham vi CSKH\" }) }}",
@@ -296,7 +276,13 @@
       "position": [
         1760,
         400
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -389,7 +375,7 @@
             "index": 0
           },
           {
-            "node": "Send Zalo Reply",
+            "node": "Send Reply Outbound",
             "type": "main",
             "index": 0
           },

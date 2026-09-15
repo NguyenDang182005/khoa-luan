@@ -30,10 +30,11 @@ export class AiContextController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
+    const now = new Date();
     return this.service.getPayrollContext(
       employeeId,
-      Number(month),
-      Number(year),
+      Number(month) || now.getMonth() + 1,
+      Number(year) || now.getFullYear(),
     );
   }
 
@@ -96,5 +97,15 @@ export class AiContextController {
   @Post('chat/session/:sessionId/reactivate')
   reactivateSession(@Param('sessionId') sessionId: string) {
     return this.service.reactivateSession(sessionId);
+  }
+
+  /** n8n WF04 gọi sau khi AI soạn xong câu trả lời — NestJS chịu trách nhiệm
+   *  gửi ra kênh khách hàng (Slack DM trong demo, giữ tên kênh "zalo"). */
+  @ApiOperation({ summary: 'Gửi câu trả lời AI ra kênh khách hàng (Slack DM)' })
+  @Post('outbound-reply')
+  outboundReply(
+    @Body() dto: { sessionId?: string; externalId?: string; content: string },
+  ) {
+    return this.service.deliverOutboundReply(dto);
   }
 }

@@ -3,18 +3,13 @@
 import * as React from "react"
 import {
   ShieldAlert,
-  AlertTriangle,
-  BellRing,
   Bot,
   UserCheck,
   Send,
   Lock,
-  Eye,
-  RefreshCw,
   CheckCircle2,
-  Phone,
-  Volume2,
-  VolumeX,
+  Loader2,
+  Inbox,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,124 +17,199 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
-interface EscalatedCase {
-  id: string
-  customerName: string
-  zaloId: string
-  phone: string
-  angerScore: number
-  waitTime: string
-  reason: string
-  botActive: boolean
-  lastMessage: string
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import {
+  escalationApi,
+  type EscalationCase,
+  type ConversationItem,
+  type ChatHistoryMessage,
+  type PiiAuditItem,
+  type ReplyDelivery,
+} from '@/lib/api/escalation.api'
+
+const CHAT_TYPE_LABEL: Record<string, string> = {
+  HR_QA: "HR Q&A (nội bộ)",
+  CSKH: "CSKH Zalo",
+  TRAINING: "Đào tạo",
+  OTHER: "Khác",
 }
 
-const mockCases: EscalatedCase[] = [
-  {
-    id: "ESC-01",
-    customerName: "Nguyễn Thị Thu (Khách VIP)",
-    zaloId: "zalo_98412",
-    phone: "0987***321",
-    angerScore: 9.8,
-    waitTime: "1 phút 15 giây",
-    reason: "Hàng giao trễ 3 ngày hỏng sự kiện ra mắt, dọa kiện pháp lý",
-    botActive: false,
-    lastMessage: "Tôi yêu cầu nói chuyện trực tiếp với quản lý ngay bây giờ!",
-  },
-  {
-    id: "ESC-02",
-    customerName: "Trần Bảo Nam",
-    zaloId: "zalo_11204",
-    phone: "0903***554",
-    angerScore: 8.6,
-    waitTime: "4 phút 30 giây",
-    reason: "Sản phẩm lỗi kỹ thuật chưa được đổi mới theo cam kết",
-    botActive: false,
-    lastMessage: "Đã nhắn tin từ sáng tới giờ chưa ai giải quyết đổi hàng!",
-  },
-]
-
-const piiAuditData = [
-  {
-    time: "14:32:05",
-    channel: "Zalo CSKH",
-    raw: "Tôi là Hoàng Nam, CCCD 038095012345, SĐT 0912345678, cần hỗ trợ gấp đơn #8821.",
-    masked: "Tôi là Hoàng Nam, CCCD [MASKED_ID], SĐT [MASKED_PHONE], cần hỗ trợ gấp đơn #8821.",
-    status: "Đã khử định danh 100%",
-  },
-  {
-    time: "14:28:40",
-    channel: "HR Portal",
-    raw: "Gửi hợp đồng qua email ca-nhan-nam@gmail.com và số tài khoản 19034567890.",
-    masked: "Gửi hợp đồng qua email [MASKED_EMAIL] và số tài khoản [MASKED_ACCOUNT].",
-    status: "Đã khử định danh 100%",
-  },
-]
-
 export function CskhEscalationView() {
-  const [cases, setCases] = React.useState<EscalatedCase[]>(mockCases)
-  const [activeCaseId, setActiveCaseId] = React.useState("ESC-01")
-  const [audioEnabled, setAudioEnabled] = React.useState(true)
-  const [humanReply, setHumanReply] = React.useState("")
-  const [chatLog, setChatLog] = React.useState<
-    { sender: "customer" | "bot" | "human"; text: string; time: string }[]
-  >([
-    {
-      sender: "customer",
-      text: "Shop làm ăn kiểu gì vậy? Hàng giao trễ 3 ngày nay làm hỏng cả sự kiện khai trương của tôi!",
-      time: "14:30",
-    },
-    {
-      sender: "bot",
-      text: "Dạ em rất xin lỗi vì sự cố chậm trễ này đã ảnh hưởng nghiêm trọng đến sự kiện của chị Thu ạ. Em đã ghi nhận đơn hàng #8821.",
-      time: "14:30",
-    },
-    {
-      sender: "customer",
-      text: "Tôi không muốn nói chuyện với máy móc nữa! Cho tôi gặp trực tiếp quản lý ngay nếu không tôi sẽ báo hội bảo vệ người tiêu dùng!",
-      time: "14:31",
-    },
-    {
-      sender: "bot",
-      text: "🚨 [Hệ thống tự động kích hoạt Escalate] Em đã chuyển trường hợp khẩn cấp này cho Trưởng ca CSKH tiếp quản ngay bây giờ ạ!",
-      time: "14:31",
-    },
-  ])
+  const [escalationQueue, setEscalationQueue] = useState<EscalationCase[]>([])
+  const [queueError, setQueueError] = useState<string | null>(null)
+  const [activeCaseId, setActiveCaseId] = useState<string | null>(null)
+  const [chatLog, setChatLog] = useState<ChatHistoryMessage[]>([])
+  const [queueLoading, setQueueLoading] = useState(true)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [replyBusy, setReplyBusy] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
 
-  const activeCase = (cases.find((c) => c.id === activeCaseId) || cases[0] || mockCases[0])!
+  const [auditItems, setAuditItems] = useState<PiiAuditItem[]>([])
+  const [auditLoading, setAuditLoading] = useState(true)
 
-  const handleSendHuman = () => {
-    if (!humanReply.trim()) return
-    setChatLog((prev) => [
-      ...prev,
-      {
-        sender: "human",
-        text: humanReply.trim(),
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ])
-    setHumanReply("")
+  const [humanReply, setHumanReply] = useState("")
+  const [allConversations, setAllConversations] = useState<ConversationItem[]>([])
+  const [showAll, setShowAll] = useState(false)
+  const [deliveryNote, setDeliveryNote] = useState<ReplyDelivery | null>(null)
+
+  // Hàng đợi escalate + toàn bộ hội thoại CSKH — poll 10s từ backend (JWT)
+  const fetchQueues = useCallback(async () => {
+    try {
+      const queue = await escalationApi.getQueue()
+      setEscalationQueue(queue)
+      setQueueError(null)
+    } catch (e) {
+      console.error(e)
+      const status = (e as { response?: { status?: number } })?.response?.status
+      setQueueError(
+        status === 403
+          ? "Tài khoản của bạn không có quyền xem hội thoại CSKH (yêu cầu Admin / HR Manager / HR Admin)."
+          : "Không tải được dữ liệu hội thoại từ máy chủ.",
+      )
+    } finally {
+      setQueueLoading(false)
+    }
+    try {
+      setAllConversations(await escalationApi.getAllConversations())
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
+  useEffect(() => { fetchQueues() }, [fetchQueues])
+
+  useEffect(() => {
+    const interval = setInterval(fetchQueues, 10000)
+    return () => clearInterval(interval)
+  }, [fetchQueues])
+
+  // "Tất cả hội thoại": chuẩn hóa escalated vào metadata để dùng chung UI
+  const displayList = useMemo<EscalationCase[]>(
+    () =>
+      showAll
+        ? allConversations.map((c) => ({
+            ...c,
+            metadata: { ...(c.metadata ?? {}), escalated: c.escalated },
+          }))
+        : escalationQueue,
+    [showAll, allConversations, escalationQueue],
+  )
+
+  // Giữ selection hợp lệ khi đổi tab hoặc danh sách thay đổi
+  useEffect(() => {
+    setActiveCaseId((prev) => {
+      if (prev && displayList.some((c) => c.id === prev)) return prev
+      return displayList[0]?.id ?? null
+    })
+  }, [displayList])
+
+  // Nhật ký PII thật từ database
+  useEffect(() => {
+    escalationApi
+      .getPiiAudit(20)
+      .then(setAuditItems)
+      .catch((e) => console.error(e))
+      .finally(() => setAuditLoading(false))
+  }, [])
+
+  const fetchChatHistory = useCallback(async (sessionId: string) => {
+    setHistoryLoading(true)
+    try {
+      const history = await escalationApi.getChatHistory(sessionId)
+      setChatLog(history.messages)
+    } catch (e) {
+      console.error(e)
+      setChatLog([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeCaseId) fetchChatHistory(activeCaseId)
+  }, [activeCaseId, fetchChatHistory])
+
+  const activeCase = displayList.find((c) => c.id === activeCaseId) ?? displayList[0] ?? null
+  const meta = activeCase?.metadata ?? {}
+
+  /** Gửi phản hồi tiếp quản — lưu vào phiên qua backend (JWT) */
+  const handleSendHuman = async () => {
+    const content = humanReply.trim()
+    if (!content || !activeCaseId || replyBusy) return
+    setReplyBusy(true)
+    setReplyError(null)
+    try {
+      const { message: saved, delivery } = await escalationApi.sendHumanReply(activeCaseId, content)
+      setChatLog((prev) => [...prev, saved])
+      setHumanReply("")
+      setDeliveryNote(delivery)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setReplyError(msg ?? "Không gửi được phản hồi. Vui lòng thử lại.")
+    } finally {
+      setReplyBusy(false)
+    }
   }
 
-  const handleReactivateBot = (caseId: string) => {
-    setCases((prev) =>
-      prev.map((c) => (c.id === caseId ? { ...c, botActive: true } : c))
+  const handleReactivateBot = async () => {
+    if (!activeCaseId) return
+    setReplyBusy(true)
+    try {
+      await escalationApi.reactivateBot(activeCaseId)
+      await fetchQueues()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setReplyBusy(false)
+    }
+  }
+
+  if (queueLoading && escalationQueue.length === 0) {
+    return (
+      <div className="flex p-8 items-center justify-center gap-2 text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Đang tải dữ liệu...
+      </div>
     )
-    setChatLog((prev) => [
-      ...prev,
-      {
-        sender: "bot",
-        text: "🤖 [Hệ thống thông báo]: Nhân viên quản trị đã bật lại AI Bot cho khách hàng này. Phiên chat tiếp tục được phục vụ bởi Gemini 3.5 Flash.",
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ])
+  }
+
+  if (!activeCase) {
+    // Phân biệt rõ: lỗi quyền/mạng ≠ hết hội thoại
+    if (queueError) {
+      return (
+        <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center p-6">
+          <div className="flex size-16 items-center justify-center rounded-full bg-red-500/10">
+            <ShieldAlert className="size-8 text-red-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Không tải được hội thoại</h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">{queueError}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Đang đăng nhập với quyền hạn chế — hãy dùng tài khoản Admin (VD: admin@hr-system.com) để xem bàn tiếp quản CSKH.
+            </p>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+          <CheckCircle2 className="size-8 text-muted-foreground" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Chưa có hội thoại CSKH nào</h2>
+          <p className="text-sm text-muted-foreground">
+            Khi khách nhắn tin vào kênh (Slack transport của Zalo), hội thoại sẽ xuất hiện tại đây.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* KILLER FEATURE #2: EMERGENCY WEBSOCKET ESCALATION BANNER */}
-      <div className="relative overflow-hidden rounded-xl border border-agent-coral/40 bg-gradient-to-r from-agent-coral/20 via-agent-coral/10 to-transparent p-4 shadow-lg">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* BANNER TRẠNG THÁI — poll 10s từ backend */}
+      {meta.escalated === true ? (
+        <div className="relative overflow-hidden rounded-xl border border-agent-coral/40 bg-gradient-to-r from-agent-coral/20 via-agent-coral/10 to-transparent p-4 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="relative flex size-10 items-center justify-center rounded-xl bg-agent-coral text-white shadow-md shadow-agent-coral/30 animate-pulse">
               <ShieldAlert className="size-6" />
@@ -151,28 +221,38 @@ export function CskhEscalationView() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-foreground">
-                  CẢNH BÁO WEBSOCKET: PHÁT HIỆN KHIẾU NẠI KHẨN CẤP (HUMAN-IN-THE-LOOP)
+                  CẢNH BÁO ESCALATION: PHIÊN CẦN CHUYÊN VIÊN TIẾP QUẢN (HUMAN-IN-THE-LOOP)
                 </h2>
-                <Badge variant="coral">Chỉ số giận dữ: {activeCase.angerScore}/10</Badge>
+                <Badge variant="coral">
+                  {meta.escalated ? "Bot tạm dừng" : "Bot đang hoạt động"}
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                WF04 (CSKH Agent) đã tự động ngắt kết nối Bot (Mute) để nhường quyền can thiệp cho chuyên viên HR/Admin
+                {meta.escalateReason
+                  ? `WF04 CSKH Agent ghi nhận: ${meta.escalateReason}.`
+                  : "WF04 (CSKH Agent) đã chuyển phiên cho chuyên viên."}{" "}
+                Tin nhắn gần nhất: {activeCase.lastMessage ? `“${activeCase.lastMessage}”` : "--"} • Cập nhật hàng đợi mỗi 10 giây.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => setAudioEnabled(!audioEnabled)}
-              className="gap-1.5 border-agent-coral/30"
-            >
-              {audioEnabled ? <Volume2 className="size-3.5 text-agent-coral" /> : <VolumeX className="size-3.5" />}
-              {audioEnabled ? "Chuông Báo Động: Bật" : "Chuông: Tắt"}
-            </Button>
+        </div>
+      ) : (
+        <div className="relative overflow-hidden rounded-xl border border-agent-teal/40 bg-gradient-to-r from-agent-teal/20 via-agent-teal/10 to-transparent p-4 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-agent-teal text-white shadow-md shadow-agent-teal/30">
+              <Inbox className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-foreground">
+                HỘP THƯ AI — Bot đang chủ động phục vụ khách qua kênh Zalo (Slack transport)
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Tin nhắn khách và câu trả lời AI được ghi nhận đầy đủ tại đây. Khi AI phát hiện rủi ro vượt thẩm quyền, phiên tự escalate sang hàng đợi khẩn cấp. Cập nhật mỗi 10 giây.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs: Takeover Console vs PII Masking Audit Trail */}
       <Tabs defaultValue="console" className="w-full">
@@ -197,32 +277,66 @@ export function CskhEscalationView() {
             <Card className="lg:col-span-1">
               <CardHeader>
                 <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Hàng Đợi Khẩn Cấp ({cases.length})
+                  {showAll ? `Tất Cả Hội Thoại (${displayList.length})` : `Hàng Đợi Khẩn Cấp (${displayList.length})`}
                 </CardTitle>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setShowAll(false)}
+                    className={`rounded-lg border px-2 py-1 text-[10px] font-semibold transition ${
+                      !showAll
+                        ? "border-agent-coral/50 bg-agent-coral/10 text-agent-coral"
+                        : "border-border text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    Chờ xử lý ({escalationQueue.length})
+                  </button>
+                  <button
+                    onClick={() => setShowAll(true)}
+                    className={`rounded-lg border px-2 py-1 text-[10px] font-semibold transition ${
+                      showAll
+                        ? "border-agent-teal/50 bg-agent-teal/10 text-agent-teal"
+                        : "border-border text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    Tất cả hội thoại ({allConversations.length})
+                  </button>
+                </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-2.5 p-4 pt-0">
-                {cases.map((c) => {
+                {displayList.map((c) => {
                   const isSelected = c.id === activeCaseId
+                  const caseMeta = c.metadata ?? {}
+                  const botPaused = caseMeta.escalated === true
                   return (
                     <div
                       key={c.id}
                       onClick={() => setActiveCaseId(c.id)}
                       className={`flex flex-col gap-2 rounded-xl border p-3 cursor-pointer transition-all ${
                         isSelected
-                          ? "border-agent-coral bg-agent-coral/10 shadow-sm"
+                          ? botPaused
+                            ? "border-agent-coral bg-agent-coral/10 shadow-sm"
+                            : "border-agent-teal bg-agent-teal/10 shadow-sm"
                           : "border-border bg-card hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground">{c.customerName}</span>
-                        <Badge variant={c.botActive ? "teal" : "coral"} className="text-[10px] py-0">
-                          {c.botActive ? "Bot Đang Bật" : "Bot Đã Tắt (Mute)"}
+                        <span className="text-xs font-bold text-foreground">
+                          {caseMeta.customerName || `Khách ${c.externalId ? c.externalId.slice(0, 10) : "Zalo"}`}
+                        </span>
+                        <Badge variant={botPaused ? "coral" : "teal"} className="text-[10px] py-0">
+                          {botPaused ? "Bot Tạm Dừng" : "Bot Đang Bật"}
                         </Badge>
                       </div>
-                      <p className="text-[11px] text-agent-coral font-medium">⚠️ {c.reason}</p>
+                      <p className={`text-[11px] font-medium line-clamp-2 ${botPaused ? "text-agent-coral" : "text-muted-foreground"}`}>
+                        {botPaused
+                          ? `⚠️ ${caseMeta.escalateReason ?? c.lastMessage ?? "Không rõ lý do"}`
+                          : c.lastMessage ?? "--"}
+                      </p>
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/50 pt-2 mt-1">
-                        <span>Chờ phản hồi: {c.waitTime}</span>
-                        <span>{c.zaloId}</span>
+                        <span>{c.messageCount} tin nhắn</span>
+                        <span>
+                          {c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "--"}
+                        </span>
                       </div>
                     </div>
                   )
@@ -236,59 +350,79 @@ export function CskhEscalationView() {
                 <div className="flex items-center gap-3">
                   <Avatar initials="KH" className="bg-agent-coral/20 text-agent-coral border border-agent-coral/30" />
                   <div>
-                    <h3 className="text-xs font-bold text-foreground">{activeCase.customerName}</h3>
+                    <h3 className="text-xs font-bold text-foreground">
+                      {meta.customerName || `Khách hàng Zalo`}
+                    </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      Kênh: Zalo OA • Mã khách: {activeCase.zaloId} • SĐT: {activeCase.phone}
+                      Kênh: Zalo OA • Mã khách: {activeCase.externalId || "--"} • {activeCase.messageCount} tin nhắn
+                      {meta.model ? ` • Model bot: ${meta.model}` : ""}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {!activeCase.botActive ? (
+                  {meta.escalated === true ? (
                     <Button
                       size="xs"
                       variant="outline"
-                      onClick={() => handleReactivateBot(activeCase.id)}
+                      disabled={replyBusy}
+                      onClick={() => handleReactivateBot()}
                       className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 gap-1"
                     >
-                      <Bot className="size-3.5" /> 🤖 Bật Lại Bot AI Ngay
+                      {replyBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Bot className="size-3.5" />} 🤖 Bật Lại Bot AI Ngay
                     </Button>
                   ) : (
-                    <Badge variant="teal">Bot Đã Hoạt Động Trở Lại</Badge>
+                    <Badge variant="teal">Bot Đang Hoạt Động</Badge>
                   )}
                 </div>
               </CardHeader>
 
-              {/* Chat Messages */}
+              {/* Chat Messages — lịch sử thật từ backend */}
               <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                {chatLog.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex flex-col max-w-[80%] rounded-xl p-3 text-xs leading-relaxed ${
-                      item.sender === "customer"
-                        ? "self-start bg-muted/60 text-foreground border border-border"
-                        : item.sender === "bot"
-                        ? "self-end bg-agent-coral/15 text-foreground border border-agent-coral/30"
-                        : "self-end bg-primary text-primary-foreground shadow-sm"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-4 text-[10px] opacity-75 mb-1">
-                      <span className="font-semibold">
-                        {item.sender === "customer"
-                          ? activeCase.customerName
-                          : item.sender === "bot"
-                          ? "WF04 CSKH AI Bot"
-                          : "HR Admin (Bạn)"}
-                      </span>
-                      <span>{item.time}</span>
-                    </div>
-                    <p>{item.text}</p>
+                {historyLoading ? (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground gap-2">
+                    <Loader2 className="size-3.5 animate-spin" /> Đang tải lịch sử hội thoại...
                   </div>
-                ))}
+                ) : chatLog.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    Chưa có tin nhắn trong phiên này.
+                  </div>
+                ) : (
+                  chatLog.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex flex-col max-w-[80%] rounded-xl p-3 text-xs leading-relaxed ${
+                        item.role === "user"
+                          ? "self-start bg-muted/60 text-foreground border border-border"
+                          : "self-end bg-primary text-primary-foreground shadow-sm"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-4 text-[10px] opacity-75 mb-1">
+                        <span className="font-semibold">
+                          {item.role === "user"
+                            ? (meta.customerName || "Khách hàng Zalo")
+                            : item.metadata && (item.metadata as Record<string, unknown>).sender === 'human'
+                              ? "HR Admin (Bạn)"
+                              : "AI Bot"}
+                        </span>
+                        <span>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="whitespace-pre-wrap">{item.content}</p>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Chat Input Bar */}
               <div className="border-t border-border p-3 bg-composer">
+                {replyError && <p className="mb-2 text-[11px] text-agent-coral">{replyError}</p>}
+                {deliveryNote && (
+                  <p className={`mb-2 text-[11px] ${deliveryNote.delivered ? "text-emerald-400" : "text-agent-amber"}`}>
+                    {deliveryNote.delivered
+                      ? `✅ Đã lưu phiên và forward tới Slack DM khách hàng${deliveryNote.ts ? ` (ts ${deliveryNote.ts})` : ""}.`
+                      : `⚠️ Đã lưu vào phiên nhưng CHƯA gửi tới Slack (${deliveryNote.reason ?? "không rõ"}). Kiểm tra SLACK_BOT_TOKEN / externalId.`}
+                  </p>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     value={humanReply}
@@ -296,53 +430,65 @@ export function CskhEscalationView() {
                     onKeyDown={(e) => e.key === "Enter" && handleSendHuman()}
                     placeholder="Nhập nội dung tiếp quản với tư cách Chuyên viên HR/Admin..."
                     className="flex-1 rounded-lg border border-border bg-input/40 px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+                    disabled={replyBusy}
                   />
-                  <Button size="sm" onClick={handleSendHuman} className="gap-1 bg-primary text-primary-foreground">
-                    <Send className="size-3.5" /> Gửi
+                  <Button size="sm" onClick={handleSendHuman} disabled={replyBusy || !humanReply.trim()} className="gap-1 bg-primary text-primary-foreground">
+                    {replyBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Gửi
                   </Button>
                 </div>
+                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                  Phản hồi được NestJS lưu vào phiên và forward thẳng tới Slack DM của khách (transport demo của kênh Zalo) — không cần bật lại Bot.
+                </p>
               </div>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Tab 2: PII Masking Audit Trail */}
+        {/* Tab 2: PII Audit — dữ liệu thật từ AiChatMessage */}
         <TabsContent value="audit" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Lock className="size-4 text-emerald-400" />
-                Kiểm Toán Mã Hóa Dữ Liệu Riêng Tư (PII Masking Audit Trail)
+                Nhật Ký Dữ Liệu Đã Khử Định Danh (PII Audit Trail)
               </CardTitle>
               <CardDescription>
-                Chứng minh toàn bộ CCCD, Số điện thoại và Email đều bị che trước khi chuyển đến Google Gemini Cloud
+                Các tin nhắn thực tế được lưu vào hệ thống — đã qua bước PII Masking của WF01 trước khi gửi tới Google Gemini
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-4">
-                {piiAuditData.map((item, idx) => (
-                  <div key={idx} className="rounded-xl border border-border p-4 bg-muted/20">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-2 mb-3">
-                      <span className="text-xs font-mono text-muted-foreground">{item.time} • Kênh {item.channel}</span>
-                      <Badge variant="success">{item.status}</Badge>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 text-xs">
-                      <div className="rounded-lg bg-card p-3 border border-border">
-                        <p className="text-[10px] font-semibold uppercase text-agent-coral mb-1">
-                          Nội dung gốc trong nội bộ (Database)
-                        </p>
-                        <p className="text-muted-foreground">{item.raw}</p>
+              {auditLoading ? (
+                <div className="flex h-32 items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" /> Đang tải nhật ký...
+                </div>
+              ) : auditItems.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Chưa có tin nhắn nào được ghi nhận.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {auditItems.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-border p-4 bg-muted/20">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2 mb-3">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {new Date(item.createdAt).toLocaleString("vi-VN")} •{" "}
+                          {CHAT_TYPE_LABEL[item.session?.type ?? ''] ?? item.session?.type ?? "Không rõ kênh"}
+                          {item.session?.externalId ? ` • ${item.session.externalId}` : ""}
+                        </span>
+                        <Badge variant="success">Đã lưu sau masking</Badge>
                       </div>
-                      <div className="rounded-lg bg-emerald-500/10 p-3 border border-emerald-500/20">
-                        <p className="text-[10px] font-semibold uppercase text-emerald-400 mb-1">
-                          Chuỗi dữ liệu an toàn gửi lên Gemini AI
-                        </p>
-                        <p className="text-foreground font-mono">{item.masked}</p>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 text-xs">
+                        <div className="rounded-lg bg-card p-3 border border-border">
+                          <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Vai trò</p>
+                          <p className="text-foreground">{item.role === 'user' ? 'Người dùng' : 'AI / Bot'}</p>
+                        </div>
+                        <div className="rounded-lg bg-card p-3 border border-border md:col-span-2">
+                          <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Nội dung đã lưu</p>
+                          <p className="text-foreground whitespace-pre-wrap">{item.content}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

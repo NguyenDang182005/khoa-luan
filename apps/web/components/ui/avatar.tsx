@@ -6,13 +6,11 @@ function Avatar({
   initials,
   src,
   alt = "Avatar",
-  bot = false,
   ...props
 }: React.ComponentProps<"div"> & {
   initials?: string
   src?: string
   alt?: string
-  bot?: boolean
 }) {
   return (
     <div
@@ -24,6 +22,7 @@ function Avatar({
       {...props}
     >
       {src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- avatar nhỏ 32px, không cần tối ưu LCP của next/image
         <img
           src={src}
           alt={alt}

@@ -5,11 +5,18 @@ export interface UserProfile {
   role: UserRole;
   isActive: boolean;
   createdAt: string;
+  avatarUrl?: string | null;
+  displayName?: string | null;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface FirebaseLoginRequest {
+  idToken: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginResponse {
@@ -22,6 +29,7 @@ export interface JwtPayload {
   sub: string; // user id
   email: string;
   role: UserRole;
+  firebaseUid?: string;
   iat?: number;
   exp?: number;
 }
@@ -33,9 +41,12 @@ export interface RefreshTokenRequest {
 // ===== Enums =====
 export enum UserRole {
   ADMIN = 'ADMIN',
-  HR_MANAGER = 'HR_MANAGER',
-  MANAGER = 'MANAGER',
   EMPLOYEE = 'EMPLOYEE',
+}
+
+/** Returns true if the role has full admin access */
+export function isAdminRole(role: UserRole | string): boolean {
+  return role === UserRole.ADMIN;
 }
 
 export enum Gender {

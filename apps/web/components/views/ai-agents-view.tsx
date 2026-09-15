@@ -2,29 +2,26 @@
 
 import * as React from "react"
 import {
-  Activity,
   Bot,
-  ChevronDown,
-  ChevronRight,
-  Command,
-  FileText,
-  Hash,
-  Inbox,
-  MoreHorizontal,
-  Paperclip,
-  Plus,
-  Search,
-  Send,
+  MessageSquare,
+  Activity,
   ShieldAlert,
+  Send,
   Sparkles,
   Zap,
-  MessageSquare,
-  RefreshCw,
   Cpu,
+  BarChart3,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { useEffect, useState } from 'react'
+import { agentsApi } from '@/lib/api/agents.api'
+import { escalationApi } from '@/lib/api/escalation.api'
+import type { ConversationItem, ChatHistoryMessage } from '@/lib/api/escalation.api'
+import type { AllAgentsPerf, IntentStats } from '@/lib/schemas/agent.schema'
+import type { LucideIcon } from "lucide-react"
 
 interface AgentItem {
   id: string
@@ -33,11 +30,9 @@ interface AgentItem {
   detail: string
   tone: string
   badgeVariant: "teal" | "blue" | "amber" | "coral"
-  icon: any
+  icon: LucideIcon
   unread: boolean
   model: string
-  latency: string
-  accuracy: string
   sources: number
 }
 
@@ -51,9 +46,7 @@ const agentList: AgentItem[] = [
     badgeVariant: "teal",
     icon: Bot,
     unread: false,
-    model: "gemini-3.5-flash",
-    latency: "180ms",
-    accuracy: "99.1%",
+    model: "gemini-2.5-flash",
     sources: 4,
   },
   {
@@ -65,9 +58,7 @@ const agentList: AgentItem[] = [
     badgeVariant: "blue",
     icon: MessageSquare,
     unread: true,
-    model: "gemini-3.5-flash",
-    latency: "310ms",
-    accuracy: "98.5%",
+    model: "gemini-2.5-flash",
     sources: 12,
   },
   {
@@ -79,9 +70,7 @@ const agentList: AgentItem[] = [
     badgeVariant: "amber",
     icon: Activity,
     unread: true,
-    model: "gemini-3.5-flash",
-    latency: "620ms",
-    accuracy: "96.8%",
+    model: "gemini-2.5-flash",
     sources: 6,
   },
   {
@@ -93,11 +82,16 @@ const agentList: AgentItem[] = [
     badgeVariant: "coral",
     icon: ShieldAlert,
     unread: false,
-    model: "gemini-3.5-flash",
-    latency: "420ms",
-    accuracy: "97.4%",
+    model: "gemini-2.5-flash",
     sources: 8,
   },
+]
+
+const INTENT_META: Array<{ key: "HR_QA" | "CSKH" | "TRAINING" | "OTHER"; label: string; tone: string }> = [
+  { key: "HR_QA", label: "HR_QA → WF02 (Hỏi đáp nội bộ)", tone: "bg-agent-blue" },
+  { key: "CSKH", label: "CSKH → WF04 (Khách hàng)", tone: "bg-agent-coral" },
+  { key: "TRAINING", label: "TRAINING → WF03 (Đào tạo)", tone: "bg-agent-amber" },
+  { key: "OTHER", label: "OTHER → WF01 trả lời trực tiếp", tone: "bg-muted-foreground" },
 ]
 
 interface ChatMessage {
@@ -112,102 +106,109 @@ interface ChatMessage {
   insight?: string
 }
 
-const defaultConversations: Record<string, ChatMessage[]> = {
-  wf01: [
-    {
-      author: "Nguyễn Văn Đạt",
-      role: "Nhân viên (EMP-001)",
-      time: "14:10",
-      initials: "NĐ",
-      avatarColor: "bg-primary/20 text-primary",
-      text: "Xin chào, số CCCD của tôi là 038095012345, tôi muốn hỏi tôi còn bao nhiêu ngày phép năm?",
-    },
-    {
-      author: "WF01 Router Agent",
-      role: "Security & Intent Gateway",
-      time: "14:10",
-      initials: "R1",
-      avatarColor: "bg-agent-teal/20 text-agent-teal",
-      bot: true,
-      text: "Đã phân tích yêu cầu. Tin nhắn đã được làm sạch PII: 'Số CCCD của tôi là [MASKED_ID], tôi muốn hỏi ngày phép'. Ý định phát hiện: `HR_LEAVE_INQUIRY`. Đang điều hướng sang WF02 - HR Q&A Agent.",
-      insight: "Intent: HR_LEAVE • Confidence: 99.4% • PII Masked: 1 item",
-    },
-  ],
-  wf02: [
-    {
-      author: "Nguyễn Văn Đạt",
-      role: "Nhân viên (EMP-001)",
-      time: "14:11",
-      initials: "NĐ",
-      avatarColor: "bg-primary/20 text-primary",
-      text: "Tôi còn bao nhiêu ngày phép trong năm 2026?",
-    },
-    {
-      author: "WF02 HR Q&A Agent",
-      role: "HR Assistant (Gemini 3.5 Flash)",
-      time: "14:11",
-      initials: "QA",
-      avatarColor: "bg-agent-blue/20 text-agent-blue",
-      bot: true,
-      text: "Chào anh Đạt (EMP-001)! Dựa trên dữ liệu hồ sơ nhân sự của anh từ hệ thống NestJS, tổng quỹ phép năm 2026 của anh là 12 ngày. Anh đã sử dụng 2.5 ngày và hiện còn 9.5 ngày phép hợp lệ.",
-      tags: ["ngày-phép", "emp-001", "chính-sách-2026"],
-      insight: "Trích xuất trực tiếp từ database NestJS /api/v1/employees/EMP-001 • Độ trễ: 280ms",
-    },
-  ],
-  wf03: [
-    {
-      author: "Trần Thị Mai",
-      role: "Học viên Onboarding",
-      time: "10:30",
-      initials: "TM",
-      avatarColor: "bg-primary/20 text-primary",
-      text: "Tình huống 1: Khách hàng gọi đến tức giận vì đơn hàng giao trễ. Tôi sẽ lắng nghe chân thành, xin lỗi vì sự bất tiện, chủ động kiểm tra định vị bưu kiện và đền bù cho khách voucher giảm giá 15% cho đơn tiếp theo.",
-    },
-    {
-      author: "WF03 Training Evaluator",
-      role: "AI Soft-Skill Coach",
-      time: "10:31",
-      initials: "TR",
-      avatarColor: "bg-agent-amber/20 text-agent-amber",
-      bot: true,
-      text: "Đánh giá bài làm tình huống: Điểm tổng hợp: 8.8 / 10 điểm.\n• Chuyên nghiệp: 9/10 (Thái độ chuẩn mực, đúng quy trình)\n• Thấu cảm: 9/10 (Lắng nghe và nhận trách nhiệm tốt)\n• Giải pháp: 8.5/10 (Đã có giải pháp kiểm tra và đền bù voucher)\n• Rõ ràng: 8.7/10 (Diễn đạt súc tích).",
-      tags: ["kỹ-năng-cskh", "đào-tạo-2026"],
-      insight: "AI Scoring: 4 Soft Criteria • Tự động gửi điểm về NestJS Training Analytics",
-    },
-  ],
-  wf04: [
-    {
-      author: "Khách Hàng Zalo (0912***789)",
-      role: "Zalo User External",
-      time: "13:20",
-      initials: "KH",
-      avatarColor: "bg-agent-coral/20 text-agent-coral",
-      text: "Shop làm ăn tắc trách quá! Giao trễ 3 ngày nay làm hỏng cả sự kiện của tôi. Tôi sẽ kiện lên hội bảo vệ người tiêu dùng nếu không giải quyết ngay!",
-    },
-    {
-      author: "WF04 Zalo CSKH Agent",
-      role: "AI Bot Escalation Guard",
-      time: "13:20",
-      initials: "CS",
-      avatarColor: "bg-agent-coral/20 text-agent-coral",
-      bot: true,
-      text: "Dạ em thành thật xin lỗi vì trải nghiệm rất không tốt của mình ạ. Sự việc này đã được chuyển ngay cho Quản lý Chăm sóc Khách hàng cấp cao của chúng em để gọi điện xử lý đền bù trực tiếp cho anh/chị trong 5 phút tới ạ!",
-      insight: "🚨 Tag [CAN_ESCALATE] kích hoạt • Đã gửi Webhook và âm thanh cảnh báo tới Web Admin",
-    },
-  ],
+const WF04_ROLE_LABEL: Record<string, string> = {
+  user: "Khách hàng",
+  assistant: "AI CSKH",
+  human: "Nhân viên",
+  staff: "Nhân viên",
+}
+
+const fmtDateTime = (iso: string | null) => {
+  if (!iso) return "--"
+  try { return new Date(iso).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) } catch { return iso }
 }
 
 export function AiAgentsView() {
-  const [activeAgentId, setActiveAgentId] = React.useState("wf01")
-  const [inputMessage, setInputMessage] = React.useState("")
-  const [messages, setMessages] = React.useState(defaultConversations)
-  const [showInspector, setShowInspector] = React.useState(true)
+  const [activeAgentId, setActiveAgentId] = useState("wf01")
+  const [inputMessage, setInputMessage] = useState("")
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({})
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [isPinging, setIsPinging] = useState(false)
+  const [pingError, setPingError] = useState<string | null>(null)
+
+  const [agentPerf, setAgentPerf] = useState<AllAgentsPerf | null>(null)
+  const [intentStats, setIntentStats] = useState<IntentStats | null>(null)
+  const [liveLatency, setLiveLatency] = useState<number | null>(null)
+
+  // WF04 — bảng thông báo CSKH (chỉ đọc): hội thoại + dữ liệu khách từ Slack
+  const [cskhConversations, setCskhConversations] = useState<ConversationItem[]>([])
+  const [cskhSelectedId, setCskhSelectedId] = useState<string | null>(null)
+  const [cskhHistory, setCskhHistory] = useState<ChatHistoryMessage[]>([])
+  const [cskhLoading, setCskhLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchLive = async () => {
+      try {
+        const perf = await agentsApi.getPerformance()
+        setAgentPerf(perf)
+      } catch (e) { console.error(e) }
+      try {
+        const stats = await agentsApi.getIntentStats()
+        setIntentStats(stats)
+      } catch (e) { console.error(e) }
+    }
+    fetchLive()
+    const interval = setInterval(fetchLive, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // WF04: tải danh sách hội thoại CSKH khi mở tab (poll 30s)
+  useEffect(() => {
+    if (activeAgentId !== 'wf04') return
+    let alive = true
+    const load = async () => {
+      try {
+        const list = await escalationApi.getAllConversations()
+        if (!alive) return
+        setCskhConversations(list)
+        setCskhSelectedId((prev) => (prev && list.some((c) => c.id === prev) ? prev : list[0]?.id ?? null))
+      } catch (e) { console.error(e) }
+    }
+    load()
+    const iv = setInterval(load, 30000)
+    return () => { alive = false; clearInterval(iv) }
+  }, [activeAgentId])
+
+  // WF04: lịch sử hội thoại của phiên đang chọn (chỉ đọc)
+  useEffect(() => {
+    if (activeAgentId !== 'wf04' || !cskhSelectedId) { setCskhHistory([]); return }
+    setCskhLoading(true)
+    escalationApi
+      .getChatHistory(cskhSelectedId)
+      .then((h) => setCskhHistory(h.messages))
+      .catch(() => setCskhHistory([]))
+      .finally(() => setCskhLoading(false))
+  }, [activeAgentId, cskhSelectedId])
 
   const activeAgent = (agentList.find((a) => a.id === activeAgentId) || agentList[0])!
   const currentMessages = messages[activeAgentId] || []
+  const isRouter = activeAgentId === "wf01"
+  const isCskhNotify = activeAgentId === "wf04"
+  const cskhSelected = cskhConversations.find((c) => c.id === cskhSelectedId) ?? null
 
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return
+  const currentAgentPerf = agentPerf?.[activeAgentId as keyof AllAgentsPerf]
+  const currentLastLatency = liveLatency ?? (currentAgentPerf?.lastLatency ?? '--')
+  const currentAccuracy = currentAgentPerf?.successRate != null ? `${currentAgentPerf.successRate}%` : '--'
+  const currentCallCount = currentAgentPerf?.callCount ?? 0
+
+  /** Ping AI thật: gửi 1 lượt chat qua NestJS → WF01 → Gemini, lấy latencyMs server-side đo */
+  const handlePingTest = async () => {
+    setIsPinging(true)
+    setPingError(null)
+    try {
+      const result = await agentsApi.chat("Ping kiểm tra độ trễ hệ thống — vui lòng trả lời ngắn gọn.")
+      setLiveLatency(result.latencyMs || null)
+    } catch (e) {
+      setLiveLatency(null)
+      setPingError(e instanceof Error ? e.message : "Không gọi được AI Agent.")
+    } finally {
+      setIsPinging(false)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    const text = inputMessage.trim()
+    if (!text || isProcessing) return
 
     const userMsg: ChatMessage = {
       author: "Admin / Tester",
@@ -215,35 +216,49 @@ export function AiAgentsView() {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       initials: "AD",
       avatarColor: "bg-primary/20 text-primary",
-      text: inputMessage.trim(),
+      text: text,
     }
 
-    const updated = [...currentMessages, userMsg]
-    setMessages((prev) => ({ ...prev, [activeAgentId]: updated }))
+    setMessages((prev) => ({ ...prev, [activeAgentId]: [...(prev[activeAgentId] || []), userMsg] }))
     setInputMessage("")
+    setIsProcessing(true)
 
-    // Simulate AI Agent replying after 500ms
-    setTimeout(() => {
-      const botReply: ChatMessage = {
+    const startTime = Date.now()
+    try {
+      const result = await agentsApi.chat(text)
+      const latencyMs = result.latencyMs || Date.now() - startTime
+      setLiveLatency(latencyMs)
+
+      const assistantMsg: ChatMessage = {
         author: activeAgent.workflow,
         role: `AI Engine (${activeAgent.model})`,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         initials: "AI",
         avatarColor: activeAgent.tone,
         bot: true,
-        text: `[Mô phỏng n8n Execution]: Đã nhận được truy vấn "${userMsg.text}". Xử lý hoàn tất với model ${activeAgent.model} trong 240ms.`,
-        insight: `Độ tin cậy: 99.2% • Workflow ID: ${activeAgent.id.toUpperCase()}`,
+        text: result.answer,
+        insight: `⚡ Độ trễ E2E: ${latencyMs}ms • Qua NestJS → WF01 Router → ${activeAgent.workflow.split(" - ")[0]}`,
       }
-      setMessages((prev) => ({
-        ...prev,
-        [activeAgentId]: [...(prev[activeAgentId] || []), botReply],
-      }))
-    }, 600)
+      setMessages((prev) => ({ ...prev, [activeAgentId]: [...(prev[activeAgentId] || []), assistantMsg] }))
+    } catch (e) {
+      const errMsg: ChatMessage = {
+        author: "System",
+        role: "Error",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        initials: "ERR",
+        avatarColor: "bg-red-500/20 text-red-500",
+        bot: true,
+        text: e instanceof Error ? e.message : "⚠️ Không gọi được AI Agent. Kiểm tra kết nối API.",
+      }
+      setMessages((prev) => ({ ...prev, [activeAgentId]: [...(prev[activeAgentId] || []), errMsg] }))
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] min-w-0 overflow-hidden bg-chat">
-      {/* Sub-sidebar for Agents */}
+    <div className="flex h-[calc(100vh-3.5rem)] min-w-0 overflow-hidden bg-background">
+      {/* Sub-sidebar for Agents — danh sách WF + hoạt động */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
         <div className="flex items-center justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
@@ -279,9 +294,21 @@ export function AiAgentsView() {
                     </span>
                     {agent.unread && <span className="size-2 rounded-full bg-agent-coral" />}
                   </div>
-                  <p className="truncate text-[11px] text-muted-foreground mt-0.5">
-                    {agent.detail}
-                  </p>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {agent.detail}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-[10px] font-mono text-agent-teal">
+                      ⚡ {agentPerf?.[agent.id as keyof AllAgentsPerf]?.lastLatency ?? '--'}ms
+                    </p>
+                    {agent.id === "wf01" && (
+                      <p className="text-[9px] font-mono text-muted-foreground" title="Số tin nhắn Router đã định tuyến">
+                        🔀 {intentStats?.total ?? 0} routed
+                      </p>
+                    )}
+                  </div>
                 </div>
               </button>
             )
@@ -290,204 +317,395 @@ export function AiAgentsView() {
 
         <div className="border-t border-border p-3">
           <div className="rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
-            <p className="font-semibold text-foreground">Cơ Chế On-Demand Reset</p>
-            <p className="mt-1">Tự động khởi tạo phiên chat mới sau 00:00 VN hàng ngày.</p>
+            <p className="font-semibold text-foreground">Giám Sát Trực Tiếp</p>
+            <p className="mt-1">Số liệu làm mới tự động mỗi 30 giây từ NestJS → n8n.</p>
           </div>
         </div>
       </aside>
 
-      {/* Main Chat Workspace */}
-      <section className="flex min-w-0 flex-1 flex-col bg-chat">
-        {/* Chat Header */}
-        <div className="flex h-14 items-center justify-between border-b border-border px-5 bg-card/40 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className={`flex size-8 items-center justify-center rounded-lg border ${activeAgent.tone}`}>
-              <activeAgent.icon className="size-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-foreground">{activeAgent.name}</h2>
-                <Badge variant={activeAgent.badgeVariant} className="text-[10px] py-0">
-                  {activeAgent.workflow}
-                </Badge>
+      {/* ── WF01: Dashboard giám sát Router (không chat — WF01 là router) ── */}
+      {isRouter ? (
+        <section className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5 bg-card/40 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className={`flex size-8 items-center justify-center rounded-lg border ${activeAgent.tone}`}>
+                <activeAgent.icon className="size-4" />
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Model: {activeAgent.model} • Cổng kết nối n8n: 5678 • Độ trễ TB: {activeAgent.latency}
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-foreground">{activeAgent.name}</h2>
+                  <Badge variant={activeAgent.badgeVariant} className="text-[10px] py-0">
+                    {activeAgent.workflow}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Model: {activeAgent.model} • n8n :5678 • {activeAgent.detail}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="hidden text-[11px] text-emerald-400 items-center gap-1.5 sm:flex">
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Hoạt động ổn định
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePingTest}
+                disabled={isPinging}
+                className="text-xs h-8 gap-1.5 border-border bg-card/60"
+                title="Gửi 1 lượt chat thật qua WF01 → Gemini và đo độ trễ end-to-end"
+              >
+                <Zap className={`size-3.5 text-agent-teal ${isPinging ? "animate-spin" : ""}`} />
+                {isPinging ? "Đang gọi AI…" : `Ping AI (E2E) ${currentLastLatency !== '--' ? `• ${currentLastLatency}ms` : ""}`}
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInspector(!showInspector)}
-              className="text-xs"
-            >
-              <FileText className="size-3.5 mr-1" /> Chi Tiết Agent
-            </Button>
-          </div>
-        </div>
+          <div className="flex-1 space-y-4 p-5">
+            {/* Stat tiles — số liệu thật từ DB (metadata latency_ms/error của aiChatMessage) */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Độ chính xác</p>
+                <p className="mt-1 font-mono text-xl font-bold text-foreground">{currentAccuracy}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Độ trễ gần nhất</p>
+                <p className="mt-1 font-mono text-xl font-bold text-agent-teal">⚡ {currentLastLatency}ms</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuộc gọi</p>
+                <p className="mt-1 font-mono text-xl font-bold text-primary">{currentCallCount}</p>
+              </div>
+            </div>
 
-        {/* Chat Messages Stream */}
-        <div className="flex-1 overflow-y-auto px-5 py-6">
-          <div className="mx-auto flex max-w-3xl flex-col gap-6">
-            {currentMessages.map((msg, index) => (
-              <article key={index} className="flex gap-3">
-                <Avatar initials={msg.initials} className={msg.avatarColor} bot={msg.bot} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-semibold text-foreground">{msg.author}</span>
-                    {msg.bot && (
-                      <span className="rounded bg-agent-teal/15 px-1.5 py-0.5 text-[9px] font-bold text-agent-teal">
-                        AI WORKFLOW
-                      </span>
-                    )}
-                    <span className="text-[10px] text-muted-foreground">
-                      {msg.role} • {msg.time}
-                    </span>
+            {pingError && (
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-[11px] text-red-500">
+                ⚠️ Ping AI thất bại: {pingError}
+                <span className="ml-1 text-muted-foreground">(Ping AI cần tài khoản được liên kết hồ sơ nhân viên — thử đăng nhập admin@hr-system.com)</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {/* Intent routing chart — WF01 */}
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="size-4 text-primary" />
+                    <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                      Định Tuyến Intent (Router WF01)
+                    </p>
                   </div>
-                  <div className="mt-1.5 rounded-xl border border-border/60 bg-card/70 p-3 text-xs leading-relaxed text-foreground shadow-sm">
-                    {msg.text.split("\n").map((line, lIdx) => (
-                      <p key={lIdx} className={lIdx > 0 ? "mt-1.5" : ""}>
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                  {msg.tags && (
-                    <div className="mt-2 flex gap-1.5">
-                      {msg.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground font-mono"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {msg.insight && (
-                    <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-agent-teal/30 bg-agent-teal/5 px-3 py-1.5 text-[11px] text-agent-teal">
-                      <Zap className="size-3 shrink-0" />
-                      <span>{msg.insight}</span>
-                    </div>
+                  <Badge variant="teal" className="text-[10px] py-0">Live</Badge>
+                </div>
+
+                <div className="mt-4">
+                  {intentStats ? (
+                    <>
+                      <div className="flex flex-col gap-3">
+                        {INTENT_META.map(({ key, label, tone }) => {
+                          const value = intentStats.byIntent[key] ?? 0
+                          const pct = intentStats.total > 0 ? Math.round((value / intentStats.total) * 100) : 0
+                          return (
+                            <div key={key}>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-muted-foreground">{label}</span>
+                                <span className="font-mono font-bold text-foreground">{value} ({pct}%)</span>
+                              </div>
+                              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
+                                <div className={`h-full rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] text-muted-foreground">Tổng đã định tuyến</p>
+                          <p className="font-mono text-lg font-bold text-primary">{intentStats.total}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] text-muted-foreground">Escalation chuyển người</p>
+                          <p className="font-mono text-lg font-bold text-agent-coral">{intentStats.escalations}</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">Đang tải thống kê intent…</p>
                   )}
                 </div>
-              </article>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* Chat Composer */}
-        <div className="border-t border-border bg-chat p-4">
-          <div className="mx-auto max-w-3xl rounded-xl border border-border bg-composer shadow-sm">
-            <div className="flex items-end gap-2 p-3">
-              <textarea
+              {/* Quy tắc quản trị & bảo mật */}
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Quy Tắc Quản Trị & Bảo Mật
+                </p>
+                <div className="mt-3 flex flex-col gap-2 text-xs">
+                  <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2.5 text-[11px]">
+                    <span className="text-muted-foreground">Mã hóa PII (Regex)</span>
+                    <span className="font-semibold text-emerald-400">BẬT (WF01)</span>
+                  </div>
+                  <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2.5 text-[11px]">
+                    <span className="text-muted-foreground">Xác thực NestJS</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">x-api-key</span>
+                  </div>
+                  <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2.5 text-[11px]">
+                    <span className="text-muted-foreground">Escalation CSKH</span>
+                    <span className="font-semibold text-agent-coral">Tự động (WF04)</span>
+                  </div>
+                  <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2.5 text-[11px]">
+                    <span className="text-muted-foreground">Kiến trúc điều phối</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">Portal → NestJS → WF01 → WF02/03/04</span>
+                  </div>
+                </div>
+                <p className="mt-3 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
+                  WF01 là Router — mọi chat từ khung chat WF02/03/04 đều đi qua WF01 để phân loại intent và mask PII.
+                  Chọn một agent ở bên trái để trò chuyện thử.
+                </p>
+              </div>
+            </div>
+
+            <span className="hidden text-[11px] text-muted-foreground items-center gap-1.5 md:flex">
+              <ShieldAlert className="size-3.5 text-agent-coral" />
+              Bảng thông báo — không chat trực tiếp
+            </span>
+          </div>
+
+          {/* Nội dung: danh sách hội thoại + tóm tắt + dữ liệu khách */}
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-4 p-5 pt-4 overflow-y-auto">
+            {/* Danh sách phiên hội thoại */}
+            <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-1.5 max-h-[calc(100vh-13rem)] overflow-y-auto shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-foreground px-1 pb-1">
+                Hội Thoại ({cskhConversations.length})
+              </p>
+              {cskhConversations.length === 0 && (
+                <p className="text-[11px] text-muted-foreground p-2">
+                  Chưa có hội thoại — khi khách DM bot qua Slack (transport Zalo), phiên sẽ xuất hiện tại đây.
+                </p>
+              )}
+              {cskhConversations.map((c) => {
+                const selected = c.id === cskhSelectedId
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setCskhSelectedId(c.id)}
+                    className={`rounded-lg p-2.5 text-left transition-all border ${
+                      selected
+                        ? "bg-sidebar-accent border-primary/30 shadow-sm"
+                        : "hover:bg-muted/40 border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-semibold text-foreground font-mono">
+                        {c.externalId ?? "(khách ẩn danh)"}
+                      </span>
+                      <Badge variant={c.escalated ? "coral" : "teal"} className="text-[9px] py-0 shrink-0">
+                        {c.escalated ? "Đã escalate" : "Bot phục vụ"}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                      {c.lastMessage ?? "--"}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-mono text-muted-foreground/70">
+                      {c.messageCount} tin • {fmtDateTime(c.lastMessageAt)}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Chi tiết: dữ liệu khách + tóm tắt hội thoại */}
+            <div className="flex flex-col gap-4 min-w-0">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Dữ Liệu Khách Hàng (từ Slack)
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-[10px] text-muted-foreground">Customer ID</p>
+                    <p className="font-mono text-xs font-bold text-foreground truncate">{cskhSelected?.externalId ?? "--"}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-[10px] text-muted-foreground">Số tin nhắn</p>
+                    <p className="font-mono text-xs font-bold text-primary">{cskhSelected?.messageCount ?? 0}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-[10px] text-muted-foreground">Trạng thái</p>
+                    <p className={`text-xs font-bold ${cskhSelected?.escalated ? "text-agent-coral" : "text-emerald-400"}`}>
+                      {cskhSelected ? (cskhSelected.escalated ? "Chờ nhân viên" : "Bot đang phục vụ") : "--"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-[10px] text-muted-foreground">Hoạt động cuối</p>
+                    <p className="font-mono text-xs font-bold text-foreground">{fmtDateTime(cskhSelected?.lastMessageAt ?? null)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex-1 min-h-[12rem]">
+                <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Tóm Tắt Cuộc Hội Thoại (chỉ đọc)
+                </p>
+                <div className="mt-3 flex flex-col gap-2.5 max-h-[calc(100vh-30rem)] overflow-y-auto pr-1">
+                  {cskhLoading ? (
+                    <p className="text-[11px] text-muted-foreground">Đang tải hội thoại…</p>
+                  ) : cskhHistory.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">Chọn một phiên ở bên trái để xem nội dung.</p>
+                  ) : (
+                    cskhHistory.map((m) => (
+                      <div key={m.id} className="rounded-lg border border-border bg-background/60 p-3">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className={`text-[10px] font-bold uppercase tracking-wide ${
+                            m.role === "user" ? "text-agent-blue" : m.role === "human" ? "text-agent-amber" : "text-agent-teal"
+                          }`}>
+                            {WF04_ROLE_LABEL[m.role] ?? m.role}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/70">{fmtDateTime(m.createdAt)}</span>
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-foreground whitespace-pre-wrap line-clamp-6">{m.content}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="mt-3 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
+                  WF04 là agent phục vụ khách — admin không chat tại đây. Để <span className="font-semibold text-foreground">trả lời khách (human takeover)</span> hoặc bật lại bot, mở trang <span className="font-semibold text-foreground">Cảnh Báo CSKH</span>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : (
+        /* ── WF02/03: Chat workspace ── */
+        <section className="flex min-w-0 flex-1 flex-col bg-chat">
+          {/* Chat Header */}
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5 bg-card/40 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className={`flex size-8 items-center justify-center rounded-lg border ${activeAgent.tone}`}>
+                <activeAgent.icon className="size-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-foreground">{activeAgent.name}</h2>
+                  <Badge variant={activeAgent.badgeVariant} className="text-[10px] py-0">
+                    {activeAgent.workflow}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Model: {activeAgent.model} • n8n :5678 • Chat đi qua WF01 Router (PII mask + phân loại intent)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Message Stream */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {currentMessages.length === 0 && (
+              <div className="flex h-full items-center justify-center">
+                <div className="max-w-sm rounded-xl border border-border bg-card/60 p-4 text-center text-[11px] text-muted-foreground">
+                  Chưa có tin nhắn nào trong phiên này. Gửi câu hỏi để test <span className="font-semibold text-foreground">{activeAgent.name}</span> —
+                  tin nhắn đi qua NestJS → WF01 Router → agent, số liệu latency sẽ cập nhật ở sidebar.
+                </div>
+              </div>
+            )}
+            {currentMessages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex gap-3 max-w-[85%] ${
+                  msg.bot ? "mr-auto" : "ml-auto flex-row-reverse"
+                }`}
+              >
+                <Avatar
+                  initials={msg.initials}
+                  className={`size-8 shrink-0 ${msg.avatarColor} border border-border/50 text-xs font-bold`}
+                />
+
+                <div className="flex flex-col gap-1.5">
+                  <div
+                    className={`flex items-baseline gap-2 text-xs ${
+                      msg.bot ? "justify-start" : "justify-end"
+                    }`}
+                  >
+                    <span className="font-semibold text-foreground">{msg.author}</span>
+                    <span className="text-[10px] text-muted-foreground">{msg.role}</span>
+                    <span className="text-[10px] text-muted-foreground/60">{msg.time}</span>
+                  </div>
+
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
+                      msg.bot
+                        ? "bg-card border border-border text-foreground rounded-tl-sm"
+                        : "bg-primary text-primary-foreground rounded-tr-sm"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+
+                    {msg.tags && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {msg.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {msg.insight && (
+                      <div className="mt-2.5 border-t border-border/60 pt-2 text-[11px] text-muted-foreground flex items-center gap-1.5">
+                        <Sparkles className="size-3 text-agent-teal" />
+                        <span>{msg.insight}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {isProcessing && (
+              <div className="flex gap-3 mr-auto items-center">
+                <Avatar initials="AI" className={`size-8 shrink-0 ${activeAgent.tone} text-xs font-bold animate-pulse`} />
+                <div className="rounded-2xl bg-card border border-border px-4 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-agent-teal animate-ping" />
+                  <span>Mô hình {activeAgent.model} đang phân tích và tính toán phản hồi...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Message Composer */}
+          <div className="border-t border-border p-4 bg-composer">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                handleSendMessage()
+              }}
+              className="flex items-center gap-2"
+            >
+              <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSendMessage()
-                  }
-                }}
-                placeholder={`Nhập câu hỏi để thử nghiệm trực tiếp với ${activeAgent.name}...`}
-                rows={1}
-                className="max-h-28 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-xs outline-none placeholder:text-muted-foreground"
+                placeholder={`Gửi câu hỏi hoặc tình huống tới ${activeAgent.name}...`}
+                className="h-10 bg-background/80 border-border text-xs focus-visible:ring-primary"
+                disabled={isProcessing}
               />
               <Button
+                type="submit"
                 size="sm"
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim()}
-                className="size-8 p-0 shrink-0 bg-primary text-primary-foreground"
+                disabled={!inputMessage.trim() || isProcessing}
+                className="h-10 px-4 bg-primary text-primary-foreground font-semibold"
               >
                 <Send className="size-3.5" />
               </Button>
-            </div>
-            <div className="flex items-center justify-between border-t border-border/60 px-3 py-1.5 text-[10px] text-muted-foreground">
-              <span>Nhấn Enter để gửi • Shift+Enter để xuống dòng</span>
-              <span className="flex items-center gap-1 text-agent-teal">
-                <Sparkles className="size-3" /> Bảo vệ dữ liệu PII được bật tự động
-              </span>
-            </div>
+            </form>
+            <p className="mt-2 text-[10px] text-muted-foreground text-center">
+              Dữ liệu tin nhắn được bảo vệ bởi bộ lọc PII tự động trước khi gửi tới Gemini 2.5 Flash
+            </p>
           </div>
-        </div>
-      </section>
-
-      {/* Right Inspector Drawer */}
-      {showInspector && (
-        <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-sidebar xl:flex">
-          <div className="border-b border-border p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Agent Inspector
-              </h3>
-              <Badge variant="outline" className="text-[10px]">v1.7</Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Thông số kỹ thuật & context n8n</p>
-          </div>
-
-          <div className="flex flex-col gap-5 p-4 overflow-y-auto">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Trạng Thái Thực Thi
-              </p>
-              <div className="rounded-xl border border-border bg-card p-3">
-                <div className="flex items-center gap-3">
-                  <div className={`flex size-8 items-center justify-center rounded-lg border ${activeAgent.tone}`}>
-                    <activeAgent.icon className="size-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">{activeAgent.name}</p>
-                    <p className="text-[10px] text-emerald-400 flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Hoạt động ổn định
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-2 text-[11px]">
-                  <div>
-                    <span className="text-muted-foreground text-[10px]">Độ chính xác</span>
-                    <p className="font-mono font-bold text-foreground">{activeAgent.accuracy}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-[10px]">Độ trễ TB</span>
-                    <p className="font-mono font-bold text-agent-teal">{activeAgent.latency}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-[10px]">Nguồn trích xuất</span>
-                    <p className="font-mono font-bold text-foreground">{activeAgent.sources} tables</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-[10px]">Model LLM</span>
-                    <p className="font-mono font-bold text-primary">Gemini 3.5</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Quy Tắc Quản Trị & Bảo Mật
-              </p>
-              <div className="flex flex-col gap-2 text-xs">
-                <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <span className="text-muted-foreground">Mã hóa PII (Regex)</span>
-                  <span className="font-semibold text-emerald-400">BẬT (100%)</span>
-                </div>
-                <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <span className="text-muted-foreground">Cơ chế Reset phiên</span>
-                  <span className="font-semibold text-agent-amber">Sau 00:00 VN</span>
-                </div>
-                <div className="flex justify-between items-center rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <span className="text-muted-foreground">Xác thực NestJS</span>
-                  <span className="font-mono text-[10px] text-muted-foreground">x-api-key</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
+        </section>
       )}
     </div>
   )

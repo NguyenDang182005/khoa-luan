@@ -11,7 +11,7 @@ File: `docker-compose.yml` — chạy 3 service bằng `docker-compose up -d`
 
 | Service | Image | Port | Mục đích |
 |---------|-------|------|----------|
-| `postgres` | postgres:16-alpine | 5432 | Database chính |
+| `postgres` | pgvector/pgvector:pg16 *(14/09 — postgres:16 + extension pgvector cho RAG; đổi xong chạy `docker compose up -d postgres` — volume giữ nguyên, rồi seed lại)* | 5432 | Database chính |
 | `pgadmin` | dpage/pgadmin4 | 5050 | Quản lý DB qua UI |
 | `n8n` | n8nio/n8n:latest | 5678 | AI Agent orchestration |
 
@@ -58,6 +58,35 @@ HR_API_KEY: your-n8n-api-key
 WEBHOOK_URL: http://localhost:5678
 TIMEZONE: Asia/Ho_Chi_Minh
 ```
+
+### Endpoint cho n8n (x-api-key) — cập nhật 14/09
+
+| Endpoint | Mục đích |
+|---|---|
+| `GET /n8n/employee-context/:employeeId` | Context nhân viên (WF02 tool) |
+| `GET /n8n/payroll-context/:employeeId` | Bảng lương theo tháng (WF02 tool) |
+| `GET\|POST /n8n/knowledge-search` *(mới — RAG)* | Tìm chunk chính sách theo ngữ nghĩa (`KnowledgeService`: pgvector `<=>` hoặc cosine fallback) |
+| `POST /n8n/chat/session` \| `chat/message` | Session + lưu tin nhắn |
+| `POST /n8n/outbound-reply` | Forward reply AI → Slack DM khách |
+| `POST /n8n/escalate` | Escalation CSKH → WebSocket admin |
+
+## Bảng API Keys & Secrets (chuẩn 14/09)
+
+Toàn bộ secret thật nằm trong **root `.env`** (đã gitignored) — `docker-compose.yml` chỉ tham chiếu `${VAR:-}`; NestJS đọc từ `apps/api/.env`; **browser không bao giờ giữ key n8n/Slack/Gemini** (chỉ JWT đăng nhập).
+
+| Biến môi trường | Giá trị dùng để | Nơi định nghĩa | Ai giữ |
+|---|---|---|---|
+| `HR_API_KEY` | n8n → NestJS qua header `x-api-key` (tất cả endpoint `/api/v1/n8n/*`) | root `.env` + `apps/api/.env` (phải khớp nhau) | Backend + n8n credential `httpHeaderAuth` |
+| `N8N_API_KEY` | NestJS validate header `x-api-key` incoming | `apps/api/.env` | Backend |
+| `GEMINI_API_KEY` | n8n gọi Gemini 2.5 Flash (WF01–WF04) | root `.env` → n8n credential `googlePalmApi` | n8n credential |
+| `SLACK_BOT_TOKEN` (`xoxb-…`) | NestJS gửi Slack DM cho khách (CSKH reply + outbound-reply) | root `.env` → NestJS `ConfigService` | Backend only |
+| `SLACK_SIGNING_SECRET` | Verify signature Slack Events (khi bật) | root `.env` | Backend only |
+| `DATABASE_URL` | Prisma connect PostgreSQL | `apps/api/.env` / env khi chạy | Backend |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase Web SDK đăng nhập OAuth | `apps/web/.env.local` | Browser (public by design) |
+| `N8N_URL` | NestJS ping `/healthz` + proxy chat tới WF01 | `apps/api/.env` | Backend |
+| ~~`NEXT_PUBLIC_N8N_*`~~ | ~~Key n8n trong browser~~ — **đã xóa** (14/09, xem [[15 - Refactor Real API Toàn Portal & Review Best Practice]]) | — | — |
+
+> 🔁 Luồng gọi có key: `Browser (JWT) → NestJS → (x-api-key) → n8n → (x-api-key) → NestJS`; gửi tin khách: `NestJS → Slack Web API (Bearer)`. Không có đường nào đưa secret xuống browser.
 
 ## Shared Packages
 

@@ -31,15 +31,6 @@
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HR_API_KEY }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ employeeId: $(\"Input from Router\").first().json.employeeId || null, type: \"TRAINING\", channel: $(\"Input from Router\").first().json.channel || \"mobile\", externalId: $(\"Input from Router\").first().json.employeeId || null }) }}",
@@ -52,7 +43,13 @@
       "position": [
         680,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -88,7 +85,7 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash",
+        "modelName": "models/gemini-2.5-flash",
         "options": {
           "temperature": 0.8,
           "maxOutputTokens": 1024
@@ -149,15 +146,6 @@
         "method": "POST",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HR_API_KEY }}"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"gemini-2.5-flash\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
@@ -170,7 +158,13 @@
       "position": [
         1520,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {

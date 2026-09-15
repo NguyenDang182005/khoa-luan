@@ -15,6 +15,14 @@ export class DepartmentsService {
     });
   }
 
+  /** Danh sách chức vụ (dùng cho dropdown form tạo nhân viên) */
+  findPositions() {
+    return this.prisma.position.findMany({
+      select: { id: true, title: true, code: true },
+      orderBy: { title: 'asc' },
+    });
+  }
+
   findOne(id: string) {
     return this.prisma.department.findUniqueOrThrow({
       where: { id },

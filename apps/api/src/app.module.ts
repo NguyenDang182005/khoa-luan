@@ -15,13 +15,18 @@ import { SalaryConfigModule } from './salary-config/salary-config.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { AiContextModule } from './ai-context/ai-context.module';
 import { NotificationsModule } from './notifications/notifications.module';
-
+import { DashboardModule } from './dashboard/dashboard.module';
+import { AgentsModule } from './agents/agents.module';
+import { TrainingModule } from './training/training.module';
+import { SettingsModule } from './settings/settings.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 @Module({
   imports: [
     // Config
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      // ../../.env = root .env của monorepo (SLACK_BOT_TOKEN, GEMINI_API_KEY, HR_API_KEY...)
+      envFilePath: ['.env.local', '.env', '../../.env.local', '../../.env'],
     }),
     // Rate limiting
     ThrottlerModule.forRoot([
@@ -46,6 +51,11 @@ import { NotificationsModule } from './notifications/notifications.module';
     OnboardingModule,
     AiContextModule,
     NotificationsModule,
+    DashboardModule,
+    AgentsModule,
+    TrainingModule,
+    SettingsModule,
+    KnowledgeModule,
   ],
 })
 export class AppModule {}

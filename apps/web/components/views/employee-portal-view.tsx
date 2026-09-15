@@ -1,13 +1,23 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { leaveApi } from "@/lib/api/leave.api"
+import { payrollApi } from "@/lib/api/payroll.api"
+import { attendanceApi, haversineMeters } from "@/lib/api/attendance.api"
+import type { AttendanceRecord } from "@/lib/api/attendance.api"
+import { onboardingApi } from "@/lib/api/onboarding.api"
+import type { MyOnboardingItem } from "@/lib/api/onboarding.api"
+import { agentsApi } from "@/lib/api/agents.api"
+import type { LeaveRequest } from "@/lib/schemas/leave.schema"
+import { LeaveCreateSchema, LeaveTypeEnum } from "@/lib/schemas/leave.schema"
+import type { PayrollRecord } from "@/lib/schemas/payroll.schema"
 import * as React from "react"
 import {
   Clock,
   Calendar,
-  FileText,
   MapPin,
   CheckCircle2,
-  Download,
   Send,
   Plus,
   Bot,
@@ -16,44 +26,237 @@ import {
   CreditCard,
   ChevronDown,
   ChevronUp,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { todayVN, leaveTypeLabel, payrollStatusLabel, vnd } from "@/lib/utils"
+import { settingsApi } from "@/lib/api/settings.api"
+import type { Geofence } from "@/lib/schemas/settings.schema"
+
+// Tọa độ văn phòng: ưu tiên cấu hình trong DB (Trang Cài Đặt → Geofence),
+// fallback qua biến env NEXT_PUBLIC_OFFICE_* rồi mới đến mặc định.
+const OFFICE_FALLBACK = {
+  name: process.env.NEXT_PUBLIC_OFFICE_NAME ?? "Văn phòng công ty",
+  lat: Number(process.env.NEXT_PUBLIC_OFFICE_LAT ?? 10.7951),
+  lng: Number(process.env.NEXT_PUBLIC_OFFICE_LNG ?? 106.7218),
+  radiusM: Number(process.env.NEXT_PUBLIC_OFFICE_RADIUS_M ?? 200),
+}
+
+const LEAVE_TYPE_OPTIONS = [
+  LeaveTypeEnum.enum.ANNUAL,
+  LeaveTypeEnum.enum.SICK,
+  LeaveTypeEnum.enum.UNPAID,
+  LeaveTypeEnum.enum.EMERGENCY,
+] as const
+
+interface ChatEntry {
+  role: "user" | "bot"
+  text: string
+  latency?: string
+}
+
+function timeHM(iso: string | null | undefined): string {
+  if (!iso) return "--:--"
+  return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+}
 
 export function EmployeePortalView() {
-  const [showLeaveModal, setShowLeaveModal] = React.useState(false)
-  const [showPayslipDetails, setShowPayslipDetails] = React.useState(false)
-  const [floatingChatOpen, setFloatingChatOpen] = React.useState(false)
-  const [chatInput, setChatInput] = React.useState("")
-  const [chatMessages, setChatMessages] = React.useState<{ role: "user" | "bot"; text: string }[]>([
-    {
-      role: "bot",
-      text: "Xin chào anh Đạt! Em là Trợ lý HR AI (WF02). Anh cần hỗ trợ tra cứu chế độ thai sản, công tác phí hay thủ tục xin nghỉ phép ạ?",
-    },
+  const { user } = useAuth()
+  const employeeId = user?.employee?.id ?? ""
+  const empName = user?.employee?.fullName ?? ""
+  const empCode = user?.employee?.employeeCode ?? ""
+  const deptName = user?.employee?.departmentName ?? ""
+  const posTitle = user?.employee?.positionTitle ?? ""
+
+  const [leaveBalance, setLeaveBalance] = useState<{ remainingDays: number; totalDays: number } | null>(null)
+  const [leaveHistory, setLeaveHistory] = useState<LeaveRequest[]>([])
+  const [payslip, setPayslip] = useState<PayrollRecord | null>(null)
+  const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null)
+  const [onboarding, setOnboarding] = useState<{ completed: number; total: number; items: MyOnboardingItem[] } | null>(null)
+  const [dataLoading, setDataLoading] = useState(true)
+  // Vùng chấm công từ DB (Trang Cài Đặt cấu hình) — fallback env/mặc định nếu chưa tải được
+  const [office, setOffice] = useState(OFFICE_FALLBACK)
+
+  // GPS check-in
+  const [gpsBusy, setGpsBusy] = useState(false)
+  const [gpsMessage, setGpsMessage] = useState<string | null>(null)
+  const [gpsError, setGpsError] = useState<string | null>(null)
+
+  // Chat
+  const [chatMessages, setChatMessages] = useState<ChatEntry[]>([
+    { role: "bot", text: "Xin chào! Tôi là Trợ lý HR AI nội bộ. Bạn có câu hỏi nào về chính sách nhân sự hoặc ngày phép không?" },
   ])
+  const [chatInput, setChatInput] = useState("")
+  const [isChatting, setIsChatting] = useState(false)
+  const [floatingChatOpen, setFloatingChatOpen] = useState(false)
 
-  const [leaveDays, setLeaveDays] = React.useState(9.5)
-  const [checkOutDone, setCheckOutDone] = React.useState(false)
+  // Leave form
+  const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const [leaveType, setLeaveType] = useState<string>(LeaveTypeEnum.enum.ANNUAL)
+  const [startDate, setStartDate] = useState(todayVN())
+  const [endDate, setEndDate] = useState(todayVN())
+  const [reason, setReason] = useState("")
+  const [leaveErrors, setLeaveErrors] = useState<Record<string, string>>({})
+  const [leaveSubmitting, setLeaveSubmitting] = useState(false)
+  const [leaveSuccess, setLeaveSuccess] = useState<string | null>(null)
+  const [showPayslipDetails, setShowPayslipDetails] = useState(false)
 
-  const handleSendChat = () => {
-    if (!chatInput.trim()) return
-    const text = chatInput.trim()
-    setChatMessages((prev) => [...prev, { role: "user", text }])
+  const today = todayVN()
+
+  const loadAll = useCallback(async () => {
+    if (!employeeId) return
+    setDataLoading(true)
+    const nowDate = new Date()
+    const month = nowDate.getMonth() + 1
+    const year = nowDate.getFullYear()
+    // Vùng chấm công trong DB (HR_ADMIN cấu hình ở trang Cài Đặt)
+    settingsApi
+      .getGeofence()
+      .then((g) => setOffice({ name: g.name, lat: g.lat, lng: g.lng, radiusM: g.radiusM }))
+      .catch(() => {/* giữ fallback */})
+    const [balanceRes, leavesRes, slipRes, attendanceRes, onboardingRes] = await Promise.allSettled([
+      leaveApi.getBalance(employeeId, year),
+      leaveApi.list({ employeeId }),
+      payrollApi.getMyPayslip(month, year),
+      attendanceApi.listByEmployee(employeeId, month, year),
+      onboardingApi.getMy(),
+    ])
+    if (balanceRes.status === "fulfilled") {
+      setLeaveBalance({ remainingDays: balanceRes.value.remainingDays, totalDays: balanceRes.value.totalDays })
+    }
+    if (leavesRes.status === "fulfilled") setLeaveHistory(leavesRes.value)
+    if (slipRes.status === "fulfilled") setPayslip(slipRes.value)
+    if (attendanceRes.status === "fulfilled") {
+      const records = attendanceRes.value
+      const record = records.find((r) => (r.date ?? "").slice(0, 10) === today) ?? null
+      setTodayRecord(record)
+    }
+    if (onboardingRes.status === "fulfilled") {
+      const items = onboardingRes.value.items
+      setOnboarding({
+        items,
+        completed: items.filter((i) => i.isCompleted).length,
+        total: items.length,
+      })
+    }
+    setDataLoading(false)
+  }, [employeeId, today])
+
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
+
+  // ── GPS Check-in / Check-out ────────────────────────────────────────────
+  const getPosition = () =>
+    new Promise<GeolocationPosition>((resolve, reject) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("Thiết bị không hỗ trợ định vị GPS."))
+        return
+      }
+      navigator.geolocation.getCurrentPosition(resolve, (err) => reject(new Error("Không lấy được vị trí GPS: " + err.message)), {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000,
+      })
+    })
+
+  const handleCheckIn = async () => {
+    setGpsError(null)
+    setGpsMessage(null)
+    setGpsBusy(true)
+    try {
+      const pos = await getPosition()
+      const distance = Math.round(haversineMeters(pos.coords.latitude, pos.coords.longitude, office.lat, office.lng))
+      if (distance > office.radiusM) {
+        setGpsError(`Bạn đang cách ${office.name} khoảng ${distance}m (giới hạn ${office.radiusM}m). Vui lòng đến gần hơn để check-in.`)
+        return
+      }
+      await attendanceApi.checkIn(employeeId, `GPS ${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)} (${distance}m)`)
+      setGpsMessage("Check-in thành công!")
+      await loadAll()
+    } catch (e: unknown) {
+      const axiosMsg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setGpsError(axiosMsg ?? (e instanceof Error ? e.message : "Check-in thất bại."))
+    } finally {
+      setGpsBusy(false)
+    }
+  }
+
+  const handleCheckOut = async () => {
+    setGpsError(null)
+    setGpsMessage(null)
+    setGpsBusy(true)
+    try {
+      await attendanceApi.checkOut(employeeId)
+      setGpsMessage("Check-out thành công!")
+      await loadAll()
+    } catch (e: unknown) {
+      const axiosMsg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setGpsError(axiosMsg ?? (e instanceof Error ? e.message : "Check-out thất bại."))
+    } finally {
+      setGpsBusy(false)
+    }
+  }
+
+  // ── Chat qua NestJS (JWT) ───────────────────────────────────────────────
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || isChatting) return
+    const msg = chatInput.trim()
+    setChatMessages((prev) => [...prev, { role: "user", text: msg }])
     setChatInput("")
-
-    setTimeout(() => {
+    setIsChatting(true)
+    const startTime = Date.now()
+    try {
+      const result = await agentsApi.chat(msg)
       setChatMessages((prev) => [
         ...prev,
-        {
-          role: "bot",
-          text: `[HR AI]: Dạ em đã tra cứu thông tin liên quan đến "${text}". Dữ liệu hợp đồng của anh Đạt tại Công nghệ & AI cho thấy anh được hưởng chế độ phụ cấp ăn trưa 1.5tr và còn ${leaveDays} ngày phép năm ạ!`,
-        },
+        { role: "bot", text: result.answer, latency: String(result.latencyMs || Date.now() - startTime) },
       ])
-    }, 500)
+    } catch (e: unknown) {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "bot", text: e instanceof Error ? e.message : "Xin lỗi, có lỗi kết nối AI." },
+      ])
+    } finally {
+      setIsChatting(false)
+    }
   }
+
+  // ── Tạo đơn nghỉ phép (validate Zod + gọi API thật) ─────────────────────
+  const handleLeaveSubmit = async () => {
+    if (!employeeId) return
+    setLeaveErrors({})
+    setLeaveSuccess(null)
+    const parsed = LeaveCreateSchema.safeParse({ employeeId, type: leaveType, startDate, endDate, reason })
+    if (!parsed.success) {
+      const errs: Record<string, string> = {}
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? "form")
+        if (!errs[key]) errs[key] = issue.message
+      }
+      setLeaveErrors(errs)
+      return
+    }
+    setLeaveSubmitting(true)
+    try {
+      await leaveApi.create(parsed.data)
+      setShowLeaveModal(false)
+      setReason("")
+      setLeaveSuccess("Đã gửi đơn nghỉ phép. Đơn đang chờ quản lý duyệt.")
+      await loadAll()
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+      setLeaveErrors({ form: Array.isArray(msg) ? msg.join(", ") : msg ?? "Gửi đơn thất bại. Vui lòng thử lại." })
+    } finally {
+      setLeaveSubmitting(false)
+    }
+  }
+
+  const gross = payslip ? payslip.baseSalary + payslip.allowances + payslip.overtimePay + payslip.bonus : 0
 
   return (
     <div className="relative flex flex-col gap-6 p-6">
@@ -64,7 +267,7 @@ export function EmployeePortalView() {
             Bàn Làm Việc Cá Nhân (Employee Portal)
           </h1>
           <p className="text-xs text-muted-foreground sm:text-sm">
-            Xin chào, Nguyễn Văn Đạt (Senior Frontend Lead • Mã NV: EMP-001)
+            Xin chào, {empName || "bạn"} ({posTitle || "—"} • Mã NV: {empCode || "—"}{deptName ? ` • ${deptName}` : ""})
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -75,9 +278,15 @@ export function EmployeePortalView() {
         </div>
       </div>
 
+      {leaveSuccess && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">
+          {leaveSuccess}
+        </div>
+      )}
+
       {/* Row 1: 3 Quick Action Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* GPS Geofencing Attendance Card */}
+        {/* GPS Geofencing Attendance Card — dữ liệu thật từ attendance API */}
         <Card className="border-primary/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -88,33 +297,46 @@ export function EmployeePortalView() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-foreground">08:28 AM</span>
-              <Badge variant="success" className="text-[10px]">Đúng Giờ</Badge>
-            </div>
+            {todayRecord?.checkIn ? (
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-foreground">{timeHM(todayRecord.checkIn)}</span>
+                <Badge variant="success" className="text-[10px]">Đã Check-in</Badge>
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-muted-foreground">--:--</span>
+                <Badge variant="warning" className="text-[10px]">Chưa Check-in</Badge>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <MapPin className="size-3 text-emerald-400" /> Tòa nhà Innovation Hub (Cách 42m - Hợp lệ)
+              <MapPin className="size-3 text-emerald-400" /> {office.name} (bán kính {office.radiusM}m)
             </p>
-            <div className="mt-3">
-              {!checkOutDone ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full text-xs gap-1 border-agent-amber/40 hover:bg-agent-amber/10 text-agent-amber"
-                  onClick={() => setCheckOutDone(true)}
-                >
-                  Chấm Công Ra (Check-out)
+            <div className="mt-3 flex flex-col gap-2">
+              {!todayRecord?.checkIn ? (
+                <Button size="sm" className="w-full text-xs gap-1 bg-primary text-primary-foreground" onClick={handleCheckIn} disabled={gpsBusy || !employeeId}>
+                  {gpsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Clock className="size-3.5" />} Check-in (GPS)
+                </Button>
+              ) : !todayRecord?.checkOut ? (
+                <Button size="sm" variant="outline" className="w-full text-xs gap-1 border-agent-amber/40 text-agent-amber hover:bg-agent-amber/10" onClick={handleCheckOut} disabled={gpsBusy}>
+                  {gpsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Clock className="size-3.5" />} Chấm Công Ra (Check-out)
                 </Button>
               ) : (
                 <div className="rounded-lg bg-emerald-500/10 p-2 text-center text-xs font-semibold text-emerald-400">
-                  ✓ Đã check-out lúc 17:35
+                  ✓ Đã check-out lúc {timeHM(todayRecord.checkOut)}
+                  {typeof todayRecord.workHours === "number" ? ` • ${todayRecord.workHours.toFixed(1)}h` : ""}
                 </div>
+              )}
+              {gpsMessage && <p className="text-[11px] text-emerald-400">{gpsMessage}</p>}
+              {gpsError && (
+                <p className="flex items-start gap-1 text-[11px] text-agent-coral">
+                  <AlertTriangle className="mt-0.5 size-3 shrink-0" /> {gpsError}
+                </p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Annual Leaves Card */}
+        {/* Annual Leaves Card — số thật từ leave balance */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -126,16 +348,20 @@ export function EmployeePortalView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-agent-teal">
-              {leaveDays} <span className="text-xs font-normal text-muted-foreground">/ 12 ngày</span>
+              {dataLoading ? "..." : (leaveBalance?.remainingDays ?? "--")}{" "}
+              <span className="text-xs font-normal text-muted-foreground">/ {leaveBalance?.totalDays ?? "--"} ngày</span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-muted mt-2 overflow-hidden">
-              <div className="h-full bg-agent-teal rounded-full" style={{ width: `${(leaveDays / 12) * 100}%` }} />
+              <div
+                className="h-full bg-agent-teal rounded-full transition-all"
+                style={{ width: `${leaveBalance ? Math.min(100, (leaveBalance.remainingDays / Math.max(1, leaveBalance.totalDays)) * 100) : 0}%` }}
+              />
             </div>
             <div className="mt-3">
               <Button
                 size="sm"
                 className="w-full text-xs gap-1 bg-primary text-primary-foreground"
-                onClick={() => setShowLeaveModal(true)}
+                onClick={() => { setShowLeaveModal(true); setLeaveErrors({}); setLeaveSuccess(null) }}
               >
                 <Plus className="size-3.5" /> Tạo Đơn Nghỉ Phép
               </Button>
@@ -143,119 +369,160 @@ export function EmployeePortalView() {
           </CardContent>
         </Card>
 
-        {/* Latest Payslip Summary */}
+        {/* Latest Payslip — phiếu lương thật từ /payroll/me */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-              Phiếu Lương Tháng 08/2026
+              {payslip ? `Phiếu Lương Tháng ${String(payslip.month).padStart(2, "0")}/${payslip.year}` : "Phiếu Lương"}
             </CardTitle>
             <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
               <CreditCard className="size-4" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-emerald-400">
-              ₫28,173,636
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Đã chuyển khoản vào tài khoản Techcombank</p>
-            <div className="mt-3 flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full text-xs gap-1"
-                onClick={() => setShowPayslipDetails(!showPayslipDetails)}
-              >
-                {showPayslipDetails ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-                {showPayslipDetails ? "Ẩn Chi Tiết" : "Xem Chi Tiết"}
-              </Button>
-            </div>
+            {payslip ? (
+              <>
+                <div className="text-2xl font-bold font-mono text-emerald-400">{vnd(payslip.netSalary)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Trạng thái: {payrollStatusLabel(payslip.status)}</p>
+                <div className="mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs gap-1"
+                    onClick={() => setShowPayslipDetails(!showPayslipDetails)}
+                  >
+                    {showPayslipDetails ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                    {showPayslipDetails ? "Ẩn Chi Tiết" : "Xem Chi Tiết"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {dataLoading ? "Đang tải phiếu lương..." : "Chưa có phiếu lương trong kỳ này. Phiếu xuất hiện sau khi HR chạy Rule Engine."}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Expandable Payslip Breakdown */}
-      {showPayslipDetails && (
+      {/* Expandable Payslip Breakdown — số liệu thật */}
+      {showPayslipDetails && payslip && (
         <Card className="border-border/80 animate-in fade-in duration-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-sm font-semibold">Chi Tiết Phiếu Lương Điện Tử (Kỳ 08/2026)</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Chi Tiết Phiếu Lương Điện Tử (Kỳ {String(payslip.month).padStart(2, "0")}/{payslip.year})
+              </CardTitle>
               <CardDescription>Bảng phân rã các khoản thu nhập và giảm trừ theo luật</CardDescription>
             </div>
-            <Button size="xs" variant="outline" className="gap-1">
-              <Download className="size-3.5" /> Tải PDF
-            </Button>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4 pt-2">
+            <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-5 pt-2">
               <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Lương cơ bản</span>
-                <p className="font-mono font-bold text-foreground mt-1">₫28,000,000</p>
+                <span className="text-muted-foreground">Lương thực tế</span>
+                <p className="font-mono font-bold text-foreground mt-1">{vnd(payslip.baseSalary)}</p>
+                <p className="text-[10px] text-muted-foreground">{payslip.actualWorkingDays}/{payslip.workingDays} ngày công</p>
               </div>
               <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Làm thêm giờ (12h OT)</span>
-                <p className="font-mono font-bold text-emerald-400 mt-1">+₫2,863,636</p>
+                <span className="text-muted-foreground">Làm thêm giờ ({payslip.overtimeHours}h)</span>
+                <p className="font-mono font-bold text-emerald-400 mt-1">+{vnd(payslip.overtimePay)}</p>
               </div>
               <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Bảo hiểm bắt buộc (10.5%)</span>
-                <p className="font-mono font-bold text-agent-amber mt-1">-₫2,940,000</p>
+                <span className="text-muted-foreground">Phụ cấp + Thưởng</span>
+                <p className="font-mono font-bold text-foreground mt-1">+{vnd(payslip.allowances + payslip.bonus)}</p>
               </div>
               <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Thuế TNCN (Biểu 7 bậc)</span>
-                <p className="font-mono font-bold text-agent-coral mt-1">-₫1,250,000</p>
+                <span className="text-muted-foreground">Tổng Gross</span>
+                <p className="font-mono font-bold text-foreground mt-1">{vnd(gross)}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-3">
+                <span className="text-muted-foreground">Khấu trừ (BH + Thuế TNCN)</span>
+                <p className="font-mono font-bold text-agent-coral mt-1">-{vnd(payslip.deductions)}</p>
+                <p className="text-[10px] text-muted-foreground">Trong đó thuế: {vnd(payslip.tax)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Row 2: Onboarding Roadmap Checklist */}
+      {/* Đơn nghỉ phép của tôi — dữ liệu thật */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Calendar className="size-4 text-agent-teal" />
+            Đơn Nghỉ Phép Của Tôi
+          </CardTitle>
+          <CardDescription>Lịch sử các đơn đã gửi và trạng thái duyệt</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {leaveHistory.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Bạn chưa gửi đơn nghỉ phép nào.</p>
+          ) : (
+            <div className="flex flex-col gap-2 text-xs">
+              {leaveHistory.map((leave) => (
+                <div key={leave.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      {leaveTypeLabel(leave.type)} • {leave.startDate} → {leave.endDate} ({leave.totalDays} ngày)
+                    </p>
+                    <p className="text-[11px] text-muted-foreground italic">&ldquo;{leave.reason}&rdquo;</p>
+                  </div>
+                  <Badge variant={leave.status === "APPROVED" ? "success" : leave.status === "REJECTED" ? "destructive" : "warning"}>
+                    {leave.status === "APPROVED" ? "Đã duyệt" : leave.status === "REJECTED" ? "Từ chối" : leave.status === "CANCELLED" ? "Đã hủy" : "Chờ duyệt"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lộ Trình Hội Nhập — dữ liệu thật từ Onboarding */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <CheckCircle2 className="size-4 text-emerald-400" />
             Lộ Trình Hội Nhập Của Bạn (Onboarding Journey)
           </CardTitle>
-          <CardDescription>Hoàn thành các mốc quan trọng để nhận chứng chỉ chính thức</CardDescription>
+          <CardDescription>
+            {onboarding
+              ? `Hoàn thành ${onboarding.completed}/${onboarding.total} hạng mục`
+              : "Tiến độ hội nhập sẽ hiển thị tại đây"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-3 text-xs">
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-400" />
-                <div>
-                  <p className="font-semibold text-foreground">1. Ký hợp đồng lao động điện tử & nạp CCCD</p>
-                  <p className="text-[11px] text-muted-foreground">Đã hoàn thành ngày 01/03/2024</p>
+          {!onboarding || onboarding.items.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {dataLoading ? "Đang tải lộ trình..." : "Chưa có lộ trình hội nhập nào được gán cho bạn."}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3 text-xs">
+              {onboarding.items.map((item, idx) => (
+                <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className={`size-5 ${item.isCompleted ? "text-emerald-400" : "text-muted-foreground"}`} />
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {idx + 1}. {item.title}
+                      </p>
+                      {item.description && (
+                        <p className="text-[11px] text-muted-foreground">{item.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Badge variant={item.isCompleted ? "success" : "secondary"}>
+                    {item.isCompleted
+                      ? `Hoàn thành${item.completedAt ? ` ${new Date(item.completedAt).toLocaleDateString("vi-VN")}` : ""}`
+                      : "Chờ xử lý"}
+                  </Badge>
                 </div>
-              </div>
-              <Badge variant="success">Hoàn thành</Badge>
+              ))}
             </div>
-
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-400" />
-                <div>
-                  <p className="font-semibold text-foreground">2. Bài kiểm tra Nội quy Công ty (5 câu trắc nghiệm)</p>
-                  <p className="text-[11px] text-muted-foreground">Đạt 5/5 điểm tuyệt đối</p>
-                </div>
-              </div>
-              <Badge variant="success">Đạt 100%</Badge>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-400" />
-                <div>
-                  <p className="font-semibold text-foreground">3. Đánh giá Xử lý Tình huống AI (WF03 Training Agent)</p>
-                  <p className="text-[11px] text-muted-foreground">Đạt 8.8/10 điểm trên 4 tiêu chí mềm</p>
-                </div>
-              </div>
-              <Badge variant="amber">8.8 / 10 điểm</Badge>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Leave Application Modal */}
+      {/* Leave Application Modal — form hoạt động thật */}
       <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal}>
         <DialogHeader>
           <DialogTitle>Tạo Đơn Xin Nghỉ Phép</DialogTitle>
@@ -266,44 +533,66 @@ export function EmployeePortalView() {
         <div className="flex flex-col gap-3 py-3 text-xs">
           <div>
             <label className="text-[11px] font-semibold text-muted-foreground">Loại nghỉ phép</label>
-            <select className="w-full mt-1 rounded-lg border border-border bg-input/40 p-2 text-foreground outline-none">
-              <option>Nghỉ phép năm có hưởng lương</option>
-              <option>Nghỉ ốm đau / bảo hiểm y tế</option>
-              <option>Nghỉ việc riêng không hưởng lương</option>
+            <select
+              value={leaveType}
+              onChange={(e) => setLeaveType(e.target.value)}
+              className="w-full mt-1 rounded-lg border border-border bg-input/40 p-2 text-foreground outline-none"
+            >
+              {LEAVE_TYPE_OPTIONS.map((t) => (
+                <option key={t} value={t}>{leaveTypeLabel(t)}</option>
+              ))}
             </select>
           </div>
           <div>
             <label className="text-[11px] font-semibold text-muted-foreground">Thời gian nghỉ</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
-              <input type="date" defaultValue="2026-09-12" className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs" />
-              <input type="date" defaultValue="2026-09-13" className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs" />
+              <input
+                type="date"
+                value={startDate}
+                min={today}
+                onChange={(e) => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value) }}
+                className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+              />
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+              />
             </div>
+            {leaveErrors.startDate && <p className="mt-1 text-agent-coral">{leaveErrors.startDate}</p>}
+            {leaveErrors.endDate && <p className="mt-1 text-agent-coral">{leaveErrors.endDate}</p>}
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Lý do nghỉ phép</label>
-            <textarea placeholder="Nhập lý do nghỉ phép..." rows={2} className="w-full mt-1 rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs outline-none" />
+            <label className="text-[11px] font-semibold text-muted-foreground">Lý do nghỉ phép (tối thiểu 10 ký tự)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Nhập lý do nghỉ phép..."
+              rows={2}
+              className="w-full mt-1 rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs outline-none"
+            />
+            {leaveErrors.reason && <p className="mt-1 text-agent-coral">{leaveErrors.reason}</p>}
           </div>
+          {leaveErrors.form && <p className="text-agent-coral">{leaveErrors.form}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowLeaveModal(false)}>Hủy</Button>
-          <Button
-            variant="default"
-            onClick={() => {
-              setShowLeaveModal(false)
-              setLeaveDays((prev) => prev - 1)
-            }}
-          >
+          <Button variant="default" onClick={handleLeaveSubmit} disabled={leaveSubmitting} className="gap-1.5">
+            {leaveSubmitting && <Loader2 className="size-3.5 animate-spin" />}
             Gửi Đơn Xin Phép
           </Button>
         </DialogFooter>
       </Dialog>
 
-      {/* FLOATING HR AI ASSISTANT WIDGET */}
+      {/* FLOATING HR AI ASSISTANT WIDGET — chat thật qua NestJS */}
       <div className="fixed bottom-6 right-6 z-50">
         {!floatingChatOpen ? (
           <Button
             onClick={() => setFloatingChatOpen(true)}
             className="size-14 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 p-0 shadow-2xl hover:scale-105 transition-transform"
+            aria-label="Mở trợ lý HR AI"
           >
             <Bot className="size-7 text-white" />
           </Button>
@@ -317,10 +606,10 @@ export function EmployeePortalView() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-foreground">Trợ Lý HR AI (WF02)</h4>
-                  <p className="text-[10px] text-muted-foreground">Sẵn sàng 24/7 • Gemini 3.5</p>
+                  <p className="text-[10px] text-muted-foreground">Sẵn sàng 24/7 • Gemini 2.5 Flash</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setFloatingChatOpen(false)}>
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setFloatingChatOpen(false)} aria-label="Đóng chat">
                 <X className="size-4" />
               </Button>
             </div>
@@ -336,9 +625,15 @@ export function EmployeePortalView() {
                       : "self-start bg-muted/60 text-foreground border border-border"
                   }`}
                 >
-                  {m.text}
+                  <p className="whitespace-pre-wrap">{m.text}</p>
+                  {m.latency && <p className="mt-1 text-[9px] opacity-60">⚡ {m.latency}ms</p>}
                 </div>
               ))}
+              {isChatting && (
+                <div className="self-start rounded-xl bg-muted/60 border border-border p-2.5 text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="size-3 animate-spin" /> Đang phân tích câu hỏi...
+                </div>
+              )}
             </div>
 
             {/* Chat Input */}
@@ -350,8 +645,9 @@ export function EmployeePortalView() {
                   onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
                   placeholder="Hỏi chính sách, ngày phép..."
                   className="flex-1 rounded-lg border border-border bg-input/40 px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+                  disabled={isChatting}
                 />
-                <Button size="icon" className="size-7 bg-primary text-primary-foreground" onClick={handleSendChat}>
+                <Button size="icon" className="size-7 bg-primary text-primary-foreground" onClick={handleSendChat} disabled={isChatting || !chatInput.trim()}>
                   <Send className="size-3" />
                 </Button>
               </div>

@@ -1,235 +1,141 @@
-# ✅ Task Checklist — Khóa Luận
+# ✅ Task Checklist & Kế Hoạch Tính Năng Cần Phát Triển
 
-> Cập nhật: 2026-09-07
-> Đánh giá tổng thể: **~72% hoàn thành**
-
----
-
-## 🏗️ Hạ tầng & Kiến trúc
-
-- [x] Khởi tạo Monorepo (Turborepo + pnpm workspaces)
-- [x] Cấu hình TypeScript end-to-end
-- [x] Docker Compose (PostgreSQL + n8n)
-- [x] Prisma Schema — 15 models đầy đủ
-- [x] Prisma Client được share qua `@repo/database`
-- [x] `.gitignore` bảo vệ secrets
-- [x] `CONTEXT.md` — glossary 16 thuật ngữ domain
-- [x] `docs/adr/` — ADR-0001 (Postgres Chat Memory), ADR-0002 (RAG middleware)
+> Cập nhật: **2026-09-15** | Đánh giá tổng thể: **~93% hoàn thành**
+> Người cập nhật: AI Agent (Antigravity)
 
 ---
 
-## 🖥️ Backend — NestJS API
+## 🚀 Cập Nhật 15/09 — Fix Bug & Real-time WebSocket (mới)
 
-### Core Modules
-- [x] `AuthModule` — JWT access + refresh token
-- [x] `UsersModule` — CRUD user
-- [x] `EmployeesModule` — quản lý nhân viên
-- [x] `DepartmentsModule` — phòng ban
-- [x] `ContractsModule` — hợp đồng lao động
-- [x] `AttendanceModule` — chấm công
-- [x] `LeaveModule` — nghỉ phép
-- [x] `OnboardingModule` — nhân viên mới
-- [x] `NotificationsModule` + WebSocket Gateway
-- [x] `SalaryConfigModule`
-
-### Rule Engine Tính Lương ⭐
-- [x] Thuế TNCN lũy tiến 7 bậc (PIT brackets)
-- [x] BHXH 8% / BHYT 1.5% / BHTN 1%
-- [x] `PayrollService.calculatePayroll()` — tính lương tự động
-- [ ] Tích hợp OT x1.5 / x2.0 / x3.0 vào payroll calculation
-- [ ] Unit test cho Rule Engine
-
-### AI Context Module (n8n bridge)
-- [x] `GET /n8n/employee-context/:id`
-- [x] `GET /n8n/payroll-context/:id`
-- [x] `POST /n8n/chat/session`
-- [x] `POST /n8n/chat/message`
-- [x] `GET /n8n/chat/history/:sessionId`
-- [x] `POST /n8n/escalate`
-- [x] `ApiKeyGuard` xác thực x-api-key
-- [ ] **Fix `NotificationsGateway`** — admin-broadcast → emit room `admin` 🔴
-- [ ] Fix web session (externalId = employeeId cho channel=web)
-- [ ] Validate `type` bằng DTO enum thay vì `as any`
-- [ ] Fix hardcode `12 ngày phép` → đọc từ `Contract.allowances`
-- [ ] **Thêm `GET /n8n/policy-search`** — RAG endpoint cho SearchHRPolicy 🔴
+- [x] **Kiểm tra 37 endpoint** — audit toàn bộ port 3001, tìm ra 4 endpoint 500
+- [x] **Fix NaN crash** khi thiếu `?month=&year=` trong 3 controller (`attendance`, `payroll`, `ai-context`)
+- [x] **Redesign panel AI** — bỏ danh sách 10 message lặp → aggregate 3 workflow gọn (WF02/03/04)
+- [x] **WebSocket real-time AI panel** — server push khi có message mới, 0 polling, badge live state
+  - `NotificationsGateway.emitAiActivity()` → broadcast room `'admin'`
+  - `AiContextService.saveMessage()` hook emit sau persist DB
+  - `useAiSocket` hook (Next.js) — connect/reconnect, `join-admin`, listen `ai:activity`
+  - Dashboard badge: xanh pulse = connected, xám = offline
+- [x] Kết quả kiểm thử: badge WS xanh ✅, API aggregate 200 ✅, 0 TypeScript error ✅
 
 ---
 
-## 🤖 n8n AI Agent Workflows
+## 🚀 Cập Nhật 14/09 — Mở Rộng Tính Năng & Dữ Liệu Demo (mới)
 
-### WF01 — Router Agent 🟢 Active
-- [x] Webhook `POST /webhook/chat`
-- [x] PII Masking (CMND, SĐT, Email)
-- [x] Intent Classifier (Gemini Flash, temp=0.0, maxOutputTokens=1024)
-- [x] Switch node routing HR_QA / TRAINING / CSKH / OTHER
-- [x] Execute Workflow nodes gọi WF02/03/04 (theo ID)
-- [x] Bổ sung node `Respond Chat Webhook` trả về client (kết nối tất cả output ports)
-- [x] **Published + Active**
-- [x] End-to-end test ✅ (2026-09-07)
-
-### WF02 — HR Q&A Agent 🟢 Active
-- [x] Dual-trigger (`executeWorkflowTrigger` + Webhook `POST /webhook/hr-qa`)
-- [x] Get/Create Session
-- [x] Save User Message
-- [x] HR Agent (Gemini Flash, temp=0.3, maxIterations=5, maxOutputTokens=1024)
-- [x] **Postgres Chat Memory** ✅ (kết nối PostgreSQL bảng `n8n_chat_histories`, ssl: disable)
-- [x] Tool: `GetEmployeeContext` (@n8n/n8n-nodes-langchain.toolHttpRequest)
-- [x] Tool: `GetPayrollContext` (@n8n/n8n-nodes-langchain.toolHttpRequest)
-- [x] Tool: `SearchHRPolicy` (chờ NestJS endpoint RAG)
-- [x] Save Assistant Message vào NestJS DB
-- [x] Format Output node trả về JSON chuẩn
-- [x] **Published + Active**
-- [x] End-to-end test (chạy cùng NestJS API trên host port 3001) ✅ (2026-09-07)
-
-### WF03 — Training Role-play Agent 🟢 Active
-- [x] executeWorkflowTrigger
-- [x] Load Scenario (6 scenarios)
-- [x] Prepare Agent Input
-- [x] Get/Create Session
-- [x] Training Agent (Gemini Flash, temp=0.8, maxOutputTokens=1024)
-- [x] **Postgres Chat Memory** ✅ (ssl: disable)
-- [x] Parse Result — `[DANH GIA:]` tag + roleplay response
-- [x] Save Assistant Message với scoring trong metadata
-- [x] Format Training Output
-- [x] **Published + Active**
-- [x] End-to-end test kịch bản `customer_complaint` (Quy trình L.E.A.R) ✅ (2026-09-07)
-
-### WF04 — Zalo CSKH Agent 🟢 Active
-- [x] Webhook `POST /webhook/zalo-webhook` + executeWorkflowTrigger
-- [x] Parse Zalo Message
-- [x] Get/Create CSKH Session (theo Zalo userId)
-- [x] Save User Message
-- [x] CSKH Agent (Gemini Flash, temp=0.5, maxOutputTokens=1024)
-- [x] **Postgres Chat Memory** ✅ (ssl: disable)
-- [x] Parse Output — detect `[CAN_ESCALATE:]`
-- [x] Send Zalo Reply (`continueOnFail: true` hỗ trợ demo/testing không cần OA token thật)
-- [x] Fan-out: Save + Zalo Reply + Escalate
-- [x] Format CSKH Output
-- [x] **Published + Active**
-- [x] End-to-end test xử lý khiếu nại khách hàng ✅ (2026-09-07)
-- [ ] Test với Zalo OA thật (khi có `ZALO_OA_ACCESS_TOKEN`)
-
-### Cấu hình n8n ✅
-- [x] Gemini credential gán cho cả 4 workflows (API Key Google AI Studio)
-- [x] Cấu hình mô hình Gemini Flash tối ưu (`maxOutputTokens: 1024`)
-- [x] PostgreSQL credential gán cho WF02/03/04 với `"ssl": "disable"`
-- [x] Generic HTTP Header Auth `x-api-key` kết nối NestJS `http://host.docker.internal:3001`
-- [x] Tất cả 4 workflows **Active 🟢**
-- [x] `scripts/setup-n8n.mjs` + `scripts/patch-all-workflows.mjs` — tự động import + publish + patch
+- [x] **Duyệt lương hàng loạt** — multi-select trên Bảng Lương; `POST /payroll/approve-bulk` & `paid-bulk`
+- [x] **Hồ sơ nhân viên 5 nhóm** — drawer mới + `PATCH /employees/:id`
+- [x] **Router card + thống kê intent** — `GET /agents/intent-stats`
+- [x] **CSKH kênh Zalo — transport Slack** — WF04 + tab "Tất cả hội thoại"
+- [x] **Trang Cài Đặt** (`settings-view`, chỉ HR_ADMIN/ADMIN)
+- [x] **Seed demo đầy đủ** — 30 NV, 2.183 chấm công, 4 phiên AI
+- [x] **Chạy thật luồng Slack CSKH end-to-end** — challenge echo + full AI pipeline ✓
+- [x] **RAG kho tri thức chính sách** — `policy_chunks` + Gemini embedding + `KnowledgeModule` + WF02 tool
 
 ---
 
-## 🗄️ Database
+## 🔧 Cập Nhật 10/09 — Refactor Real API & Review Best Practice
 
-- [x] Prisma migrate chạy
-- [x] **Seed data đầy đủ** ✅
-  - [x] 5 nhân viên (EMP001–EMP005), 3 phòng ban, 5 chức vụ
-  - [x] 5 hợp đồng lao động
-  - [x] Payroll tháng 7 (PAID) + tháng 8 (APPROVED) — thuế TNCN 7 bậc thật
-  - [x] Attendance tháng 8 cho EMP003/004/005
-  - [x] 2 đơn xin nghỉ phép
-  - [x] 6 onboarding tasks + tiến độ EMP005
-  - [x] SalaryConfig 2026
-- [ ] **pgvector extension** — enable cho RAG 🔴
-- [ ] **`PolicyChunk` model** — embed nội quy + luật lao động
-- [ ] Seed policy chunks
+- [x] **Xóa 100% mock Web Portal** — chạy dữ liệu thật
+- [x] **Fix 2 bug runtime**: payroll `_breakdown` + escalate `admin-broadcast`
+- [x] **Gỡ toàn bộ n8n key khỏi browser** — backend proxy JWT
+- [x] **GPS Check-in/out thật** (Haversine, geofence)
+- [x] **10 endpoint mới** agents/payroll/employees
+- [x] **PII Audit Trail đọc từ DB** • Dashboard `activeWorkflows` đếm thật
+- [x] Kiểm chứng: `api build` 0 lỗi • `web check-types` 0 lỗi
 
 ---
 
-## 🌐 Web Portal — Next.js 16 + shadcn/ui ✅ (Hoàn thành 100%)
+## 📊 Bảng Tiến Độ Tổng Thể
 
-- [x] Khởi tạo dự án Next.js 16 + Tailwind CSS v4 + Base UI (shadcn)
-- [x] **AppShell & Điều Hướng 4 Tầng** (Header ⌘K, Left Rail, Role Switcher Admin/ESS)
-- [x] **Dashboard Điều Hành** (4 KPI Cards, Recharts AreaChart & PieChart, Duyệt phép 1-click)
-- [x] **Quản Lý Nhân Sự & Hợp Đồng** (TanStack Table, Tìm kiếm, Lọc phòng ban, Drawer chi tiết)
-- [x] **Bảng Lương & Rule Engine Tự Động** (Gross-to-Net, BHXH/BHYT/BHTN 10.5%, Thuế 7 bậc, SalaryConfig Dialog)
-- [x] **AI Multi-Agents Command Center** (Chat 4 workflows n8n, Inspector hiển thị Gemini 3.5 Flash, token & sources)
-- [x] **Tiếp Quản CSKH & PII Audit Trail** 🔴 (WebSocket escalation alert nhấp nháy đỏ, Human takeover, Bật lại Bot, Bảng PII Masking)
-- [x] **Báo Cáo Đào Tạo & Radar AI** 📊 (Biểu đồ Spider Chart 4 cánh, Bảng xếp hạng Hybrid Assessment)
-- [x] **Cổng Nhân Viên Tự Phục Vụ (ESS)** 👤 (Chấm công GPS, Phiếu lương số, Đơn nghỉ phép, Floating AI Chatbot Widget)
-- [x] **Kiểm thử trực tiếp trên trình duyệt Chromium** đạt 8/8 hạng mục 100% (2026-09-09)
+| Hạng mục | Trước | Hôm nay | Ghi chú |
+|---|:---:|:---:|---|
+| Backend NestJS | 97% | **98%** ✅ | +WS emit, fix NaN |
+| Database Schema | 100% | **100%** ✅ | |
+| Database Seed | 100% | **100%** ✅ | |
+| n8n AI Workflows | 100% | **100%** ✅ | |
+| Web Portal — UI | 100% | **100%** ✅ | Redesign AI panel |
+| Web Portal — API | 100% | **100%** ✅ | |
+| Firebase Auth | 90% | **90%** ✅ | |
+| **Real-time WebSocket** | 50% | **90%** ✅ | Push-only AI panel + badge live |
+| Mobile App | 10% | **10%** 🔴 | Ngoài scope |
+| RAG / pgvector | 85% | **85%** ✅ | |
+| Báo cáo luận văn | 30% | **30%** | |
+| **Tổng** | **91%** | **93%** | **+2% đợt 15/09** |
 
 ---
 
-## 📱 Mobile App — React Native / Expo
+## ❌ CHƯ A LÀM — Cần thực hiện
 
-- [x] Khởi tạo Expo
-- [x] Components cơ bản
+### 🔴 P0 — Critical
+
+#### Mobile App — 0/8 màn hình (chưa bắt đầu)
+- [ ] Expo Router setup
 - [ ] Màn hình Login
-- [ ] Màn hình Chat AI
-- [ ] Chọn Scenario Training
-- [ ] Chấm công
+- [ ] **Tab 1: Home + GPS Geofencing** 🌟 Killer Feature #1
+- [ ] **Tab 2: Hybrid Assessment** 🌟 Killer Feature #3 Mobile
+- [ ] Tab 3: AI Chat | Tab 4: Profile + Lương + Phép
 
-> ⚠️ **Tối thiểu demo**: Login + Chat AI + Scenario
+#### Quick Fixes
+- [ ] Fix `externalId = employeeId` cho session channel=web
+- [ ] Seed 3 tài khoản OAuth thật
 
----
+### 🟡 P1 — Important
+- [ ] n8n WF02/03/04: thêm `latency_ms` vào metadata
+- [ ] Seed câu hỏi Training 5 scenario còn lại
+- [ ] ESS Onboarding View
+- [ ] Test E2E Training Module
+- [ ] Trang quản trị tài liệu RAG
 
-## 📋 Tích hợp & Testing
+### 🔵 P2 — Sprint 4
+- [ ] Xuất Excel/PDF
+- [ ] Unit test `PayrollService`
+- [ ] Postman Collection + Load test
+- [ ] Zalo OA thật
 
-- [x] **Test WF01 Router Agent**: định tuyến chính xác HR_QA, TRAINING, CSKH ✅
-- [x] **Test WF02 HR Agent**: hỏi lương + phép multi-turn ✅
-- [x] **Test WF03 Training Agent**: khởi tạo kịch bản role-play đào tạo ✅
-- [x] **Test WF04 CSKH Agent**: xử lý khiếu nại khách hàng ✅
-- [ ] Test flow: Mobile → WF01 → WF02
-- [ ] Test escalation: Zalo → WF04 → WebSocket → Web
-- [ ] Postman Collection
-- [ ] Load test (target < 10s)
-
----
-
-## 📝 Báo cáo
-
-- [x] Đề cương chi tiết
-- [x] Obsidian notes + Canvas
-- [x] n8n-workflows/README.md
-- [x] CONTEXT.md + docs/adr/
-- [x] [[10 - Nhật Ký Tích Hợp n8n & NestJS (E2E Test)]]
-- [ ] Chương 1 — Tổng quan
-- [ ] Chương 2 — Cơ sở lý thuyết
-- [ ] Chương 3 — Thiết kế
-- [ ] Chương 4 — Hiện thực
-- [ ] Chương 5 — Kiểm thử
-- [ ] Slides + Video demo
+### 📝 Sprint 5 — Báo Cáo
+- [ ] Chương 1–5 luận văn
+- [ ] Slides thuyết trình
+- [ ] Video demo 5 phút
 
 ---
 
-## 🎯 Priority Queue — Làm Ngay
+## ✅ ĐÃ HOÀN THÀNH (tích lũy đến 15/09/2026)
 
-### 🔴 Tuần này (Critical)
-1. - [x] Start NestJS + **test WF01/02/03/04 end-to-end** ✅ (Đã hoàn thành 07/09/2026)
-2. - [ ] Fix `NotificationsGateway` (admin-broadcast)
-3. - [ ] Thêm `GET /n8n/policy-search` + pgvector + PolicyChunk
+### 🏗️ Hạ tầng
+- [x] Monorepo Turborepo + pnpm + TypeScript + Docker + Prisma
 
-### 🟡 Tuần tới
-4. - [ ] Web Portal: Login + Notifications (WebSocket)
-5. - [ ] Web Portal: Chat page
-6. - [ ] Fix web session externalId
-7. - [ ] Fix hardcode `12 ngày phép`
-8. - [ ] Postman Collection
+### 🖥️ Backend NestJS (17+ modules)
+- [x] Auth (JWT + Refresh + Firebase) | RolesGuard | HR_ADMIN role
+- [x] Employees | Departments | Contracts | Attendance | Leave | Payroll
+- [x] SalaryConfig | Onboarding | Notifications + WebSocket
+- [x] AI Context Bridge | Dashboard | Agents | Training | Knowledge (RAG)
+- [x] **Fix NaN crash** 3 controller (15/09)
+- [x] **WebSocket emit trong `saveMessage()`** (15/09)
 
-### 🟢 Sau đó
-9. - [ ] Mobile: Login + Chat + Training
-10. - [ ] Unit test Rule Engine
-11. - [ ] Báo cáo chương 3-4
-12. - [ ] Set `ZALO_OA_ACCESS_TOKEN`
+### 🗄️ Database
+- [x] 15 models + 14 enums | Seed 30 NV + `policy_chunks` 10 chunk
+
+### 🤖 n8n Workflows (4/4 Active 🟢, E2E Pass ✅)
+- [x] WF01 Router | WF02 HR Q&A | WF03 Training | WF04 CSKH Zalo
+
+### 🌐 Web Portal (10 views + Firebase Auth + Real-time WS)
+- [x] 10 views: dashboard, employees, payroll, ai-agents, cskh-escalation, training, employee-portal, my-training, settings, onboarding
+- [x] Firebase Auth Google + Facebook OAuth
+- [x] **Redesign panel AI** — aggregate 3 workflow + latency bar (15/09)
+- [x] **`useAiSocket` hook** — WebSocket push-only (15/09)
+- [x] **Badge live state** (15/09)
+
+### 🌟 4 Killer Features
+| # | Feature | Trạng thái |
+|:---:|---|:---:|
+| 1 | 📍 GPS Geofencing | 🔴 Mobile chưa làm |
+| 2 | 🚨 Escalation Alert WS Real-time | 🟢 Xong |
+| 3 | 📊 Radar Năng Lực Đào Tạo | Web ✅ / Mobile 🔴 |
+| 4 | 🔒 PII Masking & Audit Trail | 🟢 Xong |
+
+> ⚠️ **Cần Mobile App để có đủ 4/4 Killer Features!**
 
 ---
 
-## 📊 Tiến độ Tổng thể
-
-| Hạng mục | Hoàn thành |
-|---|---|
-| Backend NestJS | 80% |
-| Database Schema | 100% |
-| Database Seed | 100% ✅ |
-| n8n AI Workflows | 100% ✅ |
-| Web Portal | 10% |
-| Mobile App | 10% |
-| Testing & Integration | 60% ↗️ |
-| Báo cáo | 25% ↗️ |
-| **Tổng** | **~72%** |
-
----
-
-*Cập nhật bởi AI Agent — 2026-09-07*  
-*Liên kết: [[00 - Tổng Quan Dự Án]] | [[06 - n8n Workflows & AI Agents]] | [[10 - Nhật Ký Tích Hợp n8n & NestJS (E2E Test)]] | [[05 - Database Schema (Prisma)]]*
+*Cập nhật bởi AI Agent (Antigravity) — 2026-09-15 14:46 ICT*  
+*Xem chi tiết hôm nay: [[16 - Nhật Ký Ngày 15-09-2026]]*  
+*Liên kết: [[00 - Tổng Quan Dự Án]] | [[15 - Refactor Real API Toàn Portal & Review Best Practice]]*

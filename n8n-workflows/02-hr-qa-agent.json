@@ -102,7 +102,7 @@
       "parameters": {
         "promptType": "define",
         "text": "={{ ($(\"Normalize Input\").first().json.employeeId ? \"[Thong tin nguoi dung - Ma nhan vien: \" + $(\"Normalize Input\").first().json.employeeId + \"]\\n\\n\" : \"\") + $(\"Normalize Input\").first().json.maskedMessage }}",
-        "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh.",
+        "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool SearchPolicyKnowledge de tra cuu kho tai lieu chinh sach cong ty truoc khi tra loi moi cau hoi ve quy dinh — truyen query la y chinh cua cau hoi va topK = 3, sau do tra loi dua tren noi dung tim duoc.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh. Neu tai lieu tra cuu co thong tin khac quy dinh trong prompt thi uu tien theo tai lieu moi nhat.",
         "options": {
           "maxIterations": 5,
           "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh."
@@ -119,7 +119,7 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash",
+        "modelName": "models/gemini-2.5-flash",
         "options": {
           "temperature": 0.3,
           "maxOutputTokens": 1024
@@ -184,7 +184,13 @@
       "position": [
         1320,
         540
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -223,7 +229,49 @@
       "position": [
         1520,
         540
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Tim kiem tai lieu chinh sach nhan su (luong thuong, OT, nghi phep, BHXH, thue TNCN, hop đồng, cham cong, bao mat du lieu) theo y nghia cau hoi. HAY dung tool nay truoc khi tra loi moi cau hoi ve quy dinh/chinh sach de lay noi dung chinh xac tu kho tai lieu cong ty.",
+        "url": "http://host.docker.internal:3001/api/v1/n8n/knowledge-search",
+        "sendQuery": true,
+        "specifyQuery": "keypair",
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "query",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "topK",
+              "valueProvider": "modelRequired"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "tool-knowledge-search",
+      "name": "SearchPolicyKnowledge",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1720,
+        540
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__N8N_HEADER_AUTH_ID__",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -399,6 +447,17 @@
             "node": "HR Agent",
             "type": "ai_tool",
             "index": 1
+          }
+        ]
+      ]
+    },
+    "SearchPolicyKnowledge": {
+      "ai_tool": [
+        [
+          {
+            "node": "HR Agent",
+            "type": "ai_tool",
+            "index": 2
           }
         ]
       ]

@@ -72,6 +72,15 @@ Department ──► Position ──► Employee
 | `AiChatMessage` | Từng tin nhắn trong phiên (role: user/assistant) |
 | `Notification` | Thông báo real-time |
 
+### Raw-SQL Tables (ngoài Prisma schema)
+
+Tạo bằng `$executeRawUnsafe` vì sandbox chặn `prisma db push` / vì kiểu dữ liệu đặc thù:
+
+| Bảng | Mục đích | Ghi chú |
+|-------|----------|---------|
+| `office_geofences` | Geofence chấm công GPS (id `default`, lat/lng/radiusM) | Model `OfficeGeofence` |
+| `policy_chunks` *(14/09 — RAG)* | Kho tri thức chính sách: `doc_title`, `chunk_index`, `content`, `source`, `embedding_json` JSONB, `embedding vector(768)` (chỉ khi có pgvector) | Unique `(doc_title, chunk_index)`; index HNSW `vector_cosine_ops` khi pgvector ON. Seed: `packages/database/scripts/seed-knowledge.cjs` — 10 tài liệu chính sách, embedding Gemini `gemini-embedding-001` |
+
 ## SalaryConfig Mặc Định
 
 | Trường | Giá trị | Mô tả |

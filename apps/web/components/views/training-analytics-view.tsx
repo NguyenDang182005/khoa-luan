@@ -2,14 +2,7 @@
 
 import * as React from "react"
 import {
-  Award,
-  BookOpen,
-  CheckCircle2,
-  HelpCircle,
   Sparkles,
-  TrendingUp,
-  Brain,
-  Layers,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,77 +26,48 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-const radarData = [
-  {
-    criterion: "Chuyên Nghiệp",
-    benchmark: 8.0,
-    actual: 8.5,
-    fullMark: 10,
-  },
-  {
-    criterion: "Thấu Cảm",
-    benchmark: 8.0,
-    actual: 8.2,
-    fullMark: 10,
-  },
-  {
-    criterion: "Giải Quyết Vấn Đề",
-    benchmark: 8.0,
-    actual: 7.4,
-    fullMark: 10,
-  },
-  {
-    criterion: "Diễn Đạt Rõ Ràng",
-    benchmark: 8.0,
-    actual: 8.8,
-    fullMark: 10,
-  },
-]
-
-const candidateResults = [
-  {
-    name: "Nguyễn Văn Đạt",
-    dept: "Kỹ thuật & AI",
-    quizScore: "5/5 (50đ)",
-    scenarioScore: "8.8/10 (44đ)",
-    totalScore: 94,
-    grade: "Xuất sắc",
-    aiFeedback: "Giao tiếp rõ ràng, giải pháp logic cao, phong thái chuẩn mực.",
-    avatar: "NĐ",
-  },
-  {
-    name: "Trần Thị Mai",
-    dept: "Hành chính & Nhân sự",
-    quizScore: "5/5 (50đ)",
-    scenarioScore: "8.5/10 (42.5đ)",
-    totalScore: 92.5,
-    grade: "Xuất sắc",
-    aiFeedback: "Thấu cảm rất tốt với khách hàng, thái độ hòa nhã, đúng SOP.",
-    avatar: "TM",
-  },
-  {
-    name: "Phạm Thùy Linh",
-    dept: "Kinh doanh & CSKH",
-    quizScore: "4/5 (40đ)",
-    scenarioScore: "7.8/10 (39đ)",
-    totalScore: 79,
-    grade: "Khá",
-    aiFeedback: "Cần cải thiện tốc độ đưa ra giải pháp bồi thường cho khách khó tính.",
-    avatar: "TL",
-  },
-  {
-    name: "Lê Hoàng Quân",
-    dept: "Kỹ thuật & AI",
-    quizScore: "5/5 (50đ)",
-    scenarioScore: "8.0/10 (40đ)",
-    totalScore: 90,
-    grade: "Giỏi",
-    aiFeedback: "Hiểu sâu quy chế bảo mật, diễn đạt súc tích và gãy gọn.",
-    avatar: "HQ",
-  },
-]
+import { useEffect, useState } from 'react'
+import { trainingApi } from '@/lib/api/training.api'
+import type { TrainingAnalytics, AnalyticsSession } from '@/lib/schemas/training.schema'
+import { currentMonthYearVN } from '@/lib/utils'
 
 export function TrainingAnalyticsView() {
+  const [analytics, setAnalytics] = useState<TrainingAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const now = currentMonthYearVN()
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      setLoading(true)
+      try {
+        const data = await trainingApi.getAnalytics(now.month, now.year)
+        setAnalytics(data)
+      } catch (e) { console.error(e) } finally { setLoading(false) }
+    }
+    fetchAnalytics()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (loading) return <div className="flex p-8 items-center justify-center text-muted-foreground">Đang tải báo cáo...</div>
+
+  const radarData = analytics?.radarData ?? []
+  const sessions: AnalyticsSession[] = analytics?.sessions ?? []
+
+  // Calculate KPIs
+  const totalSessions = sessions.length
+  const completedSessions = sessions.filter((s) => s.status === 'GRADED' || s.status === 'COMPLETED').length
+  const passRate = totalSessions > 0 ? ((completedSessions / totalSessions) * 100).toFixed(1) : "0.0"
+
+  let avgAiScore = 0
+  if (totalSessions > 0) {
+    const totalAiScore = sessions.reduce((sum, s) => sum + ((s.totalScore ?? 0) - (s.quizScore ?? 0)), 0)
+    avgAiScore = totalAiScore / totalSessions
+  }
+
+  // Đề xuất đào tạo: tiêu chí có khoảng cách so với chuẩn lớn nhất (từ dữ liệu thật)
+  const weakest = radarData.length > 0
+    ? radarData.reduce((worst, item) => ((item.benchmark - item.actual) > (worst.benchmark - worst.actual) ? item : worst), radarData[0]!)
+    : null
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Top Header */}
@@ -115,7 +79,7 @@ export function TrainingAnalyticsView() {
           <Badge variant="amber">Mô Hình Hybrid Assessment</Badge>
         </div>
         <p className="text-xs text-muted-foreground sm:text-sm">
-          Đánh giá kết hợp: 5 câu trắc nghiệm nội quy (NestJS chấm) + 2 câu tự luận tình huống (Gemini 3.5 chấm)
+          Đánh giá kết hợp: 5 câu trắc nghiệm nội quy (NestJS chấm) + 2 câu tự luận tình huống (Gemini 2.5 chấm)
         </p>
       </div>
 
@@ -129,7 +93,7 @@ export function TrainingAnalyticsView() {
               Ma Trận Năng Lực Mềm 4 Cánh (Competency Spider Chart)
             </CardTitle>
             <CardDescription>
-              So sánh điểm trung bình đợt đào tạo Onboarding Tháng 9 với Chuẩn Năng Lực Công Ty
+              So sánh điểm trung bình đợt đánh giá Tháng {now.month}/{now.year} với Chuẩn Năng Lực Công Ty
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -137,7 +101,7 @@ export function TrainingAnalyticsView() {
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData} outerRadius="75%">
                   <PolarGrid stroke="oklch(0.26 0.028 250)" />
-                  <PolarAngleAxis dataKey="criterion" stroke="oklch(0.94 0.015 235)" fontSize={12} />
+                  <PolarAngleAxis dataKey="subject" stroke="oklch(0.94 0.015 235)" fontSize={12} />
                   <PolarRadiusAxis angle={30} domain={[0, 10]} stroke="oklch(0.65 0.025 240)" fontSize={10} />
                   <Radar
                     name="Chuẩn Công Ty"
@@ -173,11 +137,11 @@ export function TrainingAnalyticsView() {
           <Card className="border-agent-teal/30 bg-agent-teal/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs uppercase tracking-wider text-agent-teal">
-                Tỷ Lệ Đạt Trắc Nghiệm Nội Quy
+                Tỷ Lệ Hoàn Thành
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">96.5%</div>
+              <div className="text-2xl font-bold text-foreground">{passRate}%</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Tự động so khớp đáp án tại NestJS Backend (Tiết kiệm 100% token AI)
               </p>
@@ -191,9 +155,9 @@ export function TrainingAnalyticsView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">8.2 / 10</div>
+              <div className="text-2xl font-bold text-foreground">{avgAiScore.toFixed(1)} / 50</div>
               <p className="text-xs text-muted-foreground mt-1">
-                AI Gemini 3.5 chấm điểm qua WF03: Chuyên nghiệp, Thấu cảm, Giải pháp, Rõ ràng
+                AI Gemini 2.5 chấm điểm qua WF03: Chuyên nghiệp, Thấu cảm, Giải pháp, Rõ ràng
               </p>
             </CardContent>
           </Card>
@@ -205,12 +169,18 @@ export function TrainingAnalyticsView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-foreground font-medium">
-                🎯 Kỹ năng "Giải quyết vấn đề": 7.4/10
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Cần bổ sung buổi hướng dẫn về quy trình đền bù và xử lý khiếu nại giao vận cho khối CSKH.
-              </p>
+              {weakest ? (
+                <>
+                  <p className="text-xs text-foreground font-medium">🎯 {weakest.subject}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Khoảng cách so với chuẩn lớn nhất: {weakest.actual}/{weakest.benchmark} điểm — tính tự động từ dữ liệu kỳ này.
+                  </p>
+                </>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Chưa đủ dữ liệu AI Score trong kỳ để đưa ra đề xuất.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -228,39 +198,47 @@ export function TrainingAnalyticsView() {
           <TableHeader>
             <TableRow>
               <TableHead>Học Viên</TableHead>
-              <TableHead>Phòng Ban</TableHead>
-              <TableHead className="text-center">Trắc Nghiệm (5 câu)</TableHead>
-              <TableHead className="text-center">Tự Luận AI (2 câu)</TableHead>
+              <TableHead>Trạng Thái</TableHead>
+              <TableHead className="text-center">Trắc Nghiệm</TableHead>
+              <TableHead className="text-center">Tự Luận AI</TableHead>
               <TableHead className="text-center font-bold">Tổng Điểm</TableHead>
-              <TableHead>Xếp Loại</TableHead>
               <TableHead>Nhận Xét Từ Gemini AI</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {candidateResults.map((item, idx) => (
-              <TableRow key={idx}>
-                <TableCell>
-                  <div className="flex items-center gap-2.5">
-                    <Avatar initials={item.avatar} className="bg-primary/20 text-primary border border-primary/30" />
-                    <span className="font-semibold text-xs text-foreground">{item.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{item.dept}</TableCell>
-                <TableCell className="text-center font-mono text-xs text-emerald-400">{item.quizScore}</TableCell>
-                <TableCell className="text-center font-mono text-xs text-agent-amber">{item.scenarioScore}</TableCell>
-                <TableCell className="text-center font-mono text-xs font-bold text-primary">
-                  {item.totalScore} / 100
-                </TableCell>
-                <TableCell>
-                  <Badge variant={item.grade === "Xuất sắc" ? "success" : "default"}>
-                    {item.grade}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
-                  "{item.aiFeedback}"
+            {sessions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground p-8">
+                  Chưa có dữ liệu đào tạo trong tháng này
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              sessions.map((item) => {
+                const aiScoreVal = (item.totalScore ?? 0) - (item.quizScore ?? 0);
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar initials={(item.employee?.fullName ?? 'HV').split(' ').map((w) => w[0]).slice(-2).join('').toUpperCase()} className="bg-primary/20 text-primary border border-primary/30" />
+                        <div>
+                          <span className="font-semibold text-xs text-foreground">{item.employee?.fullName || 'Học viên'}</span>
+                          <p className="text-[10px] text-muted-foreground">{item.employee?.employeeCode} • {item.employee?.department.name}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.status}</TableCell>
+                    <TableCell className="text-center font-mono text-xs text-emerald-400">{item.quizScore}/50</TableCell>
+                    <TableCell className="text-center font-mono text-xs text-agent-amber">{aiScoreVal}/50</TableCell>
+                    <TableCell className="text-center font-mono text-xs font-bold text-primary">
+                      {item.totalScore} / 100
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
+                      {item.aiFeedback ? `"${item.aiFeedback}"` : "--"}
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            )}
           </TableBody>
         </Table>
       </Card>

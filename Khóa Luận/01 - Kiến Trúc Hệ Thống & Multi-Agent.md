@@ -40,7 +40,7 @@ Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý 
 
 #### 💼 HR Agent (Nội bộ)
 - **Lương/thưởng** → **Rule Engine** (lập trình cứng) → chính xác tuyệt đối
-- **Hỏi đáp luật lao động** → **GraphRAG** (Knowledge Graph) → hiểu liên kết logic giữa hợp đồng & nội quy, trích dẫn nguồn
+- **Hỏi đáp luật lao động** → **RAG + pgvector** *(đã triển khai 14/09)*: kho tri thức `policy_chunks` (embedding Gemini 768 dims) + tool `SearchPolicyKnowledge` trên WF02 → AI tra cứu văn bản chính sách trước khi trả lời, trích dẫn nguồn. **GraphRAG (Knowledge Graph)** giữ nguyên là định hướng mở rộng cho câu hỏi đa nhịp
 - Flow n8n: Lấy context nhân viên → Session → Gemini + system prompt → Lưu message
 
 #### 📚 Training Agent (Nội bộ)
@@ -78,9 +78,10 @@ Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý 
 | Agent | LLM | Ghi chú |
 |-------|-----|----------|
 | Router | Google Gemini | Intent classification |
-| HR Q&A | Google Gemini | RAG + employee context |
+| HR Q&A | Google Gemini | **RAG (pgvector/fallback) + employee context** |
 | Training | Google Gemini | Role-play + scoring |
-| CSKH Zalo | Google Gemini | Customer support |
+| CSKH Zalo | Google Gemini | Customer support (Slack transport) |
+| Embedding | Gemini `gemini-embedding-001` | 768 dims — index `policy_chunks` (14/09) |
 
 **API Key:** Google AI Studio (free tier: 15 RPM, 1M tokens/day)
 

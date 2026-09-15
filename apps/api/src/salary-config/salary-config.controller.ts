@@ -9,6 +9,8 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SalaryConfigService } from './salary-config.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Salary Config')
 @ApiBearerAuth()
@@ -29,7 +31,9 @@ export class SalaryConfigController {
     return this.service.findAll();
   }
 
-  @ApiOperation({ summary: 'Tạo/cập nhật cấu hình lương theo năm' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({ summary: 'Tạo/cập nhật cấu hình lương theo năm (Admin)' })
   @Post()
   upsert(@Body() dto: any) {
     return this.service.upsert(dto);

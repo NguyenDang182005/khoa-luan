@@ -81,13 +81,22 @@ export class NotificationsGateway
     console.log(`WS client disconnected: ${client.id}`);
   }
 
-  /** Client joins their personal room — call after auth */
-  @SubscribeMessage('join')
-  handleJoin(
-    @MessageBody() data: { userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    client.join(`user:${data.userId}`);
-    return { status: 'joined', room: `user:${data.userId}` };
+  /** Client (Admin/HR) joins the shared admin room after login */
+  @SubscribeMessage('join-admin')
+  handleJoinAdmin(@ConnectedSocket() client: Socket) {
+    client.join('admin');
+    return { status: 'joined', room: 'admin' };
+  }
+
+  /** Broadcast AI activity update to all admin-room clients.
+   *  Called by AiContextService.saveMessage() after persisting to DB. */
+  emitAiActivity(data: {
+    wf: string;
+    label: string;
+    total: number;
+    avgLatencyMs: number | null;
+    lastActiveAt: string;
+  }) {
+    this.server.to('admin').emit('ai:activity', data);
   }
 }

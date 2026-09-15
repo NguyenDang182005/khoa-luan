@@ -1,34 +1,44 @@
-import { Controller, Post, Body, Get, Request, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { LoginDto } from './dto/login.dto';
+import { Controller, Post, Body, Get, Request, UseGuards, HttpCode, HttpStatus } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { AuthService } from "./auth.service";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { LoginDto } from "./dto/login.dto";
 
-@ApiTags('Auth')
-@Controller('auth')
+interface FirebaseLoginRequest { idToken: string; rememberMe?: boolean; }
+
+
+@ApiTags("Auth")
+@Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('login')
+  @Post("login")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Đăng nhập' })
+  @ApiOperation({ summary: "Đăng nhập bằng email/password (HR Admin)" })
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
-  @Get('profile')
+  @Post("firebase")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Đăng nhập bằng Firebase (Google / Facebook OAuth)" })
+  async loginWithFirebase(@Body() dto: FirebaseLoginRequest) {
+    return this.authService.loginWithFirebase(dto);
+  }
+
+  @Get("profile")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lấy thông tin profile' })
+  @ApiOperation({ summary: "Lấy thông tin profile" })
   async getProfile(@Request() req: any) {
     return this.authService.getProfile(req.user.sub);
   }
 
-  @Post('logout')
+  @Post("logout")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Đăng xuất' })
+  @ApiOperation({ summary: "Đăng xuất" })
   async logout(@Request() req: any, @Body() body: { refreshToken: string }) {
     return this.authService.logout(req.user.sub, body.refreshToken);
   }

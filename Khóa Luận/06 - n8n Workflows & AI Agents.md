@@ -1,7 +1,7 @@
 ---
-tags: [khoa-luan, n8n, ai-agents, workflow, gemini, zalo, gemini-2.5-flash]
+tags: [khoa-luan, n8n, ai-agents, workflow, gemini, zalo, gemini-2.5-flash, rag, slack]
 created: 2026-09-04
-updated: 2026-09-07
+updated: 2026-09-14
 ---
 
 # 🤖 n8n Workflows & AI Agents
@@ -42,6 +42,7 @@ graph TD
         HostAPI[http://host.docker.internal:3001]
         WF02 -.->|Tool: GetEmployeeContext| HostAPI
         WF02 -.->|Tool: GetPayrollContext| HostAPI
+        WF02 -.->|Tool: SearchPolicyKnowledge RAG| HostAPI
         WF02 -.->|Session & Msg Tracking| HostAPI
     end
 ```
@@ -67,7 +68,8 @@ graph TD
 - **AI Tools (LangChain `toolHttpRequest`):**
   - `GetEmployeeContext`: `http://host.docker.internal:3001/api/v1/n8n/employee-context/{employee_id}`
   - `GetPayrollContext`: `http://host.docker.internal:3001/api/v1/n8n/payroll-context/{employee_id}?month=&year=`
-  - Xác thực bảo mật: Generic Credential `httpHeaderAuth` (`x-api-key`).
+  - `SearchPolicyKnowledge` *(14/09 — RAG)*: `GET /n8n/knowledge-search?query=&topK=` — tra cứu kho tri thức chính sách (`policy_chunks`, embedding Gemini 768 dims) trước khi trả lời câu hỏi về quy định, chi tiết tại [[01 - Kiến Trúc Hệ Thống & Multi-Agent]]
+  - Xác thực bảo mật: Generic Credential `httpHeaderAuth` (**"NestJS API Key"** — từ 14/09 thay cho `$env` vì n8n chặn truy cập biến môi trường trong expression).
 - **Lưu vết:** Tự động đồng bộ tin nhắn User và Assistant vào bảng `ai_chat_messages` trên NestJS.
 
 ---
@@ -97,10 +99,23 @@ graph TD
 |---|---|
 | `scripts/setup-n8n.mjs` | Tự động import credentials và publish 4 workflows |
 | `scripts/patch-all-workflows.mjs` | Đồng bộ hóa cấu hình model Gemini 2.5 Flash & response nodes |
+| `scripts/import-slack-update.mjs` | **Importer chính (14/09)**: tự tạo credential "NestJS API Key", đồng bộ WF02/WF03 (PATCH tại chỗ) + recreate WF04/WF05 (xóa-tạo mới để tránh n8n phục vụ graph cũ) |
 | `scripts/test-e2e.mjs` | Chạy kiểm thử E2E Lượt 1 (Hỏi lương) |
 | `scripts/test-e2e-turn2.mjs` | Chạy kiểm thử E2E Lượt 2 (Hỏi ngày phép multi-turn) |
 | `scripts/test-wf03.mjs` | Chạy kiểm thử WF03 Training Role-play Agent |
 | `scripts/test-reset-behavior.mjs` | Kiểm thử luồng Escalate, Mute bot & Tự động Reset sau 12h đêm |
+
+---
+
+## Vận hành n8n — Bài học debug 14/09 ⚠️
+
+Ba lỗi gốc từng làm workflow "không ăn" dù code đúng, ghi lại để tránh tái phạm:
+
+1. **IF boolean operator `"equal"` KHÔNG hợp lệ** trong IF v2 (`typeValidation: strict` → điều kiện luôn nhánh FALSE). Dùng operator `"true"` với `singleValue: true` — lỗi này từng là bug ẩn của node *Should Escalate?* (WF04): escalation chưa từng fire ở runtime cho tới khi sửa.
+2. **n8n chặn `$env` trong expression/code** (`N8N_BLOCK_ENV_ACCESS_IN_NODE` mặc định true) → mọi header `={{ $env.HR_API_KEY }}` lỗi runtime. Giải pháp: credential Header Auth "NestJS API Key" (import script tự tạo từ root `.env`). Compose đã thêm flag `=false` cho lần recreate container sau.
+3. **PATCH workflow đang active → runtime vẫn phục vụ graph cũ** (đặc biệt các workflow có `respondToWebhook`). Phải **archive → delete → tạo mới**. Lưu ý `credentials` phải nằm **node-level** (ngang hàng `parameters`), không nằm trong `parameters`.
+
+Nhánh **Slack Events Gateway (WF05)**: webhook `slack-events` tự echo `challenge` (url_verification) và forward `message.im` sang WF04 — đã E2E thật 14/09, không cần đổi Request URL sau khi verify.
 
 ---
 

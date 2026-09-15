@@ -50,21 +50,26 @@ status: completed
    - Recharts AreaChart 30 ngày & PieChart phân bổ phòng ban.
    - Bảng duyệt phép 1-click & Feed hoạt động n8n real-time.
 2. 👥 **Quản Lý Nhân Sự & Hợp Đồng (`employees-view.tsx`):**
-   - TanStack Data Table với tìm kiếm tức thời, lọc phòng ban.
-   - Thanh tiến độ ngày phép còn lại (9/12 ngày).
-   - Drawer trượt xem chi tiết hồ sơ nhân viên & ghi chú nạp AI Context cho Chatbot.
+   - TanStack Data Table với tìm kiếm tức thời, lọc phòng ban, thanh tiến độ ngày phép còn lại.
+   - Drawer trượt **5 nhóm thông tin**: (1) Hồ sơ cá nhân — sửa được phone/address/ngày sinh/CCCD qua `PATCH /employees/:id`; (2) Nghề vụ & HĐLĐ — phòng ban, chức danh, quản lý trực tiếp, hợp đồng active + lương thỏa thuận; (3) Công & phép — phép năm + tổng hợp chấm công tháng; (4) Lịch sử lương — các kỳ gần nhất từ `GET /payroll/employee/:id`; (5) Trạng thái & tài khoản — email đăng nhập + switcher trạng thái `PATCH /employees/:id/status`.
+   - Ghi chú nạp AI Context cho Chatbot (WF01/WF02 tự đọc ngữ cảnh này).
 3. 💰 **Bảng Lương & Rule Engine Tự Động (`payroll-view.tsx`):**
    - Tính toán lương Gross-to-Net tự động theo luật Việt Nam: BHXH 8%, BHYT 1.5%, BHTN 1%, Thuế TNCN 7 bậc.
    - Nút kích hoạt Rule Engine tự động tính lương toàn công ty.
+   - **Duyệt hàng loạt**: checkbox chọn từng phiếu/chọn tất cả → `POST /payroll/approve-bulk` (DRAFT→APPROVED) hoặc `paid-bulk` (APPROVED→PAID) kèm dialog xác nhận; vẫn giữ duyệt từng phiếu.
    - Dialog cài đặt quy chế lương (`SalaryConfig`).
-4. 🤖 **Trung Tâm Điều Khiển AI Multi-Agents (`ai-agents-view.tsx`):**
-   - Tương tác trực tiếp 4 AI Agent (WF01 Router, WF02 HR Q&A, WF03 Training, WF04 CSKH).
-   - Inspector hiển thị model Gemini 3.5 Flash, token usage, độ trễ `180ms`.
+4. 🤖 **Trung Tâm Điều Khiển AI Multi-Agents (`ai-agents-view.tsx`):** *(tái cấu trúc 14/09 — theo vai trò từng agent)*
+   - **WF01 (Router)** → dashboard giám sát, không chat: 3 ô số liệu thật từ DB (`/agents/performance`: độ chính xác, độ trễ gần nhất, số cuộc gọi), biểu đồ **Định Tuyến Intent** (HR_QA/CSKH/TRAINING/OTHER + escalation, `/agents/intent-stats`), nút **Ping AI (E2E)** gửi 1 lượt chat thật qua WF01→Gemini và đo `latencyMs` server-side.
+   - **WF02 / WF03** → khung chat test agent (tin nhắn qua `POST /agents/chat` → WF01 Router → agent), lịch sử chat theo từng tab.
+   - **WF04** → **bảng thông báo chỉ-đọc**: danh sách hội thoại CSKH từ Slack (customer ID, trạng thái escalate/bot, số tin) + card dữ liệu khách + tóm tắt hội thoại; không có ô input (trả lời khách làm ở trang Cảnh Báo CSKH).
+   - Sidebar trái: 4 agent kèm độ trễ từng workflow + badge tổng tin đã định tuyến, tự làm mới 30s.
 5. 🚨 **Tiếp Quản CSKH & PII Audit Trail (`cskh-escalation-view.tsx`)** — *Killer Features #2 & #4:*
-   - Banner đỏ nhấp nháy mô phỏng cảnh báo WebSocket khi khách giận dữ (>9/10).
-   - Split chat tiếp quản trực tiếp giữa người và bot.
+   - Banner đỏ nhấp nháy cảnh báo WebSocket khi khách giận dữ (>9/10) — dữ liệu escalate thật từ WF04.
+   - Split chat tiếp quản trực tiếp giữa người và bot; phản hồi được forward thẳng tới khách qua Slack DM (transport demo của kênh Zalo).
+   - Tab "Tất cả hội thoại" xem mọi phiên CSKH (`GET /agents/conversations`), không chỉ phiên escalated.
    - Nút 1-click **[🤖 Bật Lại Bot AI]** (On-demand session reset).
    - Bảng đối chiếu PII Masking song song (`[MASKED_ID]`, `[MASKED_PHONE]`).
+   - *(14/09)* Phân biệt rõ 3 trạng thái: đang tải / **lỗi quyền 403** (banner đỏ gợi ý dùng tài khoản Admin) / hết hội thoại — trước đây lỗi quyền bị nuốt và hiển thị nhầm thành "Chưa có hội thoại".
 6. 📈 **Đào Tạo & Radar AI (`training-analytics-view.tsx`)** — *Killer Feature #3:*
    - Biểu đồ Radar (Spider Chart) 4 cánh: Chuyên nghiệp, Thấu cảm, Giải pháp, Rõ ràng.
    - Bảng xếp hạng mô hình Hybrid Assessment (5 trắc nghiệm NestJS + 2 tự luận Gemini AI).

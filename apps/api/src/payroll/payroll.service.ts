@@ -67,6 +67,45 @@ export class PayrollService {
     });
   }
 
+  /** Lịch sử lương mọi kỳ của 1 nhân viên (mới nhất trước) */
+  historyByEmployee(employeeId: string) {
+    return this.prisma.payroll.findMany({
+      where: { employeeId },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+    });
+  }
+
+  /** Bảng lương của chính nhân viên đang đăng nhập (resolve Employee từ userId).
+   *  month/year bỏ trống → mặc định tháng/năm hiện tại theo múi giờ Việt Nam. */
+  async findMyPayroll(userId: string, month?: number, year?: number) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        'Người dùng không liên kết với hồ sơ nhân viên',
+      );
+    }
+
+    // en-CA cho ra định dạng YYYY-MM-DD — lấy tháng/năm hiện tại giờ VN
+    const vnToday = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
+    const [vnYear, vnMonth] = vnToday.split('-').map(Number);
+
+    const payroll = await this.prisma.payroll.findFirst({
+      where: {
+        employeeId: employee.id,
+        month: month ?? vnMonth ?? (new Date().getMonth() + 1),
+        year: year ?? vnYear ?? new Date().getFullYear(),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return { payroll };
+  }
+
   async calculatePayroll(employeeId: string, month: number, year: number) {
     // 1. Get active contract
     const contract = await this.prisma.contract.findFirst({
@@ -124,7 +163,23 @@ export class PayrollService {
     const dailyRate = baseSalary / workingDays;
     const actualBaseSalary = dailyRate * actualWorkingDays;
     const hourlyRate = baseSalary / (workingDays * config.standardWorkHours);
-    const overtimePay = overtimeHours * hourlyRate * config.overtimeRate;
+
+    // Tính OT phân loại theo ngày
+    const overtimeByType = await this.prisma.attendance.groupBy({
+      by: ['dayType'],
+      where: { employeeId, date: { gte: startDate, lte: endDate }, overtime: { gt: 0 } },
+      _sum: { overtime: true },
+    });
+
+    const otNormal = overtimeByType.find(o => o.dayType === 'NORMAL')?._sum.overtime ?? 0;
+    const otWeekend = overtimeByType.find(o => o.dayType === 'WEEKEND')?._sum.overtime ?? 0;
+    const otHoliday = overtimeByType.find(o => o.dayType === 'HOLIDAY')?._sum.overtime ?? 0;
+
+    const overtimePay = hourlyRate * (
+      otNormal * config.overtimeRate +
+      otWeekend * config.otWeekendRate +
+      otHoliday * config.otHolidayRate
+    );
     const bonus = 0; // Có thể extend sau
 
     // 7. Social insurance deductions (on baseSalary, capped at 36M from 2024)
@@ -171,13 +226,21 @@ export class PayrollService {
       );
     }
 
-    const data = await this.calculatePayroll(employeeId, month, year);
+    const { _breakdown, ...data } = await this.calculatePayroll(
+      employeeId,
+      month,
+      year,
+    );
 
-    return this.prisma.payroll.upsert({
+    const record = await this.prisma.payroll.upsert({
       where: { employeeId_month_year: { employeeId, month, year } },
       create: { ...data, status: 'DRAFT' },
       update: { ...data, status: 'DRAFT' },
     });
+
+    // `_breakdown` chỉ có trong HTTP response (field `breakdown`),
+    // KHÔNG được persist vì model Payroll không có field này.
+    return { ...record, breakdown: _breakdown };
   }
 
   async generateBulk(month: number, year: number) {
@@ -200,6 +263,56 @@ export class PayrollService {
       where: { id },
       data: { status: 'APPROVED' },
     });
+  }
+
+  /** Duyệt hàng loạt: theo kỳ (month/year) hoặc theo danh sách ids.
+   *  Chỉ dòng DRAFT được chuyển APPROVED — dòng khác được bỏ qua, không lỗi. */
+  async approveBulk(input: { month?: number; year?: number; ids?: string[] }) {
+    const where = this.buildBulkWhere(input, 'DRAFT');
+    const result = await this.prisma.payroll.updateMany({
+      where,
+      data: { status: 'APPROVED' },
+    });
+    return {
+      approved: result.count,
+      month: input.month ?? null,
+      year: input.year ?? null,
+    };
+  }
+
+  /** Chi trả hàng loạt: chỉ dòng APPROVED chuyển PAID (kèm paidAt). */
+  async markPaidBulk(input: { month?: number; year?: number; ids?: string[] }) {
+    const where = this.buildBulkWhere(input, 'APPROVED');
+    const result = await this.prisma.payroll.updateMany({
+      where,
+      data: { status: 'PAID', paidAt: new Date() },
+    });
+    return {
+      paid: result.count,
+      month: input.month ?? null,
+      year: input.year ?? null,
+    };
+  }
+
+  /** Điều kiện bulk: bắt buộc có (month + year) HOẶC danh sách ids */
+  private buildBulkWhere(
+    input: { month?: number; year?: number; ids?: string[] },
+    fromStatus: 'DRAFT' | 'APPROVED',
+  ) {
+    const hasIds = Array.isArray(input.ids) && input.ids.length > 0;
+    const hasPeriod =
+      typeof input.month === 'number' &&
+      typeof input.year === 'number' &&
+      input.month > 0 &&
+      input.month <= 12;
+    if (!hasIds && !hasPeriod) {
+      throw new BadRequestException(
+        'Cần chỉ định tháng/năm hoặc danh sách id bảng lương',
+      );
+    }
+    return hasIds
+      ? { id: { in: input.ids! }, status: fromStatus }
+      : { month: input.month!, year: input.year!, status: fromStatus };
   }
 
   async markAsPaid(id: string) {

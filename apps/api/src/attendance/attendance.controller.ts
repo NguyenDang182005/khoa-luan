@@ -23,7 +23,11 @@ export class AttendanceController {
   @ApiOperation({ summary: 'Danh sách chấm công theo tháng (HR)' })
   @Get()
   findAll(@Query('month') month: string, @Query('year') year: string) {
-    return this.attendanceService.findAll(Number(month), Number(year));
+    const now = new Date();
+    return this.attendanceService.findAll(
+      Number(month) || now.getMonth() + 1,
+      Number(year) || now.getFullYear(),
+    );
   }
 
   @ApiOperation({ summary: 'Chấm công theo tháng của nhân viên' })
@@ -33,10 +37,11 @@ export class AttendanceController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
+    const now = new Date();
     return this.attendanceService.findByEmployee(
       employeeId,
-      Number(month),
-      Number(year),
+      Number(month) || now.getMonth() + 1,
+      Number(year) || now.getFullYear(),
     );
   }
 
@@ -47,10 +52,11 @@ export class AttendanceController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
+    const now = new Date();
     return this.attendanceService.getMonthlyReport(
       employeeId,
-      Number(month),
-      Number(year),
+      Number(month) || now.getMonth() + 1,
+      Number(year) || now.getFullYear(),
     );
   }
 
