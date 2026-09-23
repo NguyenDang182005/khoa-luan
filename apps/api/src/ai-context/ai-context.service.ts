@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException, Optional } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Optional, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CanActivate, ExecutionContext } from '@nestjs/common';
@@ -23,6 +24,8 @@ export class ApiKeyGuard implements CanActivate {
 
 @Injectable()
 export class AiContextService {
+  private readonly logger = new Logger(AiContextService.name);
+
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
@@ -114,11 +117,21 @@ export class AiContextService {
   // ── Chat session management ──────────────────────────────────────────────
 
   async createOrGetSession(dto: {
+    sessionId?: string;
     employeeId?: string;
     type: string;
     channel: string;
     externalId?: string;
   }) {
+    // Q16-session: portal chỉ định sẵn sessionId (backend sở hữu phiên) —
+    // dùng thẳng nếu còn active, không thì rơi xuống logic get-or-create thường
+    if (dto.sessionId) {
+      const explicit = await this.prisma.aiChatSession.findFirst({
+        where: { id: dto.sessionId, isActive: true },
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
+      });
+      if (explicit) return explicit;
+    }
     // Resolve employeeCode (EMP003) → UUID nếu cần
     let resolvedEmployeeId: string | null = dto.employeeId ?? null;
     if (resolvedEmployeeId && /^EMP\d+$/i.test(resolvedEmployeeId)) {
@@ -183,6 +196,36 @@ export class AiContextService {
         type: dto.type as any,
         channel: dto.channel,
         externalId: dto.externalId ?? resolvedEmployeeId,
+        isActive: true,
+      },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
+    });
+  }
+
+  /** Q16-session: phiên chat web gần nhất của nhân viên theo loại (HR_QA/TRAINING/OTHER) */
+  async getLatestWebSession(employeeId: string, type: string) {
+    return this.prisma.aiChatSession.findFirst({
+      where: { employeeId, type: type as any, channel: 'web' },
+      orderBy: { updatedAt: 'desc' },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
+    });
+  }
+
+  /** Q19(i1) — "Phiên mới": đóng phiên web hiện tại và mở phiên mới cùng loại */
+  async renewWebSession(employeeId: string, type: string) {
+    const latest = await this.getLatestWebSession(employeeId, type);
+    if (latest?.isActive) {
+      await this.prisma.aiChatSession.update({
+        where: { id: latest.id },
+        data: { isActive: false },
+      });
+    }
+    return this.prisma.aiChatSession.create({
+      data: {
+        employeeId,
+        type: type as any,
+        channel: 'web',
+        externalId: employeeId,
         isActive: true,
       },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
@@ -335,6 +378,13 @@ export class AiContextService {
     });
   }
 
+  async deactivateSession(sessionId: string) {
+    return this.prisma.aiChatSession.update({
+      where: { id: sessionId },
+      data: { isActive: false },
+    });
+  }
+
   /** GET /agents/conversations — TOÀN BỘ hội thoại CSKH (đang bot + đã escalate). */
   async getConversations() {
     const sessions = await this.prisma.aiChatSession.findMany({
@@ -357,8 +407,54 @@ export class AiContextService {
     }));
   }
 
-  /** Gửi tin nhắn ra Slack DM của khách (transport demo của kênh Zalo).
-   *  Token SLACK_BOT_TOKEN nằm server-side, không bao giờ xuống browser/n8n response. */
+  /** Gửi tin nhắn vào Slack channel (transport demo của kênh Zalo) — channel + thread reply.
+   *  channel: Slack channel ID (C...), threadTs: ts của message gốc để reply trong thread. */
+  async sendSlackChannelMessage(
+    channel: string,
+    content: string,
+    threadTs?: string,
+  ) {
+    const token = this.config.get<string>('SLACK_BOT_TOKEN');
+    if (!token) return { delivered: false, reason: 'SLACK_BOT_TOKEN_NOT_CONFIGURED' };
+    try {
+      const body: Record<string, unknown> = {
+        channel,
+        text: content,
+        // Đánh dấu bot để Bolt listener bỏ qua tin của chính bot (tránh loop)
+        metadata: {
+          event_type: 'hr_agent_reply',
+          event_payload: { source: 'nests-wf04' },
+        },
+      };
+      if (threadTs) {
+        body.thread_ts = threadTs;
+        body.reply_broadcast = true; // Hiện cả trong Thread lẫn phát sóng ra kênh chính #demo
+      }
+
+      const res = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json()) as { ok: boolean; error?: string; ts?: string };
+      if (data.ok) {
+        this.logger.log(`[Slack outbound] ✅ Đã gửi phản hồi tới channel ${channel} (thread: ${threadTs ?? 'root'})`);
+      } else {
+        this.logger.error(`[Slack outbound] ❌ Gửi thất bại: ${data.error}`);
+      }
+      return data.ok
+        ? { delivered: true, ts: data.ts }
+        : { delivered: false, reason: `SLACK_POST_FAILED:${data.error ?? 'unknown'}` };
+    } catch (e) {
+      this.logger.error(`[Slack outbound] Lỗi kết nối: ${(e as Error).message}`);
+      return { delivered: false, reason: `SLACK_NETWORK_ERROR:${(e as Error).message}` };
+    }
+  }
+
+  /** Legacy: Gửi Slack DM (giữ cho backward-compat, fallback khi không có slackChannel). */
   async sendSlackDm(externalId: string, content: string) {
     const token = this.config.get<string>('SLACK_BOT_TOKEN');
     if (!token) return { delivered: false, reason: 'SLACK_BOT_TOKEN_NOT_CONFIGURED' };
@@ -379,28 +475,27 @@ export class AiContextService {
       if (!open.ok || !open.channel?.id) {
         return { delivered: false, reason: `SLACK_OPEN_DM_FAILED:${open.error ?? 'unknown'}` };
       }
-      const postRes = await fetch('https://slack.com/api/chat.postMessage', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channel: open.channel.id,
-          text: content,
-          // Đánh dấu bot để luồng Events API bỏ qua tin của chính bot (tránh loop)
-          metadata: { event_type: 'hr_agent_reply', event_payload: { source: 'n8n-wf04' } },
-        }),
-      });
-      const post = (await postRes.json()) as { ok: boolean; error?: string; ts?: string };
-      return post.ok
-        ? { delivered: true, ts: post.ts }
-        : { delivered: false, reason: `SLACK_POST_FAILED:${post.error ?? 'unknown'}` };
+      return this.sendSlackChannelMessage(open.channel.id, content);
     } catch (e) {
       return { delivered: false, reason: `SLACK_NETWORK_ERROR:${(e as Error).message}` };
     }
   }
 
   /** POST /n8n/outbound-reply — n8n WF04 gọi sau khi AI soạn xong câu trả lời.
-   *  Chọn kênh gửi theo externalId (Slack user id) — kiến trúc giữ tên kênh "zalo". */
-  async deliverOutboundReply(dto: { sessionId?: string; externalId?: string; content: string }) {
+   *  Ưu tiên channel mode (slackChannel + threadTs); fallback sang DM nếu không có. */
+  async deliverOutboundReply(dto: {
+    sessionId?: string;
+    externalId?: string;
+    slackChannel?: string;
+    threadTs?: string;
+    content: string;
+  }) {
+    // Channel mode (socket mode / channel transport)
+    if (dto.slackChannel) {
+      return this.sendSlackChannelMessage(dto.slackChannel, dto.content, dto.threadTs);
+    }
+
+    // Fallback: DM mode (legacy)
     let externalId = dto.externalId ?? null;
     if (!externalId && dto.sessionId) {
       const session = await this.prisma.aiChatSession.findUnique({
@@ -412,4 +507,28 @@ export class AiContextService {
     if (!externalId) return { delivered: false, reason: 'NO_EXTERNAL_ID' };
     return this.sendSlackDm(externalId, dto.content);
   }
+
+  /** Cron: 00:00 Asia/Ho_Chi_Minh mỗi ngày — bật lại tất cả CSKH session bị escalate,
+   *  gửi greeting vào channel để báo AI đã sẵn sàng. */
+  @Cron('0 0 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  async midnightResetEscalatedSessions() {
+    const { count } = await this.prisma.aiChatSession.updateMany({
+      where: { type: 'CSKH', isActive: false },
+      data: { isActive: true },
+    });
+
+    if (count > 0) {
+      this.logger.log(`[Cron midnight] Đã bật lại ${count} CSKH session bị escalate`);
+    }
+
+    // Gửi greeting vào channel (nếu cấu hình SLACK_CHANNEL_ID)
+    const channelId = this.config.get<string>('SLACK_CHANNEL_ID');
+    if (channelId) {
+      await this.sendSlackChannelMessage(
+        channelId,
+        '👋 Trợ lý AI CSKH đã sẵn sàng hỗ trợ bạn từ hôm nay!',
+      );
+    }
+  }
 }
+

@@ -225,6 +225,13 @@ export function EmployeesView() {
         setEditAccountBusy(false)
         return
       }
+      // Email là whitelist OAuth (Google/Facebook): POST /auth/firebase tra User theo email,
+      // nên phải chặn định dạng sai ngay ở client trước khi gửi API.
+      if (payload.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(payload.email)) {
+        setEditAccountError("Email không hợp lệ — cần dạng ten@domain.com. Email này chính là tài khoản Google/Facebook nhân viên dùng để đăng nhập.")
+        setEditAccountBusy(false)
+        return
+      }
       await employeesApi.updateAccount(selectedEmployee.id, payload)
       const updated = await employeesApi.getById(selectedEmployee.id)
       setDrawerDetail(updated)

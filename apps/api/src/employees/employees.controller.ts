@@ -5,6 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateAccountDto } from './dto/update-account.dto';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -29,12 +30,16 @@ export class EmployeesController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'departmentId', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
   findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('status') status?: string,
   ) {
-    return this.employeesService.findAll({ page, limit, search });
+    return this.employeesService.findAll({ page, limit, search, departmentId, status });
   }
 
   @Get('by-code/:code')
@@ -80,10 +85,10 @@ export class EmployeesController {
   @Patch(':id/account')
   @UseGuards(RolesGuard)
   @Roles('ADMIN_GROUP')
-  @ApiOperation({ summary: 'Cập nhật email/role tài khoản nhân viên (chỉ ADMIN)' })
+  @ApiOperation({ summary: 'Cập nhật email/role tài khoản nhân viên (chỉ ADMIN) — email là whitelist OAuth GG/FB' })
   updateAccount(
     @Param('id') id: string,
-    @Body() dto: { email?: string; role?: string },
+    @Body() dto: UpdateAccountDto,
   ) {
     return this.employeesService.updateAccount(id, dto);
   }

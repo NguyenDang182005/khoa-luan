@@ -1,6 +1,7 @@
 ---
 tags: [khoa-luan, architecture, multi-agent, ai, n8n]
 created: 2026-09-04
+updated: 2026-09-17
 ---
 
 # 🤖 Kiến Trúc Hệ Thống & Multi-Agent
@@ -10,15 +11,15 @@ created: 2026-09-04
 Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý dưới dạng **Monorepo**.
 
 ```
-[Mobile App] ───► [n8n Router Agent] ──► [HR Q&A Agent]
-                              ├──► [Training Agent]
-                              └──► [CSKH Zalo Agent] ─► [Zalo OA]
-                        │
-                        ▼ (Webhook)
-                   [NestJS API] ──► [PostgreSQL DB]
-                        │
-                        ▼ (WebSocket)
-                   [Web Portal Admin]
+[Mobile App] ► [n8n Router Agent] ─► [HR Q&A Agent]
+                         ├► [Training Agent]
+                         └► [CSKH Zalo Agent] ► [Zalo OA]
+                   │
+                   ▼ (Webhook)
+              [NestJS API] ► [PostgreSQL DB]
+                   │
+                   ▼ (WebSocket)
+              [Web Portal Admin]
 ```
 
 ---
@@ -29,25 +30,28 @@ Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý 
 
 - **Vai trò:** "Tổng đài viên thông minh" — Webhook `POST /webhook/chat`
 - **Thiết kế:** Khung **PEAS** (Performance, Environment, Actuators, Sensors)
-- **Flow:**
+- **Flow (refactor 17/09 — 0 LLM call):**
   1. Nhận message từ Mobile App
-  2. **PII Masking** — che thông tin nhạy cảm (Regex + NER)
-  3. **Gemini Intent Detection** — phân loại ngữ nghĩa
+  2. **PII Masking** — che thông tin nhạy cảm (Regex)
+  3. **Keyword Intent Classifier** — phân loại bằng JavaScript regex thuần túy (không gọi Gemini)
   4. Switch router → route tới đúng agent
-- **Output intent:** `HR_QA` | `TRAINING` | `CSKH`
+- **Output intent:** `HR_QA` | `TRAINING` | `CSKH` | `OTHER` (static message)
+
+> [!NOTE]
+> **Lý do bỏ Gemini Intent Classifier (17/09):** Free-tier giới hạn 15 RPM. Mỗi request tốn 1 LLM call cho classifier + 2-4 cho sub-agent = 3-7 calls/request. Sau refactor: 0 + 1-3 = **1-3 calls/request** (-50–66% quota).
 
 ### 2.2 👥 Nhóm Tác Tử Nghiệp Vụ
 
 #### 💼 HR Agent (Nội bộ)
 - **Lương/thưởng** → **Rule Engine** (lập trình cứng) → chính xác tuyệt đối
-- **Hỏi đáp luật lao động** → **RAG + pgvector** *(đã triển khai 14/09)*: kho tri thức `policy_chunks` (embedding Gemini 768 dims) + tool `SearchPolicyKnowledge` trên WF02 → AI tra cứu văn bản chính sách trước khi trả lời, trích dẫn nguồn. **GraphRAG (Knowledge Graph)** giữ nguyên là định hướng mở rộng cho câu hỏi đa nhịp
+- **Hỏi đáp luật lao động** → **RAG + pgvector**: kho tri thức `policy_chunks` (embedding Gemini 768 dims) + tool `SearchPolicyKnowledge`
+- **maxIterations: 3** (giảm từ 5, 17/09)
 - Flow n8n: Lấy context nhân viên → Session → Gemini + system prompt → Lưu message
 
 #### 📚 Training Agent (Nội bộ)
-- **Đóng vai AI (Role-play Simulation):** Nhân viên thực hành kịch bản giả lập trên điện thoại
-- **Phiên bản:** `customer_complaint` | `colleague_conflict` | `manager_feedback`
+- **Đóng vai AI (Role-play Simulation):** Nhân viên thực hành kịch bản giả lập
+- **Kịch bản:** `customer_complaint` | `colleague_conflict` | `manager_feedback`
 - **Chấm điểm** 4 tiêu chí: Professional, Empathy, Problem-solving, Clarity
-- Dùng **Sentiment Analysis** để đánh giá kỹ năng xử lý tình huống
 
 #### 📞 CSKH Agent (Ngoại bộ — Zalo OA)
 - Giao tiếp với khách hàng qua **Zalo OA** thông qua n8n
@@ -56,20 +60,16 @@ Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý 
   2. NestJS đẩy **WebSocket notification** → Web Portal
   3. HR Admin tiếp quản hội thoại
 
-### 2.3 🔐 PII Anonymization Agent (Bảo mật)
+### 2.3 🔐 PII Anonymization
 
-- **Vị trí:** Middleware tại Backend NestJS
-- **Quy trình:**
-  1. Quét bằng Regex + NER → **Masking** PII trước khi gọi LLM bên ngoài
-  2. LLM xử lý data đã ẩn danh
-  3. **De-anonymize** kết quả trả về
-- Tuân thủ tiêu chuẩn bảo mật cấp doanh nghiệp
+- **Vị trí:** WF01 Code node (trước phân loại intent)
+- **Quy trình:** Regex masking (số CCCD, số điện thoại, email) → LLM chỉ thấy `maskedMessage`
+- Sau refactor 17/09: cả Intent Classifier và Direct Answer cũ đều bị xóa → **không có LLM nào trong WF01 thấy dữ liệu chưa mask**
 
 ### 2.4 ⚡ WebSocket Real-time
 
 - NestJS dùng `@nestjs/websockets` + `socket.io`
 - Real-time notification cho Admin khi có khiếu nại CSKH
-- Rate limiting: 10 req/1s, 50 req/10s, 200 req/60s
 
 ---
 
@@ -77,13 +77,13 @@ Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý 
 
 | Agent | LLM | Ghi chú |
 |-------|-----|----------|
-| Router | Google Gemini | Intent classification |
-| HR Q&A | Google Gemini | **RAG (pgvector/fallback) + employee context** |
-| Training | Google Gemini | Role-play + scoring |
-| CSKH Zalo | Google Gemini | Customer support (Slack transport) |
-| Embedding | Gemini `gemini-embedding-001` | 768 dims — index `policy_chunks` (14/09) |
+| Router (WF01) | ❌ Không dùng LLM | Keyword classifier (refactor 17/09) |
+| HR Q&A (WF02) | Google Gemini 3.1 Flash Lite | RAG + employee context, maxIterations: 3 |
+| Training (WF03) | Google Gemini 3.1 Flash Lite | Role-play + scoring + quiz gen/grade |
+| CSKH Zalo (WF04) | Google Gemini 3.1 Flash Lite | Customer support (Slack transport) |
+| Embedding | Gemini `gemini-embedding-001` | 768 dims — index `policy_chunks` |
 
-**API Key:** Google AI Studio (free tier: 15 RPM, 1M tokens/day)
+**API Key:** Google AI Studio (free tier: 15 RPM, 500 req/ngày)
 
 ---
 

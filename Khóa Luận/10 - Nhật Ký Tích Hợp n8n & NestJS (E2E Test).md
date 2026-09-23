@@ -156,4 +156,15 @@ Kết nối thành công backend NestJS (`apps/api`) với hệ thống điều 
 
 ---
 
+## 6. Cập Nhật Ngày 21/09/2026: Nâng Cấp Sang Google Gemini 3.1 Flash Lite
+
+- **Bối cảnh:** Google AI Studio thắt chặt hạn ngạch các model Flash (2.5 Flash, 3 Flash, 3.5 Flash, 3.7 Flash) xuống 20 RPD (Requests Per Day) trên Free Tier; model `gemini-2.5-flash` thường xuyên quá tải (HTTP 503 High Demand).
+- **Quyết định:** Nâng cấp đồng bộ toàn bộ sub-agents (WF02, WF03, WF04) sang **`models/gemini-3.1-flash-lite`**:
+  - Hạn mức: **500 RPD** (gấp 25 lần), **15 RPM**, **250K TPM**.
+  - Kiểm thử Function Calling: Tool `GetPayrollContext` và `GetEmployeeContext` hoạt động chính xác 100%.
+  - Kho tri thức RAG: Giữ nguyên `models/gemini-embedding-001` (768 dims).
+  - Triển khai: Patch trực tiếp live n8n instance qua REST API (`scripts/update-gemini-model.cjs`) và cập nhật codebase/tài liệu đồng bộ.
+
+---
+
 *Ghi chú liên kết:* [[06 - n8n Workflows & AI Agents]] | [[02 - Backend NestJS (API)]] | [[09 - Task Checklist]] | [[11 - Định Hướng Phát Triển Sản Phẩm (Web & Mobile)]]

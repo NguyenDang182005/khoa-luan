@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body=$input.first().json.body||{};const text=body.message||\"\";const channel=body.channel||\"web\";const employeeId=body.employeeId||null;const scenarioType=body.scenarioType||null;const masked=text.replace(/\\b(\\d{9}|\\d{12})\\b/g,\"[MASKED_ID]\").replace(/\\b(0[35789]\\d{8})\\b/g,\"[MASKED_PHONE]\").replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g,\"[MASKED_EMAIL]\");return[{json:{originalMessage:text,maskedMessage:masked,channel,employeeId,scenarioType}}];"
+        "jsCode": "const body=$input.first().json.body||{};const text=body.message||\"\";const channel=body.channel||\"web\";const employeeId=body.employeeId||null;const scenarioType=body.scenarioType||null;const action=body.action||null;const sessionId=body.sessionId||null;const masked=text.replace(/\\b(\\d{9}|\\d{12})\\b/g,\"[MASKED_ID]\").replace(/\\b(0[35789]\\d{8})\\b/g,\"[MASKED_PHONE]\").replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g,\"[MASKED_EMAIL]\");return[{json:{originalMessage:text,maskedMessage:masked,channel,employeeId,scenarioType,action,sessionId}}];"
       },
       "id": "pii-masking",
       "name": "PII Masking",
@@ -33,56 +33,14 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ \"Hay phan loai cau hoi sau vao mot trong cac nhan: HR_QA, TRAINING, CSKH, OTHER.\\nCau hoi: \" + $json.maskedMessage + \"\\nTra ve duy nhat ten nhan, vi du: HR_QA\" }}",
-        "systemMessage": "Ban la bo phan loai intent AI. Nhiem vu: tra ve dung mot ma intent trong cac ma sau: HR_QA (hoi ve nhan su, luong, nghi phep, hop dong, BHXH, luat lao dong), TRAINING (luyen tap giao tiep, role-play), CSKH (khieu nai, cham soc khach hang), OTHER. Tuyet doi khong tra loi cau hoi, chi xuat ten ma intent.",
-        "options": {
-          "maxIterations": 1,
-          "systemMessage": "Ban la bo phan loai intent AI. Nhiem vu: tra ve dung mot ma intent trong cac ma sau: HR_QA (hoi ve nhan su, luong, nghi phep, hop dong, BHXH, luat lao dong), TRAINING (luyen tap giao tiep, role-play), CSKH (khieu nai, cham soc khach hang), OTHER. Tuyet doi khong tra loi cau hoi, chi xuat ten ma intent."
-        }
-      },
-      "id": "intent-agent",
-      "name": "Intent Classifier",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
-      "position": [
-        680,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "modelName": "models/gemini-2.5-flash",
-        "options": {
-          "temperature": 0,
-          "maxOutputTokens": 1024
-        }
-      },
-      "id": "gemini-router",
-      "name": "Gemini Flash",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        480,
-        520
-      ],
-      "credentials": {
-        "googlePalmApi": {
-          "id": "gemini-api-key",
-          "name": "Gemini API Key"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = ($input.first().json.output || \"\").trim().toUpperCase();\nlet intent = \"OTHER\";\nif (raw.includes(\"HR_QA\")) intent = \"HR_QA\";\nelse if (raw.includes(\"TRAINING\")) intent = \"TRAINING\";\nelse if (raw.includes(\"CSKH\")) intent = \"CSKH\";\nelse {\n  const msg = (($(\"PII Masking\").first().json.maskedMessage || \"\")).toLowerCase();\n  if (/lương|phép|nghỉ|hợp đồng|bhxh|bhyt|chấm công/i.test(msg)) intent = \"HR_QA\";\n  else if (/training|đào tạo|role-play|kịch bản/i.test(msg)) intent = \"TRAINING\";\n  else if (/khiếu nại|khách hàng|sản phẩm|cskh/i.test(msg)) intent = \"CSKH\";\n}\nconst prev = $(\"PII Masking\").first().json;\nreturn [{ json: { ...prev, intent } }];"
+        "jsCode": "const data = $input.first().json;\nconst msg = (data.maskedMessage || '').toLowerCase();\nlet intent = 'OTHER';\n\nconst isHR = /l\\u01b0\\u01a1ng|ph\\u00e9p|ngh\\u1ec9 ph\\u00e9p|h\\u1ee3p \\u0111\\u1ed3ng|bhxh|bhyt|bhtn|ch\\u1ea5m c\\u00f4ng|b\\u1ea3o hi\\u1ec3m|thu\\u1ebf|tncn|overtime|t\\u0103ng l\\u01b0\\u01a1ng|gi\\u1ea3m tr\\u1eeb|b\\u1eadc l\\u01b0\\u01a1ng|h\\u1ec7 s\\u1ed1|\\u0111\\u0103ng k\\u00fd ph\\u00e9p|thai s\\u1ea3n|ph\\u00fac l\\u1ee3i|th\\u01b0\\u1edfng|bonus|thu nh\\u1eadp|kh\\u1ea5u tr\\u1eeb|c\\u00f4ng s\\u1ed1|b\\u1ea3ng l\\u01b0\\u01a1ng|ng\\u00e0y c\\u00f4ng|ph\\u1ee5 c\\u1ea5p|k\\u00fd h\\u1ee3p \\u0111\\u1ed3ng|l\\u1ecbch l\\u00e0m vi\\u1ec7c|quy \\u0111\\u1ecbnh|ch\\u00ednh s\\u00e1ch|n\\u1ed9i quy/.test(msg)\n  || /luong|phep|nghi phep|hop dong|cham cong|bao hiem|thue tncn|tang luong|giam tru|bac luong|he so|thai san|phuc loi|thuong|thu nhap|khau tru|cong so|bang luong|phu cap|quy dinh|chinh sach|noi quy/.test(msg);\n\nconst isQuizRequest = /bai test|bai kiem tra|lam test|quiz|trac nghiem|bai thi|kiem tra ky nang|bat dau dao tao|bat dau bai test|bat dau bai kiem tra|bat dau kiem tra/.test(msg)\n  || /b\\u00e0i test|b\\u00e0i ki\\u1ec3m tra|l\\u00e0m test|tr\\u1eafc nghi\\u1ec7m|b\\u00e0i thi|b\\u1eaft \\u0111\\u1ea7u \\u0111\\u00e0o t\\u1ea1o|b\\u1eaft \\u0111\\u1ea7u b\\u00e0i test|b\\u1eaft \\u0111\\u1ea7u ki\\u1ec3m tra/.test(msg);\n\nconst isTraining = /training|\\u0111\\u00e0o t\\u1ea1o|role.?play|k\\u1ecbch b\\u1ea3n|luy\\u1ec7n t\\u1eadp|t\\u00ecnh hu\\u1ed1ng|k\\u1ef9 n\\u0103ng giao ti\\u1ebfp|roleplay|t\\u1eadp d\\u01b0\\u1ee3t|b\\u00e0i test|b\\u00e0i ki\\u1ec3m tra|l\\u00e0m test|quiz|tr\\u1eafc nghi\\u1ec7m|b\\u00e0i thi|ki\\u1ec3m tra k\\u1ef9 n\\u0103ng/.test(msg)\n  || /dao tao|kich ban|luyen tap|tinh huong|ky nang|tap duot|bai test|lam test|trac nghiem|bai kiem tra|bai thi|kiem tra/.test(msg);\n\nconst isCSKH = /khi\\u1ebfu n\\u1ea1i|kh\\u00e1ch h\\u00e0ng|s\\u1ea3n ph\\u1ea9m|cskh|ph\\u00e0n n\\u00e0n|d\\u1ecbch v\\u1ee5|ch\\u0103m s\\u00f3c kh\\u00e1ch|h\\u1ed7 tr\\u1ee3 kh\\u00e1ch|complain/.test(msg)\n  || /khieu nai|khach hang|san pham|phan nan|dich vu|cham soc khach|ho tro khach/.test(msg);\n\nif (isHR) intent = 'HR_QA';\nelse if (isTraining) intent = 'TRAINING';\nelse if (isCSKH) intent = 'CSKH';\n\n// Tự động set action='generate_quiz' khi user nhắn từ khóa quiz/test\nconst action = data.action || (intent === 'TRAINING' && isQuizRequest ? 'generate_quiz' : null);\n\nreturn [{ json: { ...data, intent, action } }];"
       },
       "id": "parse-intent",
       "name": "Parse Intent",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        900,
+        680,
         300
       ]
     },
@@ -170,30 +128,30 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        1120,
+        900,
         300
       ]
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"error\": \"Khong nhan dang duoc yeu cau.\", \"intent\": \"OTHER\" }"
+        "jsCode": "return [{ json: { answer: 'Xin chÃ o! TÃ´i lÃ  trá»£ lÃ½ HR cá»§a cÃ´ng ty. TÃ´i cÃ³ thá»ƒ giÃºp báº¡n:\\nâ€¢ ðŸ’¼ Há»i vá» lÆ°Æ¡ng, phÃ©p, há»£p Ä‘á»“ng, BHXH, thuáº¿ TNCN â†’ chá»n module NhÃ¢n sá»±\\nâ€¢ ðŸ“š Luyá»‡n táº­p ká»¹ nÄƒng giao tiáº¿p / role-play â†’ chá»n module ÄÃ o táº¡o\\nâ€¢ ðŸŽ¯ Khiáº¿u náº¡i, há»— trá»£ khÃ¡ch hÃ ng â†’ chá»n module CSKH\\nBáº¡n muá»‘n há»i vá» váº¥n Ä‘á» gÃ¬?', intent: 'OTHER' } }];"
       },
-      "id": "other-respond",
-      "name": "Respond OTHER",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
+      "id": "other-respond-static",
+      "name": "Respond OTHER Static",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        1340,
-        520
+        1120,
+        480
       ]
     },
     {
       "parameters": {
         "source": "database",
         "workflowId": {
-          "value": "oy5rWkKaus7wiacX",
-          "mode": "id"
+          "value": "NOEC21B5eNawpOoG",
+          "mode": "id",
+          "__rl": true
         },
         "options": {}
       },
@@ -201,17 +159,15 @@
       "name": "Execute HR Q&A Agent",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 2,
-      "position": [
-        1340,
-        160
-      ]
+      "position": [1120, 120]
     },
     {
       "parameters": {
         "source": "database",
         "workflowId": {
-          "value": "7EZ6MXJZzPx1fDlu",
-          "mode": "id"
+          "value": "ikRpXdXdbRGwVUjz",
+          "mode": "id",
+          "__rl": true
         },
         "options": {}
       },
@@ -219,17 +175,15 @@
       "name": "Execute Training Agent",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 2,
-      "position": [
-        1340,
-        300
-      ]
+      "position": [1120, 260]
     },
     {
       "parameters": {
         "source": "database",
         "workflowId": {
-          "value": "QvguLO7il2BRO1on",
-          "mode": "id"
+          "value": "ioUQHgxiI7Db2rfF",
+          "mode": "id",
+          "__rl": true
         },
         "options": {}
       },
@@ -237,10 +191,7 @@
       "name": "Execute CSKH Agent",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 2,
-      "position": [
-        1340,
-        440
-      ]
+      "position": [1120, 400]
     },
     {
       "parameters": {
@@ -252,7 +203,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1600,
+        1360,
         300
       ]
     }
@@ -271,17 +222,6 @@
       ]
     },
     "PII Masking": {
-      "main": [
-        [
-          {
-            "node": "Intent Classifier",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Intent Classifier": {
       "main": [
         [
           {
@@ -328,19 +268,19 @@
         ],
         [
           {
-            "node": "Respond OTHER",
+            "node": "Respond OTHER Static",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gemini Flash": {
-      "ai_languageModel": [
+    "Respond OTHER Static": {
+      "main": [
         [
           {
-            "node": "Intent Classifier",
-            "type": "ai_languageModel",
+            "node": "Respond Chat Webhook",
+            "type": "main",
             "index": 0
           }
         ]
@@ -370,13 +310,6 @@
     },
     "Execute CSKH Agent": {
       "main": [
-        [
-          {
-            "node": "Respond Chat Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ],
         [
           {
             "node": "Respond Chat Webhook",

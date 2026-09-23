@@ -27,7 +27,7 @@ created: 2026-09-10
 | 2 | 🔴 Critical | `NEXT_PUBLIC_N8N_API_KEY` bị inline vào browser bundle → ai cũng gọi được `/n8n/*`, RBAC thành cosmetic | `escalation.api.ts`, `agents.api.ts` |
 | 3 | 🔴 Critical | 2 bug chắc chắn 500: payroll generate truyền `_breakdown` không có trong schema; escalate dùng user sentinel `admin-broadcast` vi phạm FK | `payroll.service.ts`, `ai-context.service.ts` |
 | 4 | 🔴 Critical | RolesGuard + @Roles viết xong nhưng 0 lần dùng; WebSocket gateway không auth, join room theo client | `app.module.ts`, `notifications.gateway.ts` |
-| 5 | 🔴 Critical | WF04 ưu tiên `originalMessage` trước `maskedMessage` → PII Masking vô hiệu trên luồng CSKH | `04-zalo-cskh.json` (⚠️ chưa fix) |
+| 5 | 🔴 Critical | WF04 ưu tiên `originalMessage` trước `maskedMessage` → PII Masking vô hiệu trên luồng CSKH | `04-zalo-cskh.json` (✅ **đã fix gốc rễ 17/09**: thêm node "PII Masking" vào WF04 + audit đối chiếu song song — runtime verified, xem [[2026-09-17 Audit PII Masking - Kế Hoạch vs Hiện Trạng]]) |
 | 6 | 🟠 High | Quality gates đứt: `pnpm lint` fail 2/5 workspace, `pnpm test` fail (0 test), không CI, 2 migration chưa commit | toàn repo |
 | 7 | 🟠 High | Web mock disguised as real: payroll-view 100% cứng, form nghỉ phép dead code, PII audit tĩnh, TanStack Query cài mà 0 import | `apps/web/components/views/*` |
 | 8 | 🟡 Medium | 13 điểm tài liệu tự mâu thuẫn: "Gemini 3.5" ↔ 2.5, "Next.js 14" ↔ 16, GraphRAG ↔ pgvector, README n8n stale | README.md, doc 01/03/06/07/12 |
@@ -97,7 +97,7 @@ Câu hỏi: vì sao không để Next fetch API ở server (RSC) rồi Zod valid
 ## ⏭️ VIỆC CẦN LÀM TIẾP (backlog sau refactor)
 
 1. 🔴 **Rotate secret ngay** (Gmail/n8n password, Gemini key, HR API key) — key đã gỡ khỏi code frontend nhưng **vẫn nằm trong git history + scripts/**.
-2. 🔴 Fix PII Masking WF04 (đổi ưu tiên `maskedMessage` trước `originalMessage` — 1 dòng trong JSON).
+2. ✅ ~~Fix PII Masking WF04~~ — **đã fix 17/09**: node "PII Masking" trong WF04 (dùng regex WF01) + `slackChannel` flow giữ original trong DB. Quyết định kèm theo: quiz essay raw = chấp nhận rủi ro (dữ liệu nội bộ, ghi docs); regex giữ nguyên 3 loại (ID/phone/email) + ghi rõ giới hạn; retention TTL để backlog (mục 5).
 3. 🟠 Đăng ký APP_GUARD (JwtAuthGuard + RolesGuard) + `@Roles()` các route lương/hợp đồng; WS gateway xác thực handshake.
 4. 🟠 DTO class-validator cho các controller cũ; unit test `calculatePayroll`; GitHub Actions tối thiểu; commit 2 migration.
 5. 🟡 Decimal cho cột tiền, `@@index` cho FK; error workflow + retry/timeout cho n8n; TTL `n8n_chat_histories`.

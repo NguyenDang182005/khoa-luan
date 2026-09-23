@@ -9,6 +9,8 @@ import type { AttendanceRecord } from "@/lib/api/attendance.api"
 import { onboardingApi } from "@/lib/api/onboarding.api"
 import type { MyOnboardingItem } from "@/lib/api/onboarding.api"
 import { agentsApi } from "@/lib/api/agents.api"
+import type { ChatHistoryMessage as AgentHistoryMessage } from "@/lib/api/agents.api"
+import { getChat, patchChat } from "@/lib/chat/chat-store"
 import type { LeaveRequest } from "@/lib/schemas/leave.schema"
 import { LeaveCreateSchema, LeaveTypeEnum } from "@/lib/schemas/leave.schema"
 import type { PayrollRecord } from "@/lib/schemas/payroll.schema"
@@ -59,6 +61,13 @@ interface ChatEntry {
   latency?: string
 }
 
+/** Q16/Q17 — Trợ lý HR portal dùng chung cơ chế session (key riêng cho bề mặt portal) */
+const PORTAL_CHAT_KEY = "portal:HR_QA"
+const PORTAL_GREETING: ChatEntry = {
+  role: "bot",
+  text: "Xin chào! Tôi là Trợ lý HR AI nội bộ. Bạn có câu hỏi nào về chính sách nhân sự hoặc ngày phép không?",
+}
+
 function timeHM(iso: string | null | undefined): string {
   if (!iso) return "--:--"
   return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
@@ -87,12 +96,65 @@ export function EmployeePortalView() {
   const [gpsError, setGpsError] = useState<string | null>(null)
 
   // Chat
-  const [chatMessages, setChatMessages] = useState<ChatEntry[]>([
-    { role: "bot", text: "Xin chào! Tôi là Trợ lý HR AI nội bộ. Bạn có câu hỏi nào về chính sách nhân sự hoặc ngày phép không?" },
-  ])
+  const [chatMessages, setChatMessages] = useState<ChatEntry[]>([PORTAL_GREETING])
   const [chatInput, setChatInput] = useState("")
   const [isChatting, setIsChatting] = useState(false)
   const [floatingChatOpen, setFloatingChatOpen] = useState(false)
+
+  /** Q16(c) — commit chat vào store (sống qua điều hướng view) + state render */
+  const commitChat = (updater: (prev: ChatEntry[]) => ChatEntry[]) => {
+    setChatMessages((prev) => {
+      const next = updater(prev)
+      patchChat<ChatEntry>(PORTAL_CHAT_KEY, { messages: next })
+      return next
+    })
+  }
+
+  /** Q16(c) — rehydrate lịch sử HR_QA từ DB (lần đầu mở portal trong phiên) */
+  useEffect(() => {
+    const stored = getChat<ChatEntry>(PORTAL_CHAT_KEY)
+    if (stored.hydrated) {
+      setChatMessages(stored.messages.length > 0 ? [...(stored.messages as ChatEntry[])] : [PORTAL_GREETING])
+      return
+    }
+    let cancelled = false
+    agentsApi
+      .getLatestSession("HR_QA")
+      .then((session) => {
+        if (cancelled) return
+        const msgs: ChatEntry[] = (session?.messages ?? []).map((m: AgentHistoryMessage) => ({
+          role: m.role === "user" ? ("user" as const) : ("bot" as const),
+          text: m.content,
+        }))
+        patchChat<ChatEntry>(PORTAL_CHAT_KEY, {
+          hydrated: true,
+          sessionId: session?.id,
+          messages: msgs,
+        })
+        setChatMessages(msgs.length > 0 ? msgs : [PORTAL_GREETING])
+      })
+      .catch(() => {
+        if (!cancelled) patchChat<ChatEntry>(PORTAL_CHAT_KEY, { hydrated: true })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  /** Q19(i1) — "Phiên mới" cho trợ lý HR */
+  const handlePortalNewSession = async () => {
+    try {
+      const session = await agentsApi.renewSession("HR_QA")
+      patchChat<ChatEntry>(PORTAL_CHAT_KEY, {
+        hydrated: true,
+        sessionId: session.id,
+        messages: [PORTAL_GREETING],
+      })
+      setChatMessages([PORTAL_GREETING])
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   // Leave form
   const [showLeaveModal, setShowLeaveModal] = useState(false)
@@ -206,18 +268,22 @@ export function EmployeePortalView() {
   const handleSendChat = async () => {
     if (!chatInput.trim() || isChatting) return
     const msg = chatInput.trim()
-    setChatMessages((prev) => [...prev, { role: "user", text: msg }])
+    commitChat((prev) => [...prev, { role: "user", text: msg }])
     setChatInput("")
     setIsChatting(true)
     const startTime = Date.now()
     try {
-      const result = await agentsApi.chat(msg)
-      setChatMessages((prev) => [
+      const stored = getChat<ChatEntry>(PORTAL_CHAT_KEY)
+      const result = await agentsApi.chat(msg, { sessionId: stored.sessionId, sessionType: "HR_QA" })
+      if (result.sessionId && result.sessionId !== stored.sessionId) {
+        patchChat<ChatEntry>(PORTAL_CHAT_KEY, { sessionId: result.sessionId })
+      }
+      commitChat((prev) => [
         ...prev,
         { role: "bot", text: result.answer, latency: String(result.latencyMs || Date.now() - startTime) },
       ])
     } catch (e: unknown) {
-      setChatMessages((prev) => [
+      commitChat((prev) => [
         ...prev,
         { role: "bot", text: e instanceof Error ? e.message : "Xin lỗi, có lỗi kết nối AI." },
       ])
@@ -606,9 +672,12 @@ export function EmployeePortalView() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-foreground">Trợ Lý HR AI (WF02)</h4>
-                  <p className="text-[10px] text-muted-foreground">Sẵn sàng 24/7 • Gemini 2.5 Flash</p>
+                  <p className="text-[10px] text-muted-foreground">Sẵn sàng 24/7 • Gemini 3.1 Flash Lite</p>
                 </div>
               </div>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={handlePortalNewSession} disabled={isChatting} title="Đóng phiên hiện tại và bắt đầu phiên mới">
+                Phiên mới
+              </Button>
               <Button variant="ghost" size="icon" className="size-7" onClick={() => setFloatingChatOpen(false)} aria-label="Đóng chat">
                 <X className="size-4" />
               </Button>

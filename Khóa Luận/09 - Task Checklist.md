@@ -130,7 +130,7 @@
 | 1 | 📍 GPS Geofencing | 🔴 Mobile chưa làm |
 | 2 | 🚨 Escalation Alert WS Real-time | 🟢 Xong |
 | 3 | 📊 Radar Năng Lực Đào Tạo | Web ✅ / Mobile 🔴 |
-| 4 | 🔒 PII Masking & Audit Trail | 🟢 Xong |
+| 4 | 🔒 PII Masking & Audit Trail | 🟢 Xong 17/09 — fix WF04 mask node + audit đối chiếu song song (trước đó luồng CSKH/quiz bị raw, xem [[2026-09-17 Audit PII Masking - Kế Hoạch vs Hiện Trạng]]) |
 
 > ⚠️ **Cần Mobile App để có đủ 4/4 Killer Features!**
 
@@ -139,3 +139,19 @@
 *Cập nhật bởi AI Agent (Antigravity) — 2026-09-15 14:46 ICT*  
 *Xem chi tiết hôm nay: [[16 - Nhật Ký Ngày 15-09-2026]]*  
 *Liên kết: [[00 - Tổng Quan Dự Án]] | [[15 - Refactor Real API Toàn Portal & Review Best Practice]]*
+
+---
+
+## 🚀 Cập Nhật 17/09 — Training Quiz & Dashboard (mới)
+
+- [x] **WF03 Training Agent — viết lại hoàn toàn** — thêm webhook + 3 luồng (`generate_quiz` / `submit_quiz` / role-play)
+- [x] **WF01 Router** — thêm quiz keywords (`bài test`, `quiz`, `trắc nghiệm`...) + tự set `action='generate_quiz'`
+- [x] **WF01 PII Masking** — extract thêm `action` field từ request body
+- [x] **3 Gemini nodes riêng biệt** trong WF03 (Gemini Gen, Gemini Grade, Gemini Roleplay)
+- [x] **NestJS `POST /training/submit`** — gọi WF03, lưu TrainingSession + TrainingAttempt
+- [x] **NestJS `GET /training/dashboard/me`** — dashboard cá nhân (JWT)
+- [x] **NestJS `GET /training/dashboard/overview`** — dashboard toàn công ty (JWT + Admin)
+- [x] **Kết quả kiểm thử:** 5 MCQ + 2 essay ✅, chấm điểm 3/5=60% ✅, WF02 HR Q&A 7.8s ✅, WF03 roleplay 6s ✅
+- [x] **Bài học:** 1 LLM node → nhiều Agent = crash; `responseMode: 'lastNode'` thay vì `responseNode`
+
+*Xem chi tiết: [[14 - Training Quiz & Dashboard]]*

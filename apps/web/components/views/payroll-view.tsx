@@ -140,6 +140,8 @@ export function PayrollView() {
     .filter((p) => p.status === "DRAFT" || p.status === "APPROVED")
     .map((p) => p.id)
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.includes(id))
+  // Số dòng không thể chọn (đã chi trả) — hiển thị giải thích để tránh hiểu nhầm "checkbox bị hỏng"
+  const lockedCount = payrollData.length - selectableIds.length
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -281,6 +283,11 @@ export function PayrollView() {
           <CheckCheck className="size-4 text-primary" />
           <span className="text-xs text-muted-foreground">
             Đã chọn <span className="font-semibold text-foreground">{selectedIds.length}</span>/{selectableIds.length} dòng có thể thao tác
+            {lockedCount > 0 && (
+              <span className="ml-1 text-[10px] text-muted-foreground/70">
+                • {lockedCount} dòng đã chi trả không thể chọn
+              </span>
+            )}
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Button
@@ -410,6 +417,7 @@ export function PayrollView() {
                     type="checkbox"
                     className="size-3.5 cursor-pointer accent-emerald-500"
                     aria-label="Chọn tất cả dòng có thể duyệt"
+                    title="Chọn tất cả các dòng Chờ duyệt / Đã duyệt"
                     disabled={selectableIds.length === 0}
                     checked={allSelected}
                     onChange={() => setSelectedIds(allSelected ? [] : selectableIds)}
@@ -433,9 +441,22 @@ export function PayrollView() {
                   <TableCell className="w-10 text-center">
                     <input
                       type="checkbox"
-                      className="size-3.5 cursor-pointer accent-emerald-500"
+                      className={`size-3.5 accent-emerald-500 ${
+                        item.status === "DRAFT" || item.status === "APPROVED"
+                          ? "cursor-pointer"
+                          : "cursor-not-allowed opacity-40"
+                      }`}
                       aria-label={`Chọn bảng lương ${item.employee.employeeCode}`}
                       disabled={item.status !== "DRAFT" && item.status !== "APPROVED"}
+                      title={
+                        item.status === "PAID"
+                          ? "Đã chi trả — dòng này không thể chọn để duyệt/chi trả"
+                          : item.status === "APPROVED"
+                            ? "Đã duyệt — có thể chọn để chi trả"
+                            : item.status === "DRAFT"
+                              ? "Chờ duyệt — có thể chọn để duyệt"
+                              : "Không thể chọn"
+                      }
                       checked={selectedIds.includes(item.id)}
                       onChange={() => toggleSelect(item.id)}
                     />

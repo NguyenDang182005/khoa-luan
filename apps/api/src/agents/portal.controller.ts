@@ -14,7 +14,7 @@ import { AiContextService } from '../ai-context/ai-context.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { AgentChatDto } from './dto/agent-chat.dto';
+import { AgentChatDto, SessionTypeDto } from './dto/agent-chat.dto';
 import { AgentReplyDto } from './dto/agent-reply.dto';
 import { PiiAuditQueryDto } from './dto/pii-audit-query.dto';
 
@@ -34,9 +34,39 @@ export class PortalAgentsController {
   ) {}
 
   @Post('chat')
-  @ApiOperation({ summary: 'Chat với AI Agent (server-side gọi n8n WF01)' })
+  @ApiOperation({ summary: 'Chat với AI Agent (server-side gọi n8n WF01, gắn session)' })
   chat(@Request() req: any, @Body() dto: AgentChatDto) {
-    return this.agentsService.portalChat(req.user.sub, dto.message);
+    return this.agentsService.portalChat(
+      req.user.sub,
+      dto.message,
+      dto.sessionId,
+      dto.sessionType,
+    );
+  }
+
+  @Get('chat-session/latest/:type')
+  @ApiOperation({
+    summary: 'Q16 — Phiên chat web gần nhất của nhân viên theo loại (kèm messages)',
+  })
+  latestSession(@Request() req: any, @Param('type') type: string) {
+    return this.latestSessionFor(req, type);
+  }
+
+  @Post('chat-session/renew')
+  @ApiOperation({ summary: 'Q19 — "Phiên mới": đóng phiên web hiện tại, mở phiên mới' })
+  renewSession(@Request() req: any, @Body() dto: SessionTypeDto) {
+    return this.renewSessionFor(req, dto.type);
+  }
+
+  /** Resolve employee từ JWT — dùng cho 2 endpoint session phía trên */
+  private async latestSessionFor(req: any, type: string) {
+    const employee = await this.agentsService.resolveEmployee(req.user.sub);
+    return this.aiContextService.getLatestWebSession(employee.id, type);
+  }
+
+  private async renewSessionFor(req: any, type: string) {
+    const employee = await this.agentsService.resolveEmployee(req.user.sub);
+    return this.aiContextService.renewWebSession(employee.id, type);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -78,6 +108,14 @@ export class PortalAgentsController {
   @ApiOperation({ summary: 'Bật lại bot cho session (Admin hoàn thành hỗ trợ)' })
   reactivateSession(@Param('id') id: string) {
     return this.aiContextService.reactivateSession(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @Post('chat-session/:id/deactivate')
+  @ApiOperation({ summary: 'Tắt bot cho session (Admin tiếp quản thủ công)' })
+  deactivateSession(@Param('id') id: string) {
+    return this.aiContextService.deactivateSession(id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

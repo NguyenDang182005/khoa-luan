@@ -133,7 +133,7 @@ export class SettingsService {
     if (!geminiKey) {
       items.push({
         key: 'gemini',
-        name: 'Google Gemini 2.5 Flash',
+        name: 'Google Gemini 3.1 Flash Lite',
         status: 'not_configured',
         latencyMs: null,
         detail: 'Chưa cấu hình GEMINI_API_KEY',
@@ -147,7 +147,7 @@ export class SettingsService {
         );
         items.push({
           key: 'gemini',
-          name: 'Google Gemini 2.5 Flash',
+          name: 'Google Gemini 3.1 Flash Lite',
           status: res.ok ? 'ok' : 'error',
           latencyMs: Date.now() - tg,
           detail: res.ok ? 'API key hợp lệ (GET /v1beta/models)' : `HTTP ${res.status} — key có thể đã hết hạn`,
@@ -155,7 +155,7 @@ export class SettingsService {
       } catch (e) {
         items.push({
           key: 'gemini',
-          name: 'Google Gemini 2.5 Flash',
+          name: 'Google Gemini 3.1 Flash Lite',
           status: 'error',
           latencyMs: null,
           detail: (e as Error).message.slice(0, 100),

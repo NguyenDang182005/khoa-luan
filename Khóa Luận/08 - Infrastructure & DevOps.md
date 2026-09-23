@@ -78,7 +78,7 @@ Toàn bộ secret thật nằm trong **root `.env`** (đã gitignored) — `dock
 |---|---|---|---|
 | `HR_API_KEY` | n8n → NestJS qua header `x-api-key` (tất cả endpoint `/api/v1/n8n/*`) | root `.env` + `apps/api/.env` (phải khớp nhau) | Backend + n8n credential `httpHeaderAuth` |
 | `N8N_API_KEY` | NestJS validate header `x-api-key` incoming | `apps/api/.env` | Backend |
-| `GEMINI_API_KEY` | n8n gọi Gemini 2.5 Flash (WF01–WF04) | root `.env` → n8n credential `googlePalmApi` | n8n credential |
+| `GEMINI_API_KEY` | n8n gọi Gemini 3.1 Flash Lite (WF02–WF04) + embedding RAG | root `.env` → n8n credential `googlePalmApi` | n8n credential |
 | `SLACK_BOT_TOKEN` (`xoxb-…`) | NestJS gửi Slack DM cho khách (CSKH reply + outbound-reply) | root `.env` → NestJS `ConfigService` | Backend only |
 | `SLACK_SIGNING_SECRET` | Verify signature Slack Events (khi bật) | root `.env` | Backend only |
 | `DATABASE_URL` | Prisma connect PostgreSQL | `apps/api/.env` / env khi chạy | Backend |

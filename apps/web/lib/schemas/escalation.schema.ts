@@ -2,12 +2,12 @@ import { z } from 'zod'
 
 /** n8n WF04 lưu metadata thật: model, escalated, escalateReason (+ summary khi escalate) */
 export const EscalationCaseMetadataSchema = z.object({
-  model: z.string().optional(),
-  escalated: z.boolean().optional(),
-  escalateReason: z.string().optional(),
-  summary: z.string().optional(),
-  customerName: z.string().optional(),
-  phone: z.string().optional(),
+  model: z.string().nullish(),
+  escalated: z.boolean().nullish(),
+  escalateReason: z.string().nullish(),
+  summary: z.string().nullish(),
+  customerName: z.string().nullish(),
+  phone: z.string().nullish(),
 })
 
 export const EscalationCaseSchema = z.object({

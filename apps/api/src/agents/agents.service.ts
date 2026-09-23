@@ -9,7 +9,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiContextService } from '../ai-context/ai-context.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 
-const N8N_CHAT_TIMEOUT_MS = 30_000;
+// Gemini free-tier latency khi agent gọi tool RAG có thể tới ~40-50s; 30s gây 502 chớp nhoáng.
+const N8N_CHAT_TIMEOUT_MS = 90_000;
 
 @Injectable()
 export class AgentsService {
@@ -107,7 +108,8 @@ export class AgentsService {
   // ── Web Portal (JWT) — browser không gọi n8n trực tiếp nữa ───────────────
 
   /** Resolve Employee từ JWT payload (req.user.sub = userId) */
-  private async resolveEmployee(userId: string) {
+  /** Q16-session: public để portal.controller resolve employee cho endpoint latest/renew */
+  async resolveEmployee(userId: string) {
     const employee = await this.prisma.employee.findUnique({
       where: { userId },
     });
@@ -125,8 +127,35 @@ export class AgentsService {
   async portalChat(
     userId: string,
     message: string,
-  ): Promise<{ answer: string; latencyMs: number }> {
+    sessionId?: string,
+    sessionType?: string,
+  ): Promise<{
+    answer: string;
+    latencyMs: number;
+    questions?: Array<Record<string, unknown>>;
+    scenarioType?: string;
+    sessionId: string;
+    sessionType: string;
+  }> {
     const employee = await this.resolveEmployee(userId);
+
+    // Q16/Q18 — backend sở hữu phiên chat: dùng sessionId client gửi (nếu hợp lệ),
+    // không thì get-or-create phiên cùng ngày theo (employee, type, channel=web)
+    const type = (sessionType ?? 'OTHER') as string;
+    let session: { id: string } | null = null;
+    if (sessionId) {
+      session = await this.prisma.aiChatSession.findFirst({
+        where: { id: sessionId, employeeId: employee.id },
+        select: { id: true },
+      });
+    }
+    if (!session) {
+      session = await this.aiContext.createOrGetSession({
+        employeeId: employee.id,
+        type,
+        channel: 'web',
+      });
+    }
 
     const webhookUrl =
       this.config.get<string>('N8N_WEBHOOK_URL') ??
@@ -146,6 +175,7 @@ export class AgentsService {
           message,
           employeeId: employee.id,
           employeeCode: employee.employeeCode,
+          sessionId: session.id,
         }),
         signal: AbortSignal.timeout(N8N_CHAT_TIMEOUT_MS),
       });
@@ -157,6 +187,27 @@ export class AgentsService {
     const latencyMs = Date.now() - startedAt;
 
     if (!response.ok) {
+      // Thử đọc body để phát hiện lỗi 429 quota từ Gemini (n8n wrap thành 500)
+      let errBody = '';
+      try {
+        errBody = await response.text();
+      } catch {
+        /* ignore */
+      }
+      const isQuotaError =
+        response.status === 429 ||
+        errBody.toLowerCase().includes('quota') ||
+        errBody.includes('429');
+      if (isQuotaError) {
+        // Trả answer thân thiện thay vì throw 502 — UI vẫn hiện bình thường
+        return {
+          answer:
+            '⚠️ Hệ thống AI đang bận (quá tải quota). Vui lòng thử lại sau 1–2 phút.',
+          latencyMs,
+          sessionId: session.id,
+          sessionType: type,
+        };
+      }
       throw new BadGatewayException(
         'AI Agent (n8n) trả về lỗi. Vui lòng thử lại sau.',
       );
@@ -173,18 +224,33 @@ export class AgentsService {
 
     // n8n WF01 trả JSON với field `answer` (xem n8n-workflows/01-router-agent.json
     // + các sub-workflow 02/03/04 đều kết thúc bằng { answer, ... })
-    const answer = (payload as { answer?: unknown } | null)?.answer;
+    const obj = payload as {
+      answer?: unknown;
+      questions?: unknown;
+      scenarioType?: unknown;
+    } | null;
+    const answer = obj?.answer;
     if (typeof answer !== 'string' || answer.length === 0) {
       throw new BadGatewayException(
         'AI Agent (n8n) không trả được câu trả lời. Vui lòng thử lại sau.',
       );
     }
 
-    return { answer, latencyMs };
+    // WF03 generate_quiz trả kèm `questions` (5 MCQ + 2 essay) — forward về UI
+    // để render form làm bài. Không phải quiz thì bỏ qua (undefined).
+    const questions = Array.isArray(obj?.questions)
+      ? (obj?.questions as Array<Record<string, unknown>>)
+      : undefined;
+    const scenarioType =
+      typeof obj?.scenarioType === 'string' ? obj?.scenarioType : undefined;
+
+    return { answer, latencyMs, questions, scenarioType, sessionId: session.id, sessionType: type };
   }
 
   /** POST /agents/chat-session/:id/reply — human reply lưu vào lịch sử session
-   *  VÀ forward ra kênh khách hàng (Slack DM) nếu session có externalId. */
+   *  VÀ forward ra kênh khách hàng.
+   *  Ưu tiên channel mode (slackChannel + threadTs từ metadata message đầu tiên).
+   *  Fallback: Slack DM (legacy). */
   async replyToSession(sessionId: string, content: string) {
     const session = await this.prisma.aiChatSession.findUnique({
       where: { id: sessionId },
@@ -199,9 +265,27 @@ export class AgentsService {
       content,
       metadata: { sender: 'human', note: 'human_takeover' },
     });
-    const delivery = session.externalId
-      ? await this.aiContext.sendSlackDm(session.externalId, content)
-      : { delivered: false, reason: 'NO_EXTERNAL_ID' };
+
+    // Lấy slackChannel + threadTs từ metadata của message đầu tiên (được lưu khi WF04 xử lý)
+    const firstUserMsg = await this.prisma.aiChatMessage.findFirst({
+      where: { sessionId, role: 'user' },
+      orderBy: { createdAt: 'asc' },
+      select: { metadata: true },
+    });
+    const meta = firstUserMsg?.metadata as Record<string, unknown> | null;
+    const slackChannel = meta?.slackChannel as string | undefined;
+    const threadTs = meta?.threadTs as string | undefined;
+
+    let delivery: unknown;
+    if (slackChannel) {
+      // Channel mode — reply trong thread
+      delivery = await this.aiContext.sendSlackChannelMessage(slackChannel, content, threadTs);
+    } else if (session.externalId) {
+      // Fallback DM mode (legacy sessions)
+      delivery = await this.aiContext.sendSlackDm(session.externalId, content);
+    } else {
+      delivery = { delivered: false, reason: 'NO_EXTERNAL_ID' };
+    }
     return { ...message, delivery };
   }
 

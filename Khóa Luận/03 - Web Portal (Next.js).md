@@ -1,7 +1,7 @@
 ---
 tags: [khoa-luan, frontend, nextjs, web, admin-portal, status-completed]
 created: 2026-09-04
-updated: 2026-09-09
+updated: 2026-09-17
 status: completed
 ---
 
@@ -89,3 +89,63 @@ status: completed
 ---
 
 *Tài liệu chi tiết:* [[12 - Báo Cáo Triển Khai & Kiểm Thử Web Portal (Next.js + shadcn ui)]] | [[11 - Định Hướng Phát Triển Sản Phẩm (Web & Mobile)]] | [[10 - Nhật Ký Tích Hợp n8n & NestJS (E2E Test)]]
+
+## CSKH Escalation View — Human-in-the-Loop (17/09) ✅
+
+### Trang Cảnh Báo CSKH (`/protected/cskh-escalation`)
+
+| Thành phần | Mô tả |
+|---|---|
+| Hàng Đợi Khẩn Cấp | Sessions escalated (isActive=false), poll 10s |
+| Tất Cả Hội Thoại | Mọi session CSKH (bot + escalated) |
+| Chat Panel | Lịch sử tin nhắn (user/AI/human) + reply input |
+| Bot Mode Control | Segmented "Bot AI ↔ Chuyên viên" — redesign 17/09 (xem dưới) |
+
+### Bot Mode Segmented Control (redesign chiều 17/09 — thay toggle switch cũ)
+Chi tiết đầy đủ: [[2026-09-17 Redesign UI Bàn Tiếp Quản CSKH & Fix Bug Toggle Bot]]
+
+```typescript
+// DUY NHẤT 1 điểm điều khiển bot: segmented control "Bot AI ↔ Chuyên viên"
+// ở header khung chat. Danh sách hội thoại chỉ xem (badge trạng thái).
+// Optimistic update + rollback nếu API lỗi; fetchQueues() chỉ để đối chiếu nền.
+const handleToggleBot = useCallback(async (sessionId: string, reactivate: boolean) => {
+  setTogglingIds(prev => new Set(prev).add(sessionId))
+  setCaseEscalatedLocal(sessionId, !reactivate)   // optimistic
+  try {
+    reactivate ? await escalationApi.reactivateBot(sessionId)
+               : await escalationApi.deactivateBot(sessionId)
+  } catch {
+    setCaseEscalatedLocal(sessionId, reactivate)  // rollback
+  } finally {
+    void fetchQueues()
+  }
+}, [fetchQueues, setCaseEscalatedLocal])
+```
+
+### ⚠️ Luật `escalated` (fix bug toggle lật ngược — chiều 17/09)
+- `escalated` trong **metadata tin nhắn** (WF04 ghi lúc escalate) là snapshot write-once — **không bao giờ** dùng làm trạng thái hiện tại
+- Nguồn sự thật: trường `escalated: !isActive` từ `GET /agents/conversations` luôn thắng; item hàng đợi (`isActive=false`) thì `escalated=true` theo định nghĩa
+
+### Thiết kế trang (redesign chiều 17/09)
+| Thành phần | Mô tả |
+|---|---|
+| Header tĩnh | Tiêu đề + dải chỉ số sống (phiên chờ • tổng hội thoại • giờ đồng bộ 10s) — không đổi theo phiên đang chọn |
+| Segmented control | "Bot AI ↔ Chuyên viên" — duy nhất 1 nơi bật/tắt bot |
+| Lookup hợp nhất | Selection không nhảy phiên khi phiên rời filter sau toggle |
+| Escalation strip | Dải cảnh báo lý do WF04 nằm trong khung chat (không đè toàn trang) |
+| Tin nhắn 3 vai trò | Khách (trái, xám) / AI Bot (phải, primary) / Chuyên viên (phải, teal) + auto-scroll |
+
+### API Endpoints CSKH (tổng hợp)
+| Method | Path | Mô tả |
+|---|---|---|
+| GET | `/agents/escalation-queue` | Hàng đợi khẩn cấp |
+| GET | `/agents/conversations` | Tất cả hội thoại |
+| GET | `/agents/chat-history/:id` | Lịch sử 1 session |
+| POST | `/agents/chat-session/:id/reactivate` | Bật lại bot |
+| POST | `/agents/chat-session/:id/deactivate` | Tắt bot |
+| POST | `/agents/chat-session/:id/reply` | Human reply |
+
+### AI Agents Page — WF04 removed (17/09)
+- WF04 (Zalo CSKH) đã bị xóa khỏi `agentList` trong `ai-agents-view.tsx`
+- CSKH được quản lý qua trang Cảnh Báo CSKH riêng biệt
+- WF01/02/03 vẫn có chat workspace trong AI Agents page

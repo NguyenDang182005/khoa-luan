@@ -468,7 +468,7 @@ model AiChatMessage {
   sessionId String
   role      String  // "user" | "assistant"
   content   String  @db.Text
-  metadata  Json?   // intent, score, masked_content, etc.
+  metadata  Json?   // intent, score, maskedMessage, escalated, escalateReason, model, etc.
 
   createdAt DateTime @default(now())
 

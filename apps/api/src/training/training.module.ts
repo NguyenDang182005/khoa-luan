@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TrainingController } from './training.controller';
 import { TrainingService } from './training.service';
 
-@Module({ controllers: [TrainingController], providers: [TrainingService] })
+@Module({
+  imports: [ConfigModule],
+  controllers: [TrainingController],
+  providers: [TrainingService],
+})
 export class TrainingModule {}

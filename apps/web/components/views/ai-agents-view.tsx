@@ -11,6 +11,10 @@ import {
   Zap,
   Cpu,
   BarChart3,
+  Loader2,
+  ListChecks,
+  PenLine,
+  RotateCcw,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
@@ -18,6 +22,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useEffect, useState } from 'react'
 import { agentsApi } from '@/lib/api/agents.api'
+import type { QuizQuestion, QuizSubmitResult, ChatHistoryMessage as AgentHistoryMessage } from '@/lib/api/agents.api'
+import { getChat, patchChat } from '@/lib/chat/chat-store'
 import { escalationApi } from '@/lib/api/escalation.api'
 import type { ConversationItem, ChatHistoryMessage } from '@/lib/api/escalation.api'
 import type { AllAgentsPerf, IntentStats } from '@/lib/schemas/agent.schema'
@@ -46,7 +52,7 @@ const agentList: AgentItem[] = [
     badgeVariant: "teal",
     icon: Bot,
     unread: false,
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     sources: 4,
   },
   {
@@ -58,7 +64,7 @@ const agentList: AgentItem[] = [
     badgeVariant: "blue",
     icon: MessageSquare,
     unread: true,
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     sources: 12,
   },
   {
@@ -70,20 +76,8 @@ const agentList: AgentItem[] = [
     badgeVariant: "amber",
     icon: Activity,
     unread: true,
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     sources: 6,
-  },
-  {
-    id: "wf04",
-    name: "Zalo CSKH & Escalation Agent",
-    workflow: "WF04 - Zalo CSKH",
-    detail: "Tương tác khách hàng & phát hiện giận dữ",
-    tone: "bg-agent-coral/20 text-agent-coral border-agent-coral/30",
-    badgeVariant: "coral",
-    icon: ShieldAlert,
-    unread: false,
-    model: "gemini-2.5-flash",
-    sources: 8,
   },
 ]
 
@@ -104,6 +98,10 @@ interface ChatMessage {
   text: string
   tags?: string[]
   insight?: string
+  /** WF03 generate_quiz — form bài test 5 MCQ + 2 essay */
+  quiz?: QuizQuestion[]
+  scenarioType?: string
+  quizResult?: QuizSubmitResult
 }
 
 const WF04_ROLE_LABEL: Record<string, string> = {
@@ -113,16 +111,246 @@ const WF04_ROLE_LABEL: Record<string, string> = {
   staff: "Nhân viên",
 }
 
+/** Q16/Q17 — loại session tương ứng từng tab agent (backend sở hữu phiên) */
+const AGENT_SESSION_TYPE: Record<string, "HR_QA" | "TRAINING" | "OTHER"> = {
+  wf01: "OTHER",
+  wf02: "HR_QA",
+  wf03: "TRAINING",
+}
+const sessionKeyFor = (agentId: string) => `agents:${agentId}`
+
 const fmtDateTime = (iso: string | null) => {
   if (!iso) return "--"
   try { return new Date(iso).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) } catch { return iso }
+}
+
+/** Form làm bài quiz tương tác — 5 MCQ (chọn A–D) + 2 tự luận, nộp qua WF03 chấm điểm */
+function QuizCard({
+  quiz,
+  scenarioType,
+  result,
+  onResult,
+}: {
+  quiz: QuizQuestion[]
+  scenarioType?: string
+  result?: QuizSubmitResult
+  onResult: (r: QuizSubmitResult) => void
+}) {
+  const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const graded = result != null
+  const allAnswered = quiz.every((q) => (answers[q.id] ?? "").trim().length > 0)
+  const resultFor = (id: number) => result?.results?.find((r) => r.id === id)
+
+  const handleSubmit = async () => {
+    if (!allAnswered || submitting || graded) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await agentsApi.submitQuiz(
+        scenarioType ?? "general_communication",
+        quiz.map((q) => ({
+          questionId: q.id,
+          question: q.question,
+          type: q.type,
+          answer: answers[q.id] ?? "",
+          ...(q.type === "mcq" && q.correct ? { correctAnswer: q.correct } : {}),
+        })),
+      )
+      onResult(res)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không nộp bài được. Vui lòng thử lại.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="w-full rounded-xl border border-agent-amber/30 bg-card/80 p-4 shadow-sm" data-testid="quiz-card">
+      <div className="mb-3 flex items-center gap-2 border-b border-border/60 pb-2">
+        <ListChecks className="size-4 shrink-0 text-agent-amber" />
+        <span className="text-xs font-bold text-foreground">Bài kiểm tra kỹ năng mềm</span>
+        <Badge variant="amber" className="ml-auto text-[10px] py-0">
+          {quiz.filter((q) => q.type === "mcq").length} trắc nghiệm • {quiz.filter((q) => q.type === "essay").length} tự luận
+        </Badge>
+      </div>
+
+      <div className="space-y-4">
+        {quiz.map((q, qi) => {
+          const r = resultFor(q.id)
+          return (
+            <div key={q.id} className="space-y-2">
+              <p className="text-xs font-medium leading-relaxed text-foreground">
+                <span className="mr-1.5 font-mono text-muted-foreground">C{qi + 1}.</span>
+                {q.question}
+                {q.type === "essay" && <PenLine className="ml-1.5 inline size-3 text-muted-foreground" />}
+              </p>
+
+              {q.type === "mcq" && (
+                <div className="grid gap-1.5">
+                  {Object.entries(q.options ?? {}).map(([letter, text]) => {
+                    const selected = answers[q.id] === letter
+                    const isCorrect = graded && q.correct === letter
+                    const isWrongPick = graded && selected && q.correct !== letter
+                    return (
+                      <button
+                        key={letter}
+                        type="button"
+                        disabled={graded}
+                        onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: letter }))}
+                        className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors disabled:cursor-default ${
+                          isCorrect
+                            ? "border-emerald-500/50 bg-emerald-500/10 text-foreground"
+                            : isWrongPick
+                              ? "border-red-500/50 bg-red-500/10 text-foreground"
+                              : selected
+                                ? "border-agent-amber/60 bg-agent-amber/10 text-foreground"
+                                : "border-border bg-background/40 text-foreground/90 hover:border-agent-amber/40 hover:bg-agent-amber/5"
+                        }`}
+                      >
+                        <span className={`mt-px font-mono font-bold ${selected ? "text-agent-amber" : "text-muted-foreground"}`}>
+                          {letter}.
+                        </span>
+                        <span className="leading-relaxed">{text}</span>
+                      </button>
+                    )
+                  })}
+                  {graded && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {r?.correct ? (
+                        <span className="text-emerald-500">✓ Chính xác</span>
+                      ) : (
+                        <span className="text-red-400">✗ Đáp án đúng: {q.correct}</span>
+                      )}
+                      {q.explanation ? ` — ${q.explanation}` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {q.type === "essay" && (
+                <div className="space-y-1.5">
+                  <textarea
+                    value={answers[q.id] ?? ""}
+                    disabled={graded}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                    rows={3}
+                    placeholder="Trình bày câu trả lời của bạn…"
+                    className="w-full resize-y rounded-lg border border-border bg-background/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-agent-amber/50 focus:outline-none disabled:opacity-70"
+                  />
+                  {graded && (
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold text-agent-amber">Điểm AI: {r?.score ?? "--"}/10</span>
+                      {r?.feedback ? ` — ${r.feedback}` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {graded ? (
+        <div className="mt-4 space-y-1.5 rounded-lg border border-agent-teal/30 bg-agent-teal/5 p-3 text-xs">
+          <p className="font-bold text-foreground">
+            🎓 Kết quả: {result?.score_percent ?? "--"}% • MCQ đúng {result?.correct_count ?? 0}/{result?.total_mcq ?? 5} • Tự luận TB {result?.essay_avg ?? "--"}/10
+          </p>
+          {result?.overall_feedback && <p className="leading-relaxed text-muted-foreground">{result.overall_feedback}</p>}
+        </div>
+      ) : (
+        <div className="mt-4 flex items-center gap-3">
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!allAnswered || submitting}
+            className="gap-1.5 text-xs"
+          >
+            {submitting ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+            {submitting ? "Đang chấm điểm…" : "Nộp bài"}
+          </Button>
+          {!allAnswered && <span className="text-[11px] text-muted-foreground">Trả lời hết các câu để nộp bài</span>}
+          {error && <span className="text-[11px] text-red-400">{error}</span>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function AiAgentsView() {
   const [activeAgentId, setActiveAgentId] = useState("wf01")
   const [inputMessage, setInputMessage] = useState("")
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({})
+  const [hydrating, setHydrating] = useState(false)
+
+  /** Q16(c) — commit messages vào store (sống qua điều hướng view) + state render */
+  const commitMessages = (agentId: string, updater: (prev: ChatMessage[]) => ChatMessage[]) => {
+    setMessages((prev) => {
+      const next = updater(prev[agentId] ?? [])
+      patchChat<ChatMessage>(sessionKeyFor(agentId), { messages: next })
+      return { ...prev, [agentId]: next }
+    })
+  }
+
+  /** Q16(c) — rehydrate lịch sử từ DB khi lần đầu mở tab (store rỗng) */
+  useEffect(() => {
+    const type = AGENT_SESSION_TYPE[activeAgentId]
+    if (!type) return
+    const key = sessionKeyFor(activeAgentId)
+    const stored = getChat<ChatMessage>(key)
+    if (stored.hydrated) {
+      setMessages((prev) => ({ ...prev, [activeAgentId]: [...(stored.messages as ChatMessage[])] }))
+      return
+    }
+    let cancelled = false
+    setHydrating(true)
+    agentsApi.getLatestSession(type)
+      .then((session) => {
+        if (cancelled) return
+        const agent = agentList.find((a) => a.id === activeAgentId)
+        if (!agent) return
+        const msgs: ChatMessage[] = (session?.messages ?? []).map((m: AgentHistoryMessage) => ({
+          author: m.role === "user" ? "Admin / Tester" : agent.workflow,
+          role: m.role === "user" ? "System Operator" : `AI Engine (${agent.model})`,
+          time: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          initials: m.role === "user" ? "AD" : "AI",
+          avatarColor: m.role === "user" ? "bg-primary/20 text-primary" : agent.tone,
+          bot: m.role !== "user",
+          text: m.content,
+        }))
+        patchChat<ChatMessage>(key, { hydrated: true, sessionId: session?.id, messages: msgs })
+        setMessages((prev) => ({ ...prev, [activeAgentId]: msgs }))
+      })
+      .catch(() => {
+        if (!cancelled) patchChat<ChatMessage>(key, { hydrated: true })
+      })
+      .finally(() => {
+        if (!cancelled) setHydrating(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeAgentId])
+
+  /** Q19(i1) — "Phiên mới": đóng phiên hiện tại trên server + xoá tin nhắn local */
+  const handleNewSession = async () => {
+    const type = AGENT_SESSION_TYPE[activeAgentId]
+    if (!type) return
+    try {
+      const session = await agentsApi.renewSession(type)
+      patchChat<ChatMessage>(sessionKeyFor(activeAgentId), {
+        hydrated: true,
+        sessionId: session.id,
+        messages: [],
+      })
+      setMessages((prev) => ({ ...prev, [activeAgentId]: [] }))
+    } catch (e) {
+      console.error(e)
+    }
+  }
   const [isProcessing, setIsProcessing] = useState(false)
+  const [waitSeconds, setWaitSeconds] = useState(0)
   const [isPinging, setIsPinging] = useState(false)
   const [pingError, setPingError] = useState<string | null>(null)
 
@@ -186,6 +414,23 @@ export function AiAgentsView() {
   const isCskhNotify = activeAgentId === "wf04"
   const cskhSelected = cskhConversations.find((c) => c.id === cskhSelectedId) ?? null
 
+  // Đồng hồ đếm ngược thời gian chờ phản hồi AI + giai đoạn pipeline đang chạy
+  useEffect(() => {
+    if (!isProcessing) return
+    setWaitSeconds(0)
+    const iv = setInterval(() => setWaitSeconds((s) => s + 1), 1000)
+    return () => clearInterval(iv)
+  }, [isProcessing])
+
+  const waitStage =
+    waitSeconds <= 4
+      ? "WF01 Router đang phân loại intent & lọc PII…"
+      : waitSeconds <= 12
+        ? `${activeAgent.name} đang suy luận với Gemini…`
+        : waitSeconds <= 25
+          ? "Đang tra cứu dữ liệu & chính sách nội bộ (RAG)…"
+          : "Gemini đang xử lý lâu hơn thường lệ — vẫn đang chờ phản hồi…"
+
   const currentAgentPerf = agentPerf?.[activeAgentId as keyof AllAgentsPerf]
   const currentLastLatency = liveLatency ?? (currentAgentPerf?.lastLatency ?? '--')
   const currentAccuracy = currentAgentPerf?.successRate != null ? `${currentAgentPerf.successRate}%` : '--'
@@ -206,6 +451,17 @@ export function AiAgentsView() {
     }
   }
 
+  /** Cập nhật 1 tin nhắn theo index (dùng cho quiz nộp bài xong) */
+  const updateMessage = (index: number, patch: Partial<ChatMessage>) => {
+    setMessages((prev) => {
+      const list = [...(prev[activeAgentId] || [])]
+      if (!list[index]) return prev
+      list[index] = { ...list[index], ...patch }
+      patchChat<ChatMessage>(sessionKeyFor(activeAgentId), { messages: list })
+      return { ...prev, [activeAgentId]: list }
+    })
+  }
+
   const handleSendMessage = async () => {
     const text = inputMessage.trim()
     if (!text || isProcessing) return
@@ -219,15 +475,22 @@ export function AiAgentsView() {
       text: text,
     }
 
-    setMessages((prev) => ({ ...prev, [activeAgentId]: [...(prev[activeAgentId] || []), userMsg] }))
+    commitMessages(activeAgentId, (prev) => [...prev, userMsg])
     setInputMessage("")
     setIsProcessing(true)
 
     const startTime = Date.now()
     try {
-      const result = await agentsApi.chat(text)
+      const stored = getChat<ChatMessage>(sessionKeyFor(activeAgentId))
+      const result = await agentsApi.chat(text, {
+        sessionId: stored.sessionId,
+        sessionType: AGENT_SESSION_TYPE[activeAgentId],
+      })
       const latencyMs = result.latencyMs || Date.now() - startTime
       setLiveLatency(latencyMs)
+      if (result.sessionId && result.sessionId !== stored.sessionId) {
+        patchChat<ChatMessage>(sessionKeyFor(activeAgentId), { sessionId: result.sessionId })
+      }
 
       const assistantMsg: ChatMessage = {
         author: activeAgent.workflow,
@@ -238,8 +501,11 @@ export function AiAgentsView() {
         bot: true,
         text: result.answer,
         insight: `⚡ Độ trễ E2E: ${latencyMs}ms • Qua NestJS → WF01 Router → ${activeAgent.workflow.split(" - ")[0]}`,
+        ...(result.questions && result.questions.length > 0
+          ? { quiz: result.questions, scenarioType: result.scenarioType }
+          : {}),
       }
-      setMessages((prev) => ({ ...prev, [activeAgentId]: [...(prev[activeAgentId] || []), assistantMsg] }))
+      commitMessages(activeAgentId, (prev) => [...prev, assistantMsg])
     } catch (e) {
       const errMsg: ChatMessage = {
         author: "System",
@@ -250,7 +516,7 @@ export function AiAgentsView() {
         bot: true,
         text: e instanceof Error ? e.message : "⚠️ Không gọi được AI Agent. Kiểm tra kết nối API.",
       }
-      setMessages((prev) => ({ ...prev, [activeAgentId]: [...(prev[activeAgentId] || []), errMsg] }))
+      commitMessages(activeAgentId, (prev) => [...prev, errMsg])
     } finally {
       setIsProcessing(false)
     }
@@ -292,7 +558,6 @@ export function AiAgentsView() {
                     <span className="truncate text-xs font-semibold text-foreground">
                       {agent.name}
                     </span>
-                    {agent.unread && <span className="size-2 rounded-full bg-agent-coral" />}
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
                     <p className="truncate text-[11px] text-muted-foreground">
@@ -576,6 +841,25 @@ export function AiAgentsView() {
             </div>
           </div>
         </section>
+      ) : isCskhNotify ? (
+        /* ── WF04: Slack channel — không chat trực tiếp tại đây ── */
+        <section className="flex min-w-0 flex-1 flex-col items-center justify-center bg-chat">
+          <div className="max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+            <div className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-xl border ${activeAgent.tone}`}>
+              <activeAgent.icon className="size-7" />
+            </div>
+            <h2 className="text-base font-bold text-foreground">{activeAgent.name}</h2>
+            <Badge variant={activeAgent.badgeVariant} className="mt-1 text-[10px]">{activeAgent.workflow}</Badge>
+            <p className="mt-4 text-[12px] text-muted-foreground leading-relaxed">
+              Bot CSKH hoạt động qua <span className="font-semibold text-foreground">Slack Socket Mode</span> —
+              khách hàng nhắn tin trực tiếp vào Slack channel, không qua cửa sổ chat này.
+            </p>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Để xử lý khiếu nại hoặc bật lại bot sau khi escalate, mở trang{" "}
+              <span className="font-semibold text-foreground">Cảnh Báo CSKH</span>.
+            </p>
+          </div>
+        </section>
       ) : (
         /* ── WF02/03: Chat workspace ── */
         <section className="flex min-w-0 flex-1 flex-col bg-chat">
@@ -597,6 +881,19 @@ export function AiAgentsView() {
                 </p>
               </div>
             </div>
+            {AGENT_SESSION_TYPE[activeAgentId] && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNewSession}
+                disabled={hydrating || isProcessing}
+                className="gap-1.5 text-[11px]"
+                title="Đóng phiên hiện tại và bắt đầu phiên mới"
+              >
+                {hydrating ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
+                Phiên mới
+              </Button>
+            )}
           </div>
 
           {/* Message Stream */}
@@ -604,15 +901,25 @@ export function AiAgentsView() {
             {currentMessages.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="max-w-sm rounded-xl border border-border bg-card/60 p-4 text-center text-[11px] text-muted-foreground">
-                  Chưa có tin nhắn nào trong phiên này. Gửi câu hỏi để test <span className="font-semibold text-foreground">{activeAgent.name}</span> —
-                  tin nhắn đi qua NestJS → WF01 Router → agent, số liệu latency sẽ cập nhật ở sidebar.
+                  {isCskhNotify ? (
+                    <>
+                      Bot CSKH hoạt động qua <span className="font-semibold text-foreground">Slack Socket Mode</span> — không chat trực tiếp tại đây.<br />
+                      Gửi câu hỏi tới <span className="font-semibold text-foreground">Zalo CSKH & Escalation Agent</span> →
+                      tin nhắn đi qua NestJS → WF01 Router → agent, số liệu latency sẽ cập nhật ở sidebar.
+                    </>
+                  ) : (
+                    <>
+                      Chưa có tin nhắn nào trong phiên này. Gửi câu hỏi để test <span className="font-semibold text-foreground">{activeAgent.name}</span> —
+                      tin nhắn đi qua NestJS → WF01 Router → agent, số liệu latency sẽ cập nhật ở sidebar.
+                    </>
+                  )}
                 </div>
               </div>
             )}
             {currentMessages.map((msg, index) => (
               <div
                 key={index}
-                className={`flex gap-3 max-w-[85%] ${
+                className={`flex gap-3 ${msg.quiz?.length ? "w-[92%]" : "max-w-[85%]"} ${
                   msg.bot ? "mr-auto" : "ml-auto flex-row-reverse"
                 }`}
               >
@@ -661,50 +968,77 @@ export function AiAgentsView() {
                       </div>
                     )}
                   </div>
+
+                  {msg.quiz && msg.quiz.length > 0 && (
+                    <QuizCard
+                      quiz={msg.quiz}
+                      scenarioType={msg.scenarioType}
+                      result={msg.quizResult}
+                      onResult={(r) => updateMessage(index, { quizResult: r })}
+                    />
+                  )}
                 </div>
               </div>
             ))}
 
             {isProcessing && (
-              <div className="flex gap-3 mr-auto items-center">
-                <Avatar initials="AI" className={`size-8 shrink-0 ${activeAgent.tone} text-xs font-bold animate-pulse`} />
-                <div className="rounded-2xl bg-card border border-border px-4 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-agent-teal animate-ping" />
-                  <span>Mô hình {activeAgent.model} đang phân tích và tính toán phản hồi...</span>
+              <div className="flex gap-3 mr-auto max-w-[85%]" data-testid="chat-waiting">
+                <Avatar initials="AI" className={`size-8 shrink-0 ${activeAgent.tone} text-xs font-bold`} />
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-baseline gap-2 text-xs justify-start">
+                    <span className="font-semibold text-foreground">{activeAgent.workflow}</span>
+                    <span className="text-[10px] text-muted-foreground/60">đang soạn phản hồi…</span>
+                  </div>
+                  <div className="rounded-2xl rounded-tl-sm bg-card border border-border px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-1.5" aria-hidden>
+                      <span className="size-2 rounded-full bg-agent-teal animate-bounce [animation-delay:0ms]" />
+                      <span className="size-2 rounded-full bg-agent-blue animate-bounce [animation-delay:150ms]" />
+                      <span className="size-2 rounded-full bg-agent-amber animate-bounce [animation-delay:300ms]" />
+                    </div>
+                    <div className="mt-2.5 border-t border-border/60 pt-2 text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <Loader2 className="size-3 shrink-0 animate-spin text-agent-teal" />
+                      <span className="min-w-0 truncate">{waitStage}</span>
+                      <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/70 tabular-nums">
+                        {waitSeconds}s
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Message Composer */}
-          <div className="border-t border-border p-4 bg-composer">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleSendMessage()
-              }}
-              className="flex items-center gap-2"
-            >
-              <Input
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={`Gửi câu hỏi hoặc tình huống tới ${activeAgent.name}...`}
-                className="h-10 bg-background/80 border-border text-xs focus-visible:ring-primary"
-                disabled={isProcessing}
-              />
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!inputMessage.trim() || isProcessing}
-                className="h-10 px-4 bg-primary text-primary-foreground font-semibold"
+          {/* Message Composer — ẩn với WF04 (khách chat qua Slack, không qua portal) */}
+          {!isCskhNotify && (
+            <div className="border-t border-border p-4 bg-composer">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleSendMessage()
+                }}
+                className="flex items-center gap-2"
               >
-                <Send className="size-3.5" />
-              </Button>
-            </form>
-            <p className="mt-2 text-[10px] text-muted-foreground text-center">
-              Dữ liệu tin nhắn được bảo vệ bởi bộ lọc PII tự động trước khi gửi tới Gemini 2.5 Flash
-            </p>
-          </div>
+                <Input
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={`Gửi câu hỏi hoặc tình huống tới ${activeAgent.name}...`}
+                  className="h-10 bg-background/80 border-border text-xs focus-visible:ring-primary"
+                  disabled={isProcessing}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!inputMessage.trim() || isProcessing}
+                  className="h-10 px-4 bg-primary text-primary-foreground font-semibold"
+                >
+                  <Send className="size-3.5" />
+                </Button>
+              </form>
+              <p className="mt-2 text-[10px] text-muted-foreground text-center">
+                Tin nhắn đi qua WF01 Router (lọc PII) → agent Gemini 3.1 Flash Lite — phản hồi có thể mất 5–60s. Bộ lọc PII tự động bảo vệ dữ liệu trước khi gửi tới mô hình.
+              </p>
+            </div>
+          )}
         </section>
       )}
     </div>

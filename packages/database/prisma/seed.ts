@@ -555,7 +555,7 @@ async function main() {
   await prisma.aiChatMessage.deleteMany({});
   await prisma.aiChatSession.deleteMany({});
 
-  const GEMINI = 'gemini-2.5-flash';
+  const GEMINI = 'gemini-3.1-flash-lite';
   let msgCursor = new Date('2026-09-07T09:00:00');
   const nextMsgTime = () => {
     msgCursor = new Date(msgCursor.getTime() + 1000 * 60 * 7); // +7 phút mỗi lượt

@@ -31,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body=$input.first().json.body||$input.first().json;return[{json:{originalMessage:body.message||body.originalMessage||'',maskedMessage:body.message||body.maskedMessage||'',channel:body.channel||'web',employeeId:body.employeeId||null}}];"
+        "jsCode": "const body=$input.first().json.body||$input.first().json;return[{json:{originalMessage:body.message||body.originalMessage||'',maskedMessage:body.message||body.maskedMessage||'',channel:body.channel||'web',employeeId:body.employeeId||null,sessionId:body.sessionId||null}}];"
       },
       "id": "normalize-input",
       "name": "Normalize Input",
@@ -57,7 +57,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ employeeId: $json.employeeId || null, type: \"HR_QA\", channel: $json.channel || \"web\", externalId: $json.employeeId || null }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId || null, employeeId: $json.employeeId || null, type: \"HR_QA\", channel: $json.channel || \"web\", externalId: $json.employeeId || null }) }}",
         "options": {
           "timeout": 8000
         }
@@ -104,7 +104,7 @@
         "text": "={{ ($(\"Normalize Input\").first().json.employeeId ? \"[Thong tin nguoi dung - Ma nhan vien: \" + $(\"Normalize Input\").first().json.employeeId + \"]\\n\\n\" : \"\") + $(\"Normalize Input\").first().json.maskedMessage }}",
         "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool SearchPolicyKnowledge de tra cuu kho tai lieu chinh sach cong ty truoc khi tra loi moi cau hoi ve quy dinh — truyen query la y chinh cua cau hoi va topK = 3, sau do tra loi dua tren noi dung tim duoc.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh. Neu tai lieu tra cuu co thong tin khac quy dinh trong prompt thi uu tien theo tai lieu moi nhat.",
         "options": {
-          "maxIterations": 5,
+          "maxIterations": 3,
           "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh."
         }
       },
@@ -119,7 +119,7 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-2.5-flash",
+        "modelName": "models/gemini-3.1-flash-lite",
         "options": {
           "temperature": 0.3,
           "maxOutputTokens": 1024
@@ -251,7 +251,8 @@
             },
             {
               "name": "topK",
-              "valueProvider": "modelRequired"
+              "valueProvider": "fieldValue",
+              "value": "3"
             }
           ]
         },
@@ -288,7 +289,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.output, metadata: { model: \"gemini-2.5-flash\", intent: \"HR_QA\" } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.output, metadata: { model: \"gemini-3.1-flash-lite\", intent: \"HR_QA\" } }) }}",
         "options": {}
       },
       "id": "save-assistant",

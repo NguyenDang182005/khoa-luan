@@ -34,6 +34,10 @@ export const escalationApi = {
     const { data } = await apiClient.post(`/agents/chat-session/${sessionId}/reactivate`)
     return data
   },
+  deactivateBot: async (sessionId: string) => {
+    const { data } = await apiClient.post(`/agents/chat-session/${sessionId}/deactivate`)
+    return data
+  },
   /** Chuyên viên gửi phản hồi tiếp quản — lưu lịch sử + forward ra Slack DM khách */
   sendHumanReply: async (
     sessionId: string,

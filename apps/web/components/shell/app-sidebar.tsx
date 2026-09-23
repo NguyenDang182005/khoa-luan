@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import { LogOut } from "lucide-react"
@@ -9,8 +9,6 @@ export interface NavItem {
   id: string
   label: string
   icon: LucideIcon
-  badge?: string
-  badgeColor?: string
 }
 
 interface AppSidebarProps {
@@ -39,11 +37,6 @@ export function AppSidebar({ navItems, activeTab, onTabChange, onLogout, userIni
             }`}
           >
             <Icon className="size-5" />
-            {item.badge && (
-              <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-agent-coral text-[9px] font-bold text-white shadow-sm">
-                {item.badge}
-              </span>
-            )}
           </button>
         )
       })}

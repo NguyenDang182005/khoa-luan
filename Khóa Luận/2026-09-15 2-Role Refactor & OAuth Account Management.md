@@ -89,13 +89,15 @@ Auth: Bearer JWT, role ADMIN
 |-----|-------|----------|
 | Bảng Điều Hành | ✅ | ❌ |
 | Hồ Sơ Nhân Sự | ✅ | ❌ |
-| Bảng Lương & Thuế | ✅ | ✅ |
-| AI Multi-Agents | ✅ | ✅ |
-| Tiếp Quản CSKH | ✅ | ✅ |
+| Bảng Lương & Thuế | ✅ | ~~✅~~ ❌ *(sửa 15-09, xem note RBAC Nav Split Fix)* |
+| AI Multi-Agents | ✅ | ~~✅~~ ❌ *(sửa 15-09, xem note RBAC Nav Split Fix)* |
+| Tiếp Quản CSKH | ✅ | ~~✅~~ ❌ *(sửa 15-09, xem note RBAC Nav Split Fix)* |
 | Đào Tạo & Radar AI | ✅ | ❌ |
 | Cổng Nhân Viên (ESS) | ✅ | ✅ |
 | Kết Quả Đào Tạo | ❌ | ✅ |
 | Cài Đặt Hệ Thống | ✅ | ❌ |
+
+> **⚠️ Cập nhật 15-09-2026:** Bảng trên đã lỗi thời ở 3 dòng. Từ phiên bản "RBAC Nav Split Fix", EMPLOYEE **chỉ thấy 2 tab** (Cổng Nhân Viên ESS + Kết Quả Đào Tạo) — nav chuyển từ blacklist sang whitelist `EMPLOYEE_TABS`, đồng thời `PayrollController` được gắn `RolesGuard + @Roles('ADMIN_GROUP')`. Chi tiết: `2026-09-15 RBAC Nav Split Fix - Employee Whitelist & Payroll Guard.md`
 
 **2 lớp bảo vệ:**
 1. Sidebar: `EMPLOYEE_HIDDEN_TABS` filter → tab không hiện trong menu

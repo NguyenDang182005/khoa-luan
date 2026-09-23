@@ -26,7 +26,7 @@ Truy cap: http://localhost:5678 | User: `admin` | Password: `n8n-secret-2024`
 Vao **Settings → Environment Variables** hoac set trong docker-compose:
 
 | Variable | Mo ta |
-|----------|-------|
+|---|---|
 | `GEMINI_API_KEY` | Google AI Studio API key (lay tai https://aistudio.google.com) |
 | `HR_API_KEY` | API key de goi NestJS `/n8n/*` endpoints |
 | `ZALO_OA_ACCESS_TOKEN` | Zalo OA access token (lay tai Zalo Developer) |
@@ -50,10 +50,11 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 }
 ```
 
-**Flow:** Webhook → PII Masking → Gemini 2.5 Flash Intent Detection → Switch Router
+**Flow:** Webhook → PII Masking (regex, 0 LLM) → Rule-based Intent Detection → Switch Router
+*(WF04 CSKH có node PII Masking riêng từ 17/09 — xem `04-zalo-cskh.json`)*
 
 **Notes:**
-- Model: `gemini-2.5-flash`
+- Model: `gemini-3.1-flash-lite` (cho các sub-agents)
 - `scenarioType` duoc truyen thang tu Mobile App (Q3), khong can AI detect
 - Switch node v3.2 voi `rules.values[]` va `combinator: "and"` theo docs chinh thuc
 
@@ -67,7 +68,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 1. Song song: Get Employee Context + Get/Create Session (session kem `messages[]`)
 2. Save User Message vao DB (Q10)
 3. Build Multi-turn History: system prompt + toan bo lich su (Q1) + tin hien tai
-4. Gemini 2.5 Flash tao cau tra loi
+4. Gemini 3.1 Flash Lite tao cau tra loi
 5. Save Assistant Message
 6. Respond ve webhook
 
@@ -94,7 +95,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 
 **Flow:**
 1. Load Scenario (Q3: dung `scenarioType` tu request body)
-2. Song song: Role-play LLM + Scoring LLM (Gemini 2.5 Flash)
+2. Song song: Role-play LLM + Scoring LLM (Gemini 3.1 Flash Lite)
 3. Merge & Parse Result → Respond
 
 **Scoring JSON format:**
@@ -117,7 +118,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 2. Get/Create CSKH Session (kem `messages[]`)
 3. Save User Message (Q10)
 4. Build CSKH History (Q1: full multi-turn)
-5. Gemini 2.5 Flash → Parse Answer
+5. Gemini 3.1 Flash Lite → Parse Answer
 6. **Song song (Q8):**
    - Save Assistant Message
    - Send Zalo Reply
@@ -138,7 +139,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 | Q2 | Keyword escalation | IF node + Escalate to Admin node trong WF04 |
 | Q3 | scenarioType tu Mobile | Bo keyword detection, doc `body.scenarioType` truc tiep |
 | Q4 | Error handling | `specifyBody: "json"` dung theo docs, Switch v3.2 |
-| Q6 | gemini-2.5-flash | Tat ca 4 workflow (1.500 req/day quota, on dinh) |
+| Q6 | gemini-3.1-flash-lite | Tat ca 4 workflow (500 req/day quota, 15 RPM, on dinh) |
 | Q7 | Session kem messages[] | NestJS `createOrGetSession` tra `include: { messages }` |
 | Q8 | Parallel reply + escalate | Fan-out tu Parse CSKH Answer |
 | Q9 | 6 scenarios | Them `new_employee_onboarding` va `performance_review` |

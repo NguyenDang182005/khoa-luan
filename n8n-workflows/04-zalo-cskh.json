@@ -31,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\n// Slack Events API (transport demo của kênh Zalo) — chỉ nhận DM từ người thật\nconst evt = body.event;\nif (evt && evt.type === \"message\" && evt.channel_type === \"im\" && evt.text && !evt.bot_id && evt.subtype === undefined) {\n  return [{ json: { userId: evt.user, message: evt.text, originalMessage: evt.text, channel: \"zalo\", externalId: evt.user } }];\n}\n// Zalo OA / payload test của WF01 Router\nconst userId = body.sender?.id || body.user_id || body.userId || body.employeeId || \"guest\";\nconst raw = body.message?.text || (typeof body.message === 'string' ? body.message : '') || body.originalMessage || body.maskedMessage || \"\";\nif (!raw) return [];\nconst masked = body.maskedMessage || raw;\nreturn [{ json: { userId, message: masked, originalMessage: raw, channel: body.channel || \"zalo\", externalId: userId } }];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\n// Payload chuẩn hóa từ NestJS SlackService (Socket Mode) — hoặc WF01 Router test payload\nconst userId = body.sender?.id || body.user_id || body.userId || body.employeeId || \"guest\";\nconst raw = body.message?.text || (typeof body.message === 'string' ? body.message : '') || body.originalMessage || body.maskedMessage || \"\";\nif (!raw) return [];\nconst masked = body.maskedMessage || raw;\nconst slackChannel = body.slackChannel || null;\nconst threadTs = body.threadTs || null;\nreturn [{ json: { userId, message: masked, originalMessage: raw, channel: body.channel || \"zalo\", externalId: userId, slackChannel, threadTs } }];"
       },
       "id": "parse-zalo",
       "name": "Parse Zalo Message",
@@ -39,6 +39,19 @@
       "typeVersion": 2,
       "position": [
         460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [PII Masking] WF04 — dùng lại đúng regex của WF01 Router (doc 11: CCCD/CMND, SĐT VN, email).\n// Gemini/Chat Memory CHỈ thấy bản masked; bản original vẫn được lưu DB để đối chiếu audit.\nconst p = $input.first().json;\nconst raw = String(p.message || p.originalMessage || \"\");\nconst masked = raw\n  .replace(/\\b(\\d{9}|\\d{12})\\b/g, \"[MASKED_ID]\")\n  .replace(/\\b(0[35789]\\d{8})\\b/g, \"[MASKED_PHONE]\")\n  .replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g, \"[MASKED_EMAIL]\");\nreturn [{ json: { ...p, message: masked, maskedMessage: masked } }];"
+      },
+      "id": "pii-masking-cskh",
+      "name": "PII Masking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        575,
         300
       ]
     },
@@ -76,7 +89,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $json.id, role: \"user\", content: $(\"Parse Zalo Message\").first().json.originalMessage, metadata: { channel: \"zalo\", maskedMessage: $(\"Parse Zalo Message\").first().json.message, userId: $(\"Parse Zalo Message\").first().json.userId } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.id, role: \"user\", content: $(\"PII Masking\").first().json.originalMessage, metadata: { channel: \"zalo\", maskedMessage: $(\"PII Masking\").first().json.message, userId: $(\"PII Masking\").first().json.userId, slackChannel: $(\"PII Masking\").first().json.slackChannel, threadTs: $(\"PII Masking\").first().json.threadTs } }) }}",
         "options": {}
       },
       "id": "save-user-msg",
@@ -97,11 +110,11 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $(\"Parse Zalo Message\").first().json.message }}",
-        "systemMessage": "Ban la nhan vien CSKH chuyen nghiep cua cong ty. Tra loi NGAN GON (toi da 200 tu), than thien, lich su, bang tieng Viet.\nNeu gap tinh huong VUOT PHAM VI CSKH thong thuong (khieu nai nghiem trong, yeu cau boi thuong lon, loi he thong nghiem trong, yeu cau gap lanh dao, van de phap ly), PHAI ket thuc cau tra loi bang:\n[CAN_ESCALATE: mo ta ngan gon ly do can leo thang]\nKhong duoc tu y giai quyet cac van de vuot pham vi — chuyen sang bo phan co tham quyen.",
+        "text": "={{ $(\"PII Masking\").first().json.message }}",
+        "systemMessage": "Bạn là trợ lý CSKH của TechHRM — phần mềm quản trị nhân sự (HRM) tại Việt Nam.\n\nThông tin sản phẩm TechHRM:\n- Tính năng: Quản lý nhân sự, chấm công GPS Geofencing, tính lương tự động (thuế TNCN 7 bậc, BHXH/BHYT/BHTN), đào tạo AI role-play, báo cáo phân tích.\n- Gói Basic: 500.000đ/tháng, tối đa 50 nhân viên, gồm chấm công + tính lương cơ bản.\n- Gói Pro: 1.200.000đ/tháng, tối đa 200 nhân viên, gồm đầy đủ tính năng + AI đào tạo.\n- Gói Enterprise: Liên hệ tư vấn, không giới hạn nhân viên, tích hợp API, SLA 99.9%.\n- Dùng thử miễn phí 30 ngày, không cần thẻ tín dụng.\n- Hỗ trợ kỹ thuật: support@techhrm.vn | Hotline: 1800-1234 (8h-18h, T2-T6).\n- Triển khai: cloud-based, không cần cài đặt, truy cập qua browser và mobile app.\n\nNguyên tắc:\n- Trả lời bằng tiếng Việt, thân thiện, tối đa 200 từ.\n- Dùng thông tin sản phẩm trên để trả lời cụ thể.\n- Khi gặp vấn đề VƯỢT PHẠM VI (khiếu nại nghiêm trọng, yêu cầu bồi thường, lỗi hệ thống, yêu cầu gặp lãnh đạo, vấn đề pháp lý): kết thúc bằng [CAN_ESCALATE: lý do]",
         "options": {
           "maxIterations": 3,
-          "systemMessage": "Ban la nhan vien CSKH chuyen nghiep cua cong ty. Tra loi NGAN GON (toi da 200 tu), than thien, lich su, bang tieng Viet.\nNeu gap tinh huong VUOT PHAM VI CSKH thong thuong (khieu nai nghiem trong, yeu cau boi thuong lon, loi he thong nghiem trong, yeu cau gap lanh dao, van de phap ly), PHAI ket thuc cau tra loi bang:\n[CAN_ESCALATE: mo ta ngan gon ly do can leo thang]\nKhong duoc tu y giai quyet cac van de vuot pham vi — chuyen sang bo phan co tham quyen."
+          "systemMessage": "Bạn là trợ lý CSKH của TechHRM — phần mềm quản trị nhân sự (HRM) tại Việt Nam.\n\nThông tin sản phẩm TechHRM:\n- Tính năng: Quản lý nhân sự, chấm công GPS Geofencing, tính lương tự động (thuế TNCN 7 bậc, BHXH/BHYT/BHTN), đào tạo AI role-play, báo cáo phân tích.\n- Gói Basic: 500.000đ/tháng, tối đa 50 nhân viên, gồm chấm công + tính lương cơ bản.\n- Gói Pro: 1.200.000đ/tháng, tối đa 200 nhân viên, gồm đầy đủ tính năng + AI đào tạo.\n- Gói Enterprise: Liên hệ tư vấn, không giới hạn nhân viên, tích hợp API, SLA 99.9%.\n- Dùng thử miễn phí 30 ngày, không cần thẻ tín dụng.\n- Hỗ trợ kỹ thuật: support@techhrm.vn | Hotline: 1800-1234 (8h-18h, T2-T6).\n- Triển khai: cloud-based, không cần cài đặt, truy cập qua browser và mobile app.\n\nNguyên tắc:\n- Trả lời bằng tiếng Việt, thân thiện, tối đa 200 từ.\n- Dùng thông tin sản phẩm trên để trả lời cụ thể.\n- Khi gặp vấn đề VƯỢT PHẠM VI (khiếu nại nghiêm trọng, yêu cầu bồi thường, lỗi hệ thống, yêu cầu gặp lãnh đạo, vấn đề pháp lý): kết thúc bằng [CAN_ESCALATE: lý do]"
         }
       },
       "id": "cskh-agent",
@@ -109,13 +122,13 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        1100,
+        1120,
         300
       ]
     },
     {
       "parameters": {
-        "modelName": "models/gemini-2.5-flash",
+        "modelName": "models/gemini-3.1-flash-lite",
         "options": {
           "temperature": 0.5,
           "maxOutputTokens": 1024
@@ -159,7 +172,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = $input.first().json.output || \"\";\nconst session = $(\"Get/Create CSKH Session\").first().json;\nconst userId = $(\"Parse Zalo Message\").first().json.userId;\nconst userMsg = $(\"Parse Zalo Message\").first().json.originalMessage;\nconst escalateMatch = output.match(/\\[CAN_ESCALATE:\\s*([^\\]]+)\\]/);\nconst shouldEscalate = !!escalateMatch;\nconst escalateReason = escalateMatch ? escalateMatch[1].trim() : null;\nconst answer = output.replace(/\\[CAN_ESCALATE:[^\\]]*\\]/, '').trim() || \"Xin loi, vui long thu lai sau.\";\nreturn [{ json: { answer, shouldEscalate, escalateReason, sessionId: session.id, userId, userMessage: userMsg } }];"
+        "jsCode": "const output = $input.first().json.output || \"\";\nconst session = $(\"Get/Create CSKH Session\").first().json;\nconst parsedMsg = $(\"Parse Zalo Message\").first().json;\nconst userId = parsedMsg.userId;\nconst userMsg = parsedMsg.originalMessage;\nconst slackChannel = parsedMsg.slackChannel || null;\nconst threadTs = parsedMsg.threadTs || null;\nconst escalateMatch = output.match(/\\[CAN_ESCALATE:\\s*([^\\]]+)\\]/);\nconst shouldEscalate = !!escalateMatch;\nconst escalateReason = escalateMatch ? escalateMatch[1].trim() : null;\nconst answer = output.replace(/\\[CAN_ESCALATE:[^\\]]*\\]/, '').trim() || \"Xin lỗi, vui lòng thử lại sau.\";\nreturn [{ json: { answer, shouldEscalate, escalateReason, sessionId: session.id, userId, userMessage: userMsg, slackChannel, threadTs } }];"
       },
       "id": "parse-output",
       "name": "Parse CSKH Output",
@@ -178,7 +191,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.answer, metadata: { model: \"gemini-2.5-flash\", escalated: $json.shouldEscalate, escalateReason: $json.escalateReason } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.answer, metadata: { model: \"gemini-3.1-flash-lite\", escalated: $json.shouldEscalate, escalateReason: $json.escalateReason } }) }}",
         "options": {}
       },
       "id": "save-assistant",
@@ -204,7 +217,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, externalId: $json.userId, content: $json.answer }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, slackChannel: $json.slackChannel, threadTs: $json.threadTs, content: $json.answer }) }}",
         "options": {
           "timeout": 10000
         }
@@ -286,6 +299,39 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isActive }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-active",
+      "name": "Is Bot Active?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "const p = $(\"Parse CSKH Output\").first().json;\nreturn [{ json: { answer: p.answer, shouldEscalate: p.shouldEscalate, escalateReason: p.escalateReason, sessionId: p.sessionId, userId: p.userId, intent: \"CSKH\" } }];"
       },
       "id": "format-cskh-output",
@@ -326,6 +372,17 @@
       "main": [
         [
           {
+            "node": "PII Masking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PII Masking": {
+      "main": [
+        [
+          {
             "node": "Get/Create CSKH Session",
             "type": "main",
             "index": 0
@@ -334,6 +391,17 @@
       ]
     },
     "Get/Create CSKH Session": {
+      "main": [
+        [
+          {
+            "node": "Is Bot Active?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Bot Active?": {
       "main": [
         [
           {
@@ -396,7 +464,13 @@
             "index": 0
           }
         ],
-        []
+        [
+          {
+            "node": "Format CSKH Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Gemini Flash": {
@@ -422,6 +496,17 @@
       ]
     },
     "Save Assistant Message": {
+      "main": [
+        [
+          {
+            "node": "Format CSKH Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Admin": {
       "main": [
         [
           {

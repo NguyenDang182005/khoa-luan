@@ -53,15 +53,21 @@ export const employeesApi = {
     const { data } = await apiClient.get(`/employees/${id}`)
     return EmployeeDetailSchema.parse(data)
   },
-  /** Cập nhật hồ sơ nhân viên (không gồm hợp đồng/lương) */
+  /**
+   * Cập nhật hồ sơ nhân viên (không gồm hợp đồng/lương).
+   * NOTE: PATCH /employees/:id trả về object employee PHẲNG (departmentId, positionId...)
+   * — không đủ trường cho EmployeeDetailSchema (cần department/position lồng nhau).
+   * Parse schema trên response phẳng sẽ ném ZodError khiến UI báo lỗi dù server đã lưu (HTTP 200).
+   * → PATCH xong luôn refetch getById() để nhận đúng shape chi tiết.
+   */
   update: async (id: string, input: UpdateEmployeeInput) => {
-    const { data } = await apiClient.patch(`/employees/${id}`, input)
-    return EmployeeDetailSchema.parse(data)
+    await apiClient.patch(`/employees/${id}`, input)
+    return employeesApi.getById(id)
   },
-  /** Đổi trạng thái làm việc: ACTIVE | PROBATION | ON_LEAVE | TERMINATED */
+  /** Đổi trạng thái làm việc: ACTIVE | PROBATION | ON_LEAVE | TERMINATED (cùng lý do refetch như update) */
   updateStatus: async (id: string, status: string) => {
-    const { data } = await apiClient.patch(`/employees/${id}/status`, { status })
-    return EmployeeDetailSchema.parse(data)
+    await apiClient.patch(`/employees/${id}/status`, { status })
+    return employeesApi.getById(id)
   },
   /** Cập nhật email/role tài khoản (chỉ ADMIN) */
   updateAccount: async (id: string, input: UpdateAccountInput) => {

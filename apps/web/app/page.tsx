@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import {
@@ -31,24 +31,23 @@ interface NavItem {
   id: NavigationTab
   label: string
   icon: LucideIcon
-  badge?: string
-  badgeColor?: string
 }
 
 const ALL_NAV_ITEMS: NavItem[] = [
-  { id: "dashboard",          label: "Bang Dieu Hanh",         icon: LayoutDashboard },
-  { id: "employees",          label: "Ho So Nhan Su",          icon: Users },
-  { id: "payroll",            label: "Bang Luong & Thue",      icon: Coins },
-  { id: "ai-agents",         label: "AI Multi-Agents Sandbox", icon: Bot,        badge: "n8n",    badgeColor: "teal" },
-  { id: "cskh-escalation",   label: "Tiep Quan CSKH & PII",   icon: ShieldAlert, badge: "!",     badgeColor: "coral" },
-  { id: "training-analytics",label: "Dao Tao & Radar AI",      icon: Award,       badge: "Hybrid", badgeColor: "amber" },
+  { id: "dashboard",         label: "Bang Dieu Hanh",         icon: LayoutDashboard },
+  { id: "employees",         label: "Ho So Nhan Su",          icon: Users },
+  { id: "payroll",           label: "Bang Luong & Thue",      icon: Coins },
+  { id: "ai-agents",         label: "AI Multi-Agents Sandbox", icon: Bot },
+  { id: "cskh-escalation",   label: "Tiep Quan CSKH & PII",   icon: ShieldAlert },
+  { id: "training-analytics",label: "Dao Tao & Radar AI",      icon: Award },
   { id: "employee-portal",   label: "Cong Nhan Vien (ESS)",   icon: UserCheck },
   { id: "my-training",       label: "Ket Qua Dao Tao",        icon: Award },
-  { id: "settings",          label: "Cai Dat He Thong",       icon: Settings,    badge: "Admin",  badgeColor: "teal" },
+  { id: "settings",          label: "Cai Dat He Thong",       icon: Settings },
 ]
 
-/** Tab khong hien voi EMPLOYEE */
-const EMPLOYEE_HIDDEN: Set<NavigationTab> = new Set(["dashboard", "employees", "settings", "training-analytics"])
+/** Tab duy nhat hien voi EMPLOYEE (whitelist: ESS + dao tao ca nhan).
+ *  Dung whitelist thay vi blacklist de tab quan ly moi khong lo vao UI employee. */
+const EMPLOYEE_TABS: Set<NavigationTab> = new Set(["employee-portal", "my-training"])
 
 // ─── Search Modal ────────────────────────────────────────────────────────────
 function SearchModal({
@@ -95,14 +94,16 @@ function SearchModal({
 // ─── App Shell ───────────────────────────────────────────────────────────────
 function AppShell() {
   const { user, isAuthenticated, logout } = useAuth()
-  const [activeTab, setActiveTab] = React.useState<NavigationTab>("dashboard")
+  const [activeTab, setActiveTab] = React.useState<NavigationTab>(
+    user?.role === "EMPLOYEE" ? "employee-portal" : "dashboard",
+  )
   const [searchOpen, setSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
   // RBAC: filter nav
   const navItems = React.useMemo<NavItem[]>(() => {
     if (!user) return []
-    if (user.role === "EMPLOYEE") return ALL_NAV_ITEMS.filter((i) => !EMPLOYEE_HIDDEN.has(i.id))
+    if (user.role === "EMPLOYEE") return ALL_NAV_ITEMS.filter((i) => EMPLOYEE_TABS.has(i.id))
     return ALL_NAV_ITEMS.filter((i) => i.id !== "my-training")
   }, [user])
 
@@ -168,9 +169,9 @@ function AppShell() {
         <main className="flex-1 min-w-0 overflow-y-auto bg-background">
           {activeTab === "dashboard"          && user.role === "ADMIN"       && <DashboardView />}
           {activeTab === "employees"          && user.role === "ADMIN"       && <EmployeesView />}
-          {activeTab === "payroll"                                           && <PayrollView />}
+          {activeTab === "payroll"            && isAdminRole(user.role)      && <PayrollView />}
           {activeTab === "ai-agents"          && isAdminRole(user.role)      && <AiAgentsView />}
-          {activeTab === "cskh-escalation"                                   && <CskhEscalationView />}
+          {activeTab === "cskh-escalation"    && isAdminRole(user.role)      && <CskhEscalationView />}
           {activeTab === "training-analytics" && user.role === "ADMIN"       && <TrainingAnalyticsView />}
           {activeTab === "employee-portal"                                   && <EmployeePortalView />}
           {activeTab === "my-training"        && user.role === "EMPLOYEE"    && <MyTrainingView />}

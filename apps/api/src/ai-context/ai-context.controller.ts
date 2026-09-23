@@ -43,6 +43,7 @@ export class AiContextController {
   createOrGetSession(
     @Body()
     dto: {
+      sessionId?: string;
       employeeId?: string;
       type: string;
       channel: string;
@@ -100,11 +101,18 @@ export class AiContextController {
   }
 
   /** n8n WF04 gọi sau khi AI soạn xong câu trả lời — NestJS chịu trách nhiệm
-   *  gửi ra kênh khách hàng (Slack DM trong demo, giữ tên kênh "zalo"). */
-  @ApiOperation({ summary: 'Gửi câu trả lời AI ra kênh khách hàng (Slack DM)' })
+   *  gửi ra kênh khách hàng (channel mode với thread reply trong demo Slack). */
+  @ApiOperation({ summary: 'Gửi câu trả lời AI ra kênh khách hàng (Slack channel thread)' })
   @Post('outbound-reply')
   outboundReply(
-    @Body() dto: { sessionId?: string; externalId?: string; content: string },
+    @Body()
+    dto: {
+      sessionId?: string;
+      externalId?: string;
+      slackChannel?: string; // Slack channel ID (C...) — channel mode
+      threadTs?: string;     // thread_ts để reply trong đúng thread
+      content: string;
+    },
   ) {
     return this.service.deliverOutboundReply(dto);
   }

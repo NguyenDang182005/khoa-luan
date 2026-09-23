@@ -20,6 +20,7 @@ import { AgentsModule } from './agents/agents.module';
 import { TrainingModule } from './training/training.module';
 import { SettingsModule } from './settings/settings.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
+import { SlackModule } from './slack/slack.module';
 @Module({
   imports: [
     // Config
@@ -56,6 +57,7 @@ import { KnowledgeModule } from './knowledge/knowledge.module';
     TrainingModule,
     SettingsModule,
     KnowledgeModule,
+    SlackModule,
   ],
 })
 export class AppModule {}

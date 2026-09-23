@@ -52,7 +52,7 @@ const baseDir = path.resolve(__dirname, '..', 'n8n-workflows');
 
   for (const node of wf.nodes) {
     if (node.id === 'gemini-hr') {
-      node.parameters.modelName = 'models/gemini-2.5-flash';
+      node.parameters.modelName = 'models/gemini-3.1-flash-lite';
       node.parameters.options = { temperature: 0.3, maxOutputTokens: 1024 };
     }
     if (node.id === 'hr-agent') {
@@ -95,7 +95,7 @@ const baseDir = path.resolve(__dirname, '..', 'n8n-workflows');
 
   for (const node of wf.nodes) {
     if (node.id === 'gemini-training') {
-      node.parameters.modelName = 'models/gemini-2.5-flash';
+      node.parameters.modelName = 'models/gemini-3.1-flash-lite';
       node.parameters.options = { temperature: 0.8, maxOutputTokens: 1024 };
     }
   }
@@ -132,7 +132,7 @@ const baseDir = path.resolve(__dirname, '..', 'n8n-workflows');
 
   for (const node of wf.nodes) {
     if (node.id === 'gemini-cskh') {
-      node.parameters.modelName = 'models/gemini-2.5-flash';
+      node.parameters.modelName = 'models/gemini-3.1-flash-lite';
       node.parameters.options = { temperature: 0.5, maxOutputTokens: 1024 };
     }
     if (node.id === 'send-zalo') {

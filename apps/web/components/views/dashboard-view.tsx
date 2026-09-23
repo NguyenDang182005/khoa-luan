@@ -363,8 +363,9 @@ export function DashboardView() {
                 WF03: { bg: 'bg-agent-amber/10',    text: 'text-agent-amber',  bar: 'bg-agent-amber' },
                 WF04: { bg: 'bg-agent-teal/10',     text: 'text-agent-teal',   bar: 'bg-agent-teal' },
               }
+              const DEFAULT_WF_COLOR = WF_COLORS.WF02!
               return aiStats.map((stat) => {
-                const color = WF_COLORS[stat.wf] ?? WF_COLORS['WF02']
+                const color = WF_COLORS[stat.wf] ?? DEFAULT_WF_COLOR
                 const latencyPct = stat.avgLatencyMs
                   ? Math.min(Math.round((stat.avgLatencyMs / maxLatency) * 100), 100)
                   : 0
