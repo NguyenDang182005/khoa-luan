@@ -26,6 +26,14 @@ export class AgentChatDto {
   @IsIn(['HR_QA', 'TRAINING', 'OTHER'])
   @IsOptional()
   sessionType?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'WF03: kịch bản huấn luyện (customer_complaint | colleague_conflict | manager_feedback | new_employee_onboarding | performance_review | general_communication)',
+  })
+  @IsString()
+  @IsOptional()
+  scenarioType?: string;
 }
 
 export class SessionTypeDto {

@@ -30,6 +30,8 @@ export interface JwtPayload {
   email: string;
   role: UserRole;
   firebaseUid?: string;
+  /** ID của dòng RefreshToken — JwtStrategy kiểm tra phiên còn sống mỗi request (thu hồi phiên thật) */
+  sid?: string;
   iat?: number;
   exp?: number;
 }

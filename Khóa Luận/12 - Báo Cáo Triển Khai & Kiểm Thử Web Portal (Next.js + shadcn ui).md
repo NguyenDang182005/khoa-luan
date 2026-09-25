@@ -115,9 +115,6 @@ pnpm dev:web
 
 # Chạy Backend NestJS (API - Port 3001)
 pnpm dev:api
-
-# Chạy Mobile App (React Native Expo)
-pnpm dev:mobile
 ```
 Truy cập giao diện: **`http://localhost:3000`**
 

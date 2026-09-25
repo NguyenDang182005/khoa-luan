@@ -34,20 +34,29 @@ interface NavItem {
 }
 
 const ALL_NAV_ITEMS: NavItem[] = [
-  { id: "dashboard",         label: "Bang Dieu Hanh",         icon: LayoutDashboard },
-  { id: "employees",         label: "Ho So Nhan Su",          icon: Users },
-  { id: "payroll",           label: "Bang Luong & Thue",      icon: Coins },
+  { id: "dashboard",         label: "Bảng Điều Hành",         icon: LayoutDashboard },
+  { id: "employees",         label: "Hồ Sơ Nhân Sự",          icon: Users },
+  { id: "payroll",           label: "Bảng Lương & Thuế",      icon: Coins },
   { id: "ai-agents",         label: "AI Multi-Agents Sandbox", icon: Bot },
-  { id: "cskh-escalation",   label: "Tiep Quan CSKH & PII",   icon: ShieldAlert },
-  { id: "training-analytics",label: "Dao Tao & Radar AI",      icon: Award },
-  { id: "employee-portal",   label: "Cong Nhan Vien (ESS)",   icon: UserCheck },
-  { id: "my-training",       label: "Ket Qua Dao Tao",        icon: Award },
-  { id: "settings",          label: "Cai Dat He Thong",       icon: Settings },
+  { id: "cskh-escalation",   label: "Tiếp Quản CSKH & PII",   icon: ShieldAlert },
+  { id: "training-analytics",label: "Đào Tạo & Radar AI",      icon: Award },
+  { id: "employee-portal",   label: "Cổng Nhân Viên (ESS)",   icon: UserCheck },
+  { id: "my-training",       label: "Kết Quả Đào Tạo",        icon: Award },
+  { id: "settings",          label: "Cài Đặt Hệ Thống",       icon: Settings },
 ]
 
-/** Tab duy nhat hien voi EMPLOYEE (whitelist: ESS + dao tao ca nhan).
- *  Dung whitelist thay vi blacklist de tab quan ly moi khong lo vao UI employee. */
-const EMPLOYEE_TABS: Set<NavigationTab> = new Set(["employee-portal", "my-training"])
+/** Các tab hiển thị với EMPLOYEE:
+ *  - Cổng nhân viên (ESS)
+ *  - Kết quả đào tạo cá nhân
+ *  - AI Multi-Agents Sandbox (n8n chat / thử nghiệm agents)
+ *  - Tiếp quản CSKH & PII (Escalation queue)
+ */
+const EMPLOYEE_TABS: Set<NavigationTab> = new Set([
+  "employee-portal",
+  "my-training",
+  "ai-agents",
+  "cskh-escalation",
+])
 
 // ─── Search Modal ────────────────────────────────────────────────────────────
 function SearchModal({
@@ -66,17 +75,17 @@ function SearchModal({
           <Search className="size-4 text-muted-foreground" />
           <input
             autoFocus value={query} onChange={(e) => onChange(e.target.value)}
-            placeholder="Tim trang, nhan vien, chuc nang..."
+            placeholder="Tìm trang, nhân viên, chức năng..."
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">ESC</kbd>
         </div>
         <div className="mt-3 flex flex-col gap-1 text-xs">
           <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground mb-1">
-            {query ? "Ket qua" : "Goi y nhanh"}
+            {query ? "Kết quả" : "Gợi ý nhanh"}
           </p>
           {results.length === 0
-            ? <p className="p-2 text-muted-foreground">Khong tim thay.</p>
+            ? <p className="p-2 text-muted-foreground">Không tìm thấy.</p>
             : results.map((r) => (
               <button key={r.key} onClick={r.action}
                 className="flex items-center justify-between rounded-lg p-2 text-left hover:bg-muted/50 text-foreground"
@@ -103,7 +112,17 @@ function AppShell() {
   // RBAC: filter nav
   const navItems = React.useMemo<NavItem[]>(() => {
     if (!user) return []
-    if (user.role === "EMPLOYEE") return ALL_NAV_ITEMS.filter((i) => EMPLOYEE_TABS.has(i.id))
+    if (user.role === "EMPLOYEE") {
+      const empOrder: NavigationTab[] = [
+        "employee-portal",
+        "my-training",
+        "ai-agents",
+        "cskh-escalation",
+      ]
+      return empOrder
+        .map((id) => ALL_NAV_ITEMS.find((item) => item.id === id))
+        .filter((item): item is NavItem => item !== undefined)
+    }
     return ALL_NAV_ITEMS.filter((i) => i.id !== "my-training")
   }, [user])
 
@@ -119,7 +138,7 @@ function AppShell() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault()
-        if (user && user.role !== "EMPLOYEE") setSearchOpen((v) => !v)
+        setSearchOpen((v) => !v)
       }
       if (e.key === "Escape") setSearchOpen(false)
     }
@@ -131,11 +150,11 @@ function AppShell() {
     const q = searchQuery.trim().toLowerCase()
     const navMatches = navItems
       .filter((i) => !q || i.label.toLowerCase().includes(q))
-      .map((i) => ({ key: `nav-${i.id}`, label: i.label, hint: "Chuyen trang", action: () => { setActiveTab(i.id); setSearchOpen(false) } }))
+      .map((i) => ({ key: `nav-${i.id}`, label: i.label, hint: "Chuyển trang", action: () => { setActiveTab(i.id); setSearchOpen(false) } }))
     const quickLinks = [
-      { key: "q-wf02",   label: "Giam sat WF02 - Tra cuu ngay phep", hint: "AI Agent",  tab: "ai-agents"       as NavigationTab, adminOnly: true },
-      { key: "q-payroll",label: "Mo bang luong & chay Rule Engine",   hint: "Bang Luong", tab: "payroll"         as NavigationTab, adminOnly: false },
-      { key: "q-cskh",   label: "Tiep quan khieu nai Zalo khan cap",  hint: "Canh Bao",   tab: "cskh-escalation" as NavigationTab, adminOnly: false },
+      { key: "q-wf02",   label: "Giám sát WF02 - Tra cứu ngày phép", hint: "AI Agent",  tab: "ai-agents"       as NavigationTab, adminOnly: false },
+      { key: "q-payroll",label: "Mở bảng lương & chạy Rule Engine",   hint: "Bảng Lương", tab: "payroll"         as NavigationTab, adminOnly: true },
+      { key: "q-cskh",   label: "Tiếp quản khiếu nại Zalo khẩn cấp",  hint: "Cảnh Báo",   tab: "cskh-escalation" as NavigationTab, adminOnly: false },
     ]
       .filter((i) => !i.adminOnly || (user && isAdminRole(user.role)))
       .filter((i) => !q || i.label.toLowerCase().includes(q))
@@ -170,8 +189,8 @@ function AppShell() {
           {activeTab === "dashboard"          && user.role === "ADMIN"       && <DashboardView />}
           {activeTab === "employees"          && user.role === "ADMIN"       && <EmployeesView />}
           {activeTab === "payroll"            && isAdminRole(user.role)      && <PayrollView />}
-          {activeTab === "ai-agents"          && isAdminRole(user.role)      && <AiAgentsView />}
-          {activeTab === "cskh-escalation"    && isAdminRole(user.role)      && <CskhEscalationView />}
+          {activeTab === "ai-agents"                                         && <AiAgentsView onNavigate={(t) => setActiveTab(t as NavigationTab)} />}
+          {activeTab === "cskh-escalation"                                   && <CskhEscalationView />}
           {activeTab === "training-analytics" && user.role === "ADMIN"       && <TrainingAnalyticsView />}
           {activeTab === "employee-portal"                                   && <EmployeePortalView />}
           {activeTab === "my-training"        && user.role === "EMPLOYEE"    && <MyTrainingView />}
@@ -180,7 +199,7 @@ function AppShell() {
       </div>
 
       {/* SEARCH MODAL */}
-      {searchOpen && user.role !== "EMPLOYEE" && (
+      {searchOpen && (
         <SearchModal
           query={searchQuery}
           results={searchResults}

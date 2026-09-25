@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { LocalStrategy } from './strategies/local.strategy';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 import { RolesGuard } from './guards/roles.guard';
 
@@ -23,7 +22,7 @@ import { RolesGuard } from './guards/roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, FirebaseAdminService, RolesGuard],
+  providers: [AuthService, JwtStrategy, FirebaseAdminService, RolesGuard],
   exports: [AuthService, JwtModule, RolesGuard],
 })
 export class AuthModule {}

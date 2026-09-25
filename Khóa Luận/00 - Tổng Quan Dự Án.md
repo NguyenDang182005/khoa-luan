@@ -1,6 +1,7 @@
 ---
-tags: [khoa-luan, overview, multi-agent, nestjs, nextjs, react-native]
+tags: [khoa-luan, overview, multi-agent, nestjs, nextjs]
 created: 2026-09-04
+updated: 2026-09-25
 ---
 
 # 🎓 Khóa Luận Tốt Nghiệp — Hệ Thống Quản Trị Doanh Nghiệp Đa Tác Tử AI
@@ -38,6 +39,8 @@ created: 2026-09-04
 > - **Chính xác tuyệt đối** cho dữ liệu tài chính (lương, thưởng) → dùng Rule Engine
 > - **Linh hoạt, tự nhiên** trong giao tiếp ngôn ngữ tự nhiên → dùng LLM
 
+> **⚖️ Scope 25/09:** Phase 1 = **Web-only** (Web Portal Admin + ESS + Zalo OA). Mobile App đã cắt khỏi scope — hướng phát triển. Xem [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]].
+
 ---
 
 ## 🗂️ Cấu Trúc Repo
@@ -47,7 +50,6 @@ khoa-luan/ (Turborepo Monorepo)
 ├── apps/
 │   ├── api/          # NestJS Backend (port 3001)
 │   ├── web/          # Next.js Web Portal Admin (port 3000)
-│   ├── mobile/       # React Native + Expo (nhân viên)
 │   └── docs/         # Tài liệu Next.js
 ├── packages/
 │   ├── database/     # Prisma schema + migrations (PostgreSQL)
@@ -66,9 +68,10 @@ khoa-luan/ (Turborepo Monorepo)
 - [[01 - Kiến Trúc Hệ Thống & Multi-Agent]]
 - [[02 - Backend NestJS (API)]]
 - [[03 - Web Portal (Next.js)]]
-- [[04 - Mobile App (React Native)]]
+- [[04 - Mobile App (React Native)]] *(đã cắt khỏi scope 25/09 — hướng phát triển)*
 - [[05 - Database Schema (Prisma)]]
 - [[06 - n8n Workflows & AI Agents]]
 - [[07 - Kế Hoạch Thực Hiện 15 Tuần]]
 - [[08 - Infrastructure & DevOps]]
 - [[11 - Định Hướng Phát Triển Sản Phẩm (Web & Mobile)]]
+- [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]]

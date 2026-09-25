@@ -24,7 +24,7 @@ export const PayrollRecordSchema = z.object({
     employeeCode: z.string(),
     department: z.object({ name: z.string() }),
     position: z.object({ title: z.string() }),
-  }),
+  }).optional().nullable(),
 })
 export const PayrollListSchema = z.array(PayrollRecordSchema)
 

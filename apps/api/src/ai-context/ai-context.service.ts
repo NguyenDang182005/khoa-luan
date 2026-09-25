@@ -6,6 +6,8 @@ import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
+import { LeaveService } from '../leave/leave.service';
+
 /** Guard: validates x-api-key header — used for n8n internal calls */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -30,6 +32,7 @@ export class AiContextService {
     private prisma: PrismaService,
     private config: ConfigService,
     @Optional() private gateway: NotificationsGateway,
+    @Optional() private leaveService?: LeaveService,
   ) {}
 
   /** Returns full employee context for n8n to inject into LLM prompt.
@@ -64,14 +67,45 @@ export class AiContextService {
       },
     });
 
-    const annualLeaveUsed = employee.leaveRequests
-      .filter((l) => l.type === 'ANNUAL')
-      .reduce((s, l) => s + l.totalDays, 0);
-
-    // Đọc số ngày phép từ contract thay vì hardcode 12
     const activeContract = employee.contracts[0];
-    const annualLeaveTotal: number =
-      (activeContract?.allowances as any)?.annualLeaveDays ?? 12;
+
+    // Tính toán số ngày phép chuẩn từ LeaveService (bao gồm thâm niên, chuyển phép năm trước, v.v.)
+    // Khớp 100% với số liệu hiển thị trên Employee Portal
+    const currentYear = new Date().getFullYear();
+    let balance = {
+      total: 12,
+      used: 0,
+      remaining: 12,
+      quota: 12,
+      carryOver: 0,
+      seniorityBonus: 0,
+    };
+
+    if (this.leaveService) {
+      const b = await this.leaveService.getBalance(employee.id, currentYear);
+      balance = {
+        total: b.total,
+        used: b.used,
+        remaining: b.remaining,
+        quota: b.quota,
+        carryOver: b.carryOver,
+        seniorityBonus: b.seniorityBonus,
+      };
+    } else {
+      const annualLeaveUsed = employee.leaveRequests
+        .filter((l) => l.type === 'ANNUAL')
+        .reduce((s, l) => s + l.totalDays, 0);
+      const annualLeaveTotal: number =
+        (activeContract?.allowances as any)?.annualLeaveDays ?? 12;
+      balance = {
+        total: annualLeaveTotal,
+        used: annualLeaveUsed,
+        remaining: Math.max(0, annualLeaveTotal - annualLeaveUsed),
+        quota: annualLeaveTotal,
+        carryOver: 0,
+        seniorityBonus: 0,
+      };
+    }
 
     return {
       employeeId: employee.id,
@@ -87,9 +121,12 @@ export class AiContextService {
       contract: activeContract ?? null,
       leaveBalance: {
         annual: {
-          total: annualLeaveTotal,
-          used: annualLeaveUsed,
-          remaining: annualLeaveTotal - annualLeaveUsed,
+          total: balance.total,
+          used: balance.used,
+          remaining: balance.remaining,
+          quota: balance.quota,
+          carryOver: balance.carryOver,
+          seniorityBonus: balance.seniorityBonus,
         },
       },
     };
@@ -116,6 +153,11 @@ export class AiContextService {
 
   // ── Chat session management ──────────────────────────────────────────────
 
+  /** Ngày (YYYY-MM-DD) theo múi giờ VN — phục vụ quy tắc phiên theo ngày (Q7) */
+  private vnDate(d: Date): string {
+    return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  }
+
   async createOrGetSession(dto: {
     sessionId?: string;
     employeeId?: string;
@@ -123,16 +165,15 @@ export class AiContextService {
     channel: string;
     externalId?: string;
   }) {
-    // Q16-session: portal chỉ định sẵn sessionId (backend sở hữu phiên) —
-    // dùng thẳng nếu còn active, không thì rơi xuống logic get-or-create thường
-    if (dto.sessionId) {
-      const explicit = await this.prisma.aiChatSession.findFirst({
-        where: { id: dto.sessionId, isActive: true },
-        include: { messages: { orderBy: { createdAt: 'asc' } } },
-      });
-      if (explicit) return explicit;
-    }
-    // Resolve employeeCode (EMP003) → UUID nếu cần
+    // type phải thuộc enum ChatSessionType (HR_QA|CSKH|TRAINING) — giá trị khác
+    // (vd OTHER từ client cũ) chuẩn hóa về HR_QA để tránh Prisma lỗi enum.
+    const dto2 = {
+      ...dto,
+      type: (['HR_QA', 'CSKH', 'TRAINING'] as string[]).includes(dto.type) ? dto.type : 'HR_QA',
+    };
+    dto = dto2;
+
+    // Resolve employeeCode (EMP003) → UUID nếu cần (chạy TRƯỚC để kiểm tra sở hữu phiên)
     let resolvedEmployeeId: string | null = dto.employeeId ?? null;
     if (resolvedEmployeeId && /^EMP\d+$/i.test(resolvedEmployeeId)) {
       const emp = await this.prisma.employee.findFirst({
@@ -142,35 +183,45 @@ export class AiContextService {
       resolvedEmployeeId = emp?.id ?? null;
     }
 
-    // Q7: Tìm session gần nhất của người dùng
+    // Q16-session: portal chỉ định sẵn sessionId (backend sở hữu phiên) —
+    // dùng thẳng nếu còn active, đúng chủ sở hữu VÀ cùng ngày (VN), không thì
+    // rơi xuống logic get-or-create bên dưới để đóng phiên cũ + mở phiên mới (Q7-day).
+    if (dto.sessionId) {
+      const explicit = await this.prisma.aiChatSession.findFirst({
+        where: {
+          id: dto.sessionId,
+          isActive: true,
+          // Q18: phiên phải thuộc đúng employee — chống dùng chéo sessionId
+          ...(resolvedEmployeeId ? { employeeId: resolvedEmployeeId } : {}),
+        },
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
+      });
+      if (explicit && this.vnDate(explicit.updatedAt) === this.vnDate(new Date())) {
+        return explicit;
+      }
+    }
+
+    // Q7: Tìm session gần nhất của người dùng.
+    // Ưu tiên match đúng (employee + type + channel) khi có employeeId để tránh
+    // nhặt nhầm session loại khác qua externalId; chỉ dùng externalId cho kênh
+    // ngoài (Zalo/Slack) không có employeeId nội bộ.
     const lookupId = dto.externalId || resolvedEmployeeId;
     if (lookupId) {
       const existing = await this.prisma.aiChatSession.findFirst({
-        where: {
-          OR: [
-            dto.externalId ? { externalId: dto.externalId } : {},
-            resolvedEmployeeId
-              ? {
-                  employeeId: resolvedEmployeeId,
-                  type: dto.type as any,
-                  channel: dto.channel,
-                }
-              : {},
-          ].filter((o) => Object.keys(o).length > 0),
-        },
+        where: resolvedEmployeeId
+          ? {
+              employeeId: resolvedEmployeeId,
+              type: dto.type as any,
+              channel: dto.channel,
+            }
+          : { externalId: dto.externalId ?? '' },
         orderBy: { createdAt: 'desc' },
         include: { messages: { orderBy: { createdAt: 'asc' } } },
       });
 
       if (existing) {
         // Kiểm tra xem session có cùng ngày hôm nay (múi giờ VN) hay không
-        const nowVn = new Date().toLocaleDateString('en-CA', {
-          timeZone: 'Asia/Ho_Chi_Minh',
-        });
-        const sessionVn = existing.updatedAt.toLocaleDateString('en-CA', {
-          timeZone: 'Asia/Ho_Chi_Minh',
-        });
-        const isSameDay = sessionVn === nowVn;
+        const isSameDay = this.vnDate(existing.updatedAt) === this.vnDate(new Date());
 
         if (isSameDay) {
           // Vẫn trong cùng ngày (chưa qua 12h đêm):
@@ -202,18 +253,32 @@ export class AiContextService {
     });
   }
 
-  /** Q16-session: phiên chat web gần nhất của nhân viên theo loại (HR_QA/TRAINING/OTHER) */
+  /** Q16-session: phiên chat web gần nhất của nhân viên theo loại.
+   *  type phải thuộc enum ChatSessionType (HR_QA|CSKH|TRAINING) — giá trị khác
+   *  (vd OTHER từ client cũ) chuẩn hóa về HR_QA để tránh Prisma lỗi enum. */
   async getLatestWebSession(employeeId: string, type: string) {
+    const normalizedType = (['HR_QA', 'CSKH', 'TRAINING'] as string[]).includes(type) ? type : 'HR_QA';
     return this.prisma.aiChatSession.findFirst({
-      where: { employeeId, type: type as any, channel: 'web' },
+      where: { employeeId, type: normalizedType as any, channel: 'web' },
       orderBy: { updatedAt: 'desc' },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
   }
 
+  /** Q16 + Q7-day: phiên web CHỈ ĐỜI REHYDRATE — còn active và cùng ngày (VN).
+   *  Khác ngày → trả null để portal không kéo đoạn chat cũ của hôm trước vào UI;
+  *   lượt chat mới sau đó sẽ tự rollover sang phiên mới qua createOrGetSession. */
+  async getRehydratableWebSession(employeeId: string, type: string) {
+    const latest = await this.getLatestWebSession(employeeId, type);
+    if (!latest || !latest.isActive) return null;
+    if (this.vnDate(latest.updatedAt) !== this.vnDate(new Date())) return null;
+    return latest;
+  }
+
   /** Q19(i1) — "Phiên mới": đóng phiên web hiện tại và mở phiên mới cùng loại */
   async renewWebSession(employeeId: string, type: string) {
-    const latest = await this.getLatestWebSession(employeeId, type);
+    const normalizedType = (['HR_QA', 'CSKH', 'TRAINING'] as string[]).includes(type) ? type : 'HR_QA';
+    const latest = await this.getLatestWebSession(employeeId, normalizedType);
     if (latest?.isActive) {
       await this.prisma.aiChatSession.update({
         where: { id: latest.id },
@@ -223,7 +288,7 @@ export class AiContextService {
     return this.prisma.aiChatSession.create({
       data: {
         employeeId,
-        type: type as any,
+        type: normalizedType as any,
         channel: 'web',
         externalId: employeeId,
         isActive: true,

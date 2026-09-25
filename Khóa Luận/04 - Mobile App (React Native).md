@@ -5,6 +5,8 @@ created: 2026-09-04
 
 # 📱 Mobile App (React Native + Expo)
 
+> ⚠️ **TRẠNG THÁI 25/09/2026 — ĐÃ CẮT KHỎI SCOPE PHASE 1:** Mobile App chuyển thành **hướng phát triển**. Quyết định & lý do: [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]] | `docs/adr/0003-web-only-client-phase-1.md`. Tài liệu này giữ nguyên làm thiết kế tham chiếu Phase 2. `apps/mobile/` đã xóa khỏi monorepo (lịch sử còn trong Git).
+
 ## Thông Tin
 
 | Mục | Giá trị |

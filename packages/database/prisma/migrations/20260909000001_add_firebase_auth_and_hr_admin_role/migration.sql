@@ -1,4 +1,4 @@
-﻿-- AddFirebaseAuthAndHrAdminRole
+-- AddFirebaseAuthAndHrAdminRole
 -- Step 1: Add HR_ADMIN to the UserRole enum
 ALTER TYPE "UserRole" ADD VALUE 'HR_ADMIN';
 

@@ -135,9 +135,16 @@ model User {
   avatarUrl    String?
   displayName  String?
 
-  employee      Employee?
-  refreshTokens RefreshToken[]
-  notifications Notification[]
+  // Security (cấu hình từ trang Cài Đặt > Bảo mật)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+
+  employee          Employee?
+  refreshTokens     RefreshToken[]
+  notifications     Notification[]
+  loginHistory      LoginHistory[]
+  settingsAuditLogs SettingsAuditLog[] @relation("SettingsAuditLogs")
 
   @@map("users")
 }
@@ -148,6 +155,8 @@ model RefreshToken {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
+  ip        String? // Địa chỉ IP của phiên đăng nhập
+  userAgent String? // Thiết bị / trình duyệt của phiên đăng nhập
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -492,4 +501,94 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+// =====================
+// SETTINGS MODELS (trang Cài Đặt Hệ Thống)
+// =====================
+
+/// Chính sách phép năm (bản ghi đơn "default") — cấu hình từ trang Cài Đặt > Phép Năm
+model LeavePolicy {
+  id String @id @default("default")
+
+  annualQuotaDays          Float   @default(12)   // Số ngày phép chuẩn/năm
+  seniorityBonusEveryYears Int     @default(5)    // Cộng thêm mỗi N năm thâm niên (0 = tắt)
+  seniorityBonusDays       Float   @default(1)    // Số ngày cộng tại mỗi mốc thâm niên
+  prorateByJoinMonth       Boolean @default(true) // Tính tỷ lệ theo tháng vào làm năm đầu
+  maxCarryOverDays         Float   @default(0)    // Chuyển tối đa X ngày chưa dùng sang năm sau (0 = không)
+  note                     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("leave_policies")
+}
+
+/// Chính sách bảo mật (bản ghi đơn "default") — cấu hình từ trang Cài Đặt > Bảo Mật
+model SecurityPolicy {
+  id String @id @default("default")
+
+  passwordMinLength   Int     @default(8)
+  requireUppercase    Boolean @default(true)
+  requireLowercase    Boolean @default(true)
+  requireDigit        Boolean @default(true)
+  requireSpecial      Boolean @default(true)
+  passwordMaxAgeDays  Int     @default(0)   // 0 = không bắt buộc đổi định kỳ
+  maxFailedAttempts   Int     @default(5)   // Khóa tài khoản sau N lần sai liên tiếp
+  lockoutMinutes      Int     @default(15)  // Thời gian khóa tạm
+  accessTokenTtlHours Int     @default(720) // Thời hạn access token (30 ngày)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("security_policies")
+}
+
+/// Cấu hình AI Agent phía NestJS (bản ghi đơn "default") — tham số model nằm trong n8n workflow
+model AiAgentConfig {
+  id String @id @default("default")
+
+  enabled    Boolean @default(true)
+  webhookUrl String? // Trống = dùng env N8N_WEBHOOK_URL
+  apiKey     String? // Trống = dùng env N8N_API_KEY (write-only, không trả về client)
+  timeoutMs  Int     @default(90000)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_agent_configs")
+}
+
+/// Lịch sử đăng nhập (cả thành công lẫn thất bại) — xem từ trang Cài Đặt > Bảo Mật
+model LoginHistory {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String // Email attempted — kể cả khi user không tồn tại
+  success   Boolean
+  reason    String? // USER_NOT_FOUND | ACCOUNT_DISABLED | ACCOUNT_LOCKED | INVALID_PASSWORD ...
+  ip        String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("login_history")
+}
+
+/// Nhật ký thay đổi cài đặt (append-only) — ai sửa gì, giá trị cũ -> mới
+model SettingsAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String?
+  adminEmail  String
+  section     String // leave_policy | security_policy | ai_agent | salary_config | geofence
+  field       String
+  oldValue    String?
+  newValue    String?
+
+  createdAt DateTime @default(now())
+
+  admin User? @relation("SettingsAuditLogs", fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@map("settings_audit_logs")
 }

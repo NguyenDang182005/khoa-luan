@@ -8,6 +8,7 @@ import { attendanceApi } from "@/lib/api/attendance.api"
 import { payrollApi } from "@/lib/api/payroll.api"
 import type { Employee, Department } from "@/lib/schemas/employee.schema"
 import type { Position } from "@/lib/api/employees.api"
+import type { ResetPasswordResult } from "@/lib/schemas/employee.schema"
 import * as React from "react"
 import { useAuth } from "@/lib/auth-context"
 import {
@@ -20,12 +21,20 @@ import {
   AlertTriangle,
   Pencil,
   Settings,
+  Users,
+  CalendarCheck2,
+  UserCheck,
+  KeyRound,
+  Copy,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import {
   Table,
@@ -35,6 +44,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { LeaveApprovalsTab } from "@/components/employees/leave-approvals-tab"
+import { OnboardingManagementTab } from "@/components/employees/onboarding-management-tab"
 import { employeeStatusLabel, leaveTypeLabel, payrollStatusLabel, currentMonthYearVN, todayVN, vnd } from "@/lib/utils"
 
 const CONTRACT_TYPE_LABEL: Record<string, string> = {
@@ -94,6 +105,15 @@ export function EmployeesView() {
   const [editAccountForm, setEditAccountForm] = useState<UpdateAccountInput>({ email: "", role: "EMPLOYEE" })
   const [editAccountBusy, setEditAccountBusy] = useState(false)
   const [editAccountError, setEditAccountError] = useState<string | null>(null)
+
+  // Reset Password dialog — admin đặt lại mật khẩu cho nhân viên
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetAuto, setResetAuto] = useState(true) // true = server tự sinh mật khẩu
+  const [resetPasswordInput, setResetPasswordInput] = useState("")
+  const [resetBusy, setResetBusy] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetResult, setResetResult] = useState<ResetPasswordResult | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // Add dialog
   const [showAdd, setShowAdd] = useState(false)
@@ -245,6 +265,51 @@ export function EmployeesView() {
     }
   }
 
+  /** Mở dialog đặt lại mật khẩu — trạng thái sạch mỗi lần mở */
+  const openResetPassword = () => {
+    setResetAuto(true)
+    setResetPasswordInput("")
+    setResetError(null)
+    setResetResult(null)
+    setCopied(false)
+    setResetOpen(true)
+  }
+
+  const handleResetPassword = async () => {
+    if (!selectedEmployee) return
+    if (!resetAuto && resetPasswordInput.trim().length === 0) {
+      setResetError("Vui lòng nhập mật khẩu mới hoặc bật chế độ tự sinh.")
+      return
+    }
+    setResetBusy(true)
+    setResetError(null)
+    try {
+      const res = await employeesApi.resetPassword(
+        selectedEmployee.id,
+        resetAuto
+          ? { mode: "GENERATE" }
+          : { mode: "MANUAL", newPassword: resetPasswordInput.trim() },
+      )
+      setResetResult(res)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+      setResetError(Array.isArray(msg) ? msg.join(", ") : msg ?? "Đặt lại mật khẩu thất bại.")
+    } finally {
+      setResetBusy(false)
+    }
+  }
+
+  const copyGeneratedPassword = async () => {
+    if (!resetResult?.generatedPassword) return
+    try {
+      await navigator.clipboard.writeText(resetResult.generatedPassword)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard API có thể bị trình duyệt chặn — admin vẫn quét chọn/copy tay được
+    }
+  }
+
   const handleChangeStatus = async (status: string) => {
     if (!selectedEmployee || !drawerDetail || status === drawerDetail.status) return
     if (status === "TERMINATED" && !window.confirm("Xác nhận đánh dấu nhân viên này NGHỈ VIỆC?")) return
@@ -264,7 +329,7 @@ export function EmployeesView() {
   }
 
   const exportCsv = () => {
-    const header = ["Ma NV", "Ho ten", "Email", "Phong ban", "Chuc vu", "Ngay vao lam", "Trang thai"]
+    const header = ["Mã NV", "Họ tên", "Email", "Phòng ban", "Chức vụ", "Ngày vào làm", "Trạng thái"]
     const rows = employees.map((e) => [
       e.employeeCode, e.fullName, e.email, e.department.name, e.position.title, e.joinDate, employeeStatusLabel(e.status),
     ])
@@ -286,146 +351,187 @@ export function EmployeesView() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Quản Lý Nhân Sự & Hợp Đồng Lao Động
+            Quản Lý Nhân Sự (HR Management)
           </h1>
           <p className="text-xs text-muted-foreground sm:text-sm">
-            Quản lý danh bạ hồ sơ, chính sách hợp đồng và liên kết ngữ cảnh AI
+            Quản lý hồ sơ nhân viên, phê duyệt đơn nghỉ phép và theo dõi tiến độ hội nhập
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2" onClick={exportCsv} disabled={employees.length === 0}>
-            <FileSpreadsheet className="size-4" /> Xuất Excel (CSV)
-          </Button>
-          <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground" onClick={() => setShowAdd(true)}>
-            <Plus className="size-4" /> Thêm Nhân Viên
-          </Button>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Tìm theo tên, mã NV hoặc email..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            onClick={() => { setSelectedDeptId(null); setPage(1) }}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-              selectedDeptId === null
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted/40 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-            }`}
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 gap-6 h-11">
+          <TabsTrigger
+            value="list"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs gap-2"
           >
-            Tất cả
-          </button>
-          {departments.map((dept) => (
+            <Users className="size-4" /> Danh Sách Nhân Sự ({total})
+          </TabsTrigger>
+          <TabsTrigger
+            value="leave-approvals"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs gap-2"
+          >
+            <CalendarCheck2 className="size-4 text-amber-400" /> Kiểm Duyệt Nghỉ Phép
+          </TabsTrigger>
+          <TabsTrigger
+            value="onboarding"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs gap-2"
+          >
+            <UserCheck className="size-4 text-emerald-400" /> Lộ Trình Hội Nhập
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="mt-4 flex flex-col gap-6">
+          {/* Action Bar (Search & Buttons) */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Tìm theo tên, mã NV hoặc email..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={exportCsv} disabled={employees.length === 0}>
+                <FileSpreadsheet className="size-4" /> Xuất Excel (CSV)
+              </Button>
+              <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground text-xs" onClick={() => setShowAdd(true)}>
+                <Plus className="size-4" /> Thêm Nhân Viên
+              </Button>
+            </div>
+          </div>
+
+          {/* Department Filter Bar */}
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
-              key={dept.id}
-              onClick={() => { setSelectedDeptId(dept.id); setPage(1) }}
+              onClick={() => { setSelectedDeptId(null); setPage(1) }}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedDeptId === dept.id
+                selectedDeptId === null
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "bg-muted/40 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               }`}
             >
-              {dept.name}
+              Tất cả
             </button>
-          ))}
-        </div>
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-          <AlertTriangle className="size-3.5" /> {error}
-        </div>
-      )}
-
-      {/* Table */}
-      <Card>
-        {loading ? (
-          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-            <Loader2 className="mr-2 size-4 animate-spin" /> Đang tải danh sách...
+            {departments.map((dept) => (
+              <button
+                key={dept.id}
+                onClick={() => { setSelectedDeptId(dept.id); setPage(1) }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  selectedDeptId === dept.id
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                }`}
+              >
+                {dept.name}
+              </button>
+            ))}
           </div>
-        ) : employees.length === 0 ? (
-          <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
-            Không tìm thấy nhân sự nào phù hợp bộ lọc.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Mã NV</TableHead>
-                <TableHead>Nhân Viên</TableHead>
-                <TableHead>Phòng Ban & Chức Vụ</TableHead>
-                <TableHead>Ngày Vào Làm</TableHead>
-                <TableHead>Trạng Thái</TableHead>
-                <TableHead className="text-right">Hành Động</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.map((emp) => (
-                <TableRow key={emp.id} className="cursor-pointer" onClick={() => openDrawer(emp)}>
-                  <TableCell className="font-mono text-xs font-semibold text-primary">{emp.employeeCode}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar initials={initialsOf(emp.fullName)} className="bg-primary/15 text-primary border border-primary/20" />
-                      <div>
-                        <p className="font-medium text-foreground text-xs">{emp.fullName}</p>
-                        <p className="text-[11px] text-muted-foreground">{emp.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{emp.position.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{emp.department.name}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{emp.joinDate.slice(0, 10)}</TableCell>
-                  <TableCell>
-                    <Badge variant={emp.status === "ACTIVE" ? "success" : emp.status === "PROBATION" ? "warning" : "secondary"}>
-                      {employeeStatusLabel(emp.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openDrawer(emp)
-                      }}
+
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              <AlertTriangle className="size-3.5" /> {error}
+            </div>
+          )}
+
+          {/* Table */}
+          <Card>
+            {loading ? (
+              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 size-4 animate-spin" /> Đang tải danh sách...
+              </div>
+            ) : employees.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-sm text-muted-foreground">
+                <p>Không tìm thấy nhân sự phù hợp.</p>
+                {searchQuery && <p className="text-xs text-muted-foreground/60 mt-1">Từ khóa: &quot;{searchQuery}&quot;</p>}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12 text-center text-xs">Mã NV</TableHead>
+                    <TableHead className="text-xs">Họ và tên</TableHead>
+                    <TableHead className="text-xs">Phòng ban</TableHead>
+                    <TableHead className="text-xs">Chức danh</TableHead>
+                    <TableHead className="text-xs">Ngày vào làm</TableHead>
+                    <TableHead className="text-xs">Trạng thái</TableHead>
+                    <TableHead className="text-xs text-right">Chi tiết</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((emp) => (
+                    <TableRow
+                      key={emp.id}
+                      onClick={() => openDrawer(emp)}
+                      className={`cursor-pointer transition-colors hover:bg-muted/30 ${
+                        selectedEmployee?.id === emp.id ? "bg-muted/50" : ""
+                      }`}
                     >
-                      Xem Hồ Sơ
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+                      <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground">
+                        {emp.employeeCode}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar initials={initialsOf(emp.fullName)} className="size-7 bg-primary/20 text-primary font-bold text-xs" />
+                          <div>
+                            <p className="font-semibold text-foreground text-xs leading-none">{emp.fullName}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{emp.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">{emp.department.name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{emp.position.title}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{emp.joinDate.slice(0, 10)}</TableCell>
+                      <TableCell>
+                        <Badge variant={emp.status === "ACTIVE" ? "success" : emp.status === "PROBATION" ? "warning" : "secondary"}>
+                          {employeeStatusLabel(emp.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openDrawer(emp)
+                          }}
+                        >
+                          Xem Hồ Sơ
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          {loading ? "..." : `Tổng ${total} nhân sự • Trang ${page}/${totalPages}`}
-        </span>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="xs" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-            Trang trước
-          </Button>
-          <Button variant="outline" size="xs" disabled={page >= totalPages || loading} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-            Trang sau
-          </Button>
-        </div>
-      </div>
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {loading ? "..." : `Tổng ${total} nhân sự • Trang ${page}/${totalPages}`}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="xs" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                Trang trước
+              </Button>
+              <Button variant="outline" size="xs" disabled={page >= totalPages || loading} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+                Trang sau
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="leave-approvals" className="mt-4">
+          <LeaveApprovalsTab departments={departments} />
+        </TabsContent>
+
+        <TabsContent value="onboarding" className="mt-4">
+          <OnboardingManagementTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Slide-over Profile Drawer — dữ liệu thật, 5 nhóm thông tin */}
       {selectedEmployee && (
@@ -590,23 +696,33 @@ export function EmployeesView() {
                     <option value="TERMINATED">Nghỉ việc</option>
                   </select>
                 </div>
-                {/* Edit Account button — chỉ ADMIN */}
+                {/* Account actions — chỉ ADMIN */}
                 {isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-1 gap-1.5 text-xs"
-                    onClick={() => {
-                      setEditAccountForm({
-                        email: drawerDetail?.user?.email ?? "",
-                        role: ((drawerDetail?.user as any)?.role ?? "EMPLOYEE") as "ADMIN" | "EMPLOYEE",
-                      })
-                      setEditAccountError(null)
-                      setEditAccountOpen(true)
-                    }}
-                  >
-                    <Settings className="size-3" /> Sửa Email & Role
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-1 gap-1.5 text-xs"
+                      onClick={() => {
+                        setEditAccountForm({
+                          email: drawerDetail?.user?.email ?? "",
+                          role: ((drawerDetail?.user as any)?.role ?? "EMPLOYEE") as "ADMIN" | "EMPLOYEE",
+                        })
+                        setEditAccountError(null)
+                        setEditAccountOpen(true)
+                      }}
+                    >
+                      <Settings className="size-3" /> Sửa Email & Role
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-1 gap-1.5 text-xs"
+                      onClick={openResetPassword}
+                    >
+                      <KeyRound className="size-3" /> Đặt Lại Mật Khẩu
+                    </Button>
+                  </>
                 )}
               </div>
             </section>
@@ -651,28 +767,24 @@ export function EmployeesView() {
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-3 text-xs">
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Số điện thoại</label>
+          <Field label="Số điện thoại">
             <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="mt-1 h-8 text-xs" />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Địa chỉ</label>
+          </Field>
+          <Field label="Địa chỉ">
             <Input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="mt-1 h-8 text-xs" />
-          </div>
+          </Field>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Ngày sinh</label>
+            <Field label="Ngày sinh">
               <input
                 type="date"
                 value={editForm.dateOfBirth}
                 onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
               />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Số CCCD</label>
+            </Field>
+            <Field label="Số CCCD">
               <Input value={editForm.nationalId} onChange={(e) => setEditForm({ ...editForm, nationalId: e.target.value })} className="mt-1 h-8 text-xs" />
-            </div>
+            </Field>
           </div>
           {editError && <p className="text-agent-coral">{editError}</p>}
         </div>
@@ -693,19 +805,14 @@ export function EmployeesView() {
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-3 text-xs">
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Họ tên</label>
+          <Field label="Họ tên" error={addErrors.fullName}>
             <Input value={addForm.fullName} onChange={(e) => setAddForm({ ...addForm, fullName: e.target.value })} className="mt-1 h-8 text-xs" />
-            {addErrors.fullName && <p className="mt-1 text-agent-coral">{addErrors.fullName}</p>}
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Email</label>
+          </Field>
+          <Field label="Email" error={addErrors.email}>
             <Input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} className="mt-1 h-8 text-xs" />
-            {addErrors.email && <p className="mt-1 text-agent-coral">{addErrors.email}</p>}
-          </div>
+          </Field>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Phòng ban</label>
+            <Field label="Phòng ban" error={addErrors.departmentId}>
               <select
                 value={addForm.departmentId}
                 onChange={(e) => setAddForm({ ...addForm, departmentId: e.target.value })}
@@ -716,10 +823,8 @@ export function EmployeesView() {
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
-              {addErrors.departmentId && <p className="mt-1 text-agent-coral">{addErrors.departmentId}</p>}
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Chức vụ</label>
+            </Field>
+            <Field label="Chức vụ" error={addErrors.positionId}>
               <select
                 value={addForm.positionId}
                 onChange={(e) => setAddForm({ ...addForm, positionId: e.target.value })}
@@ -730,21 +835,17 @@ export function EmployeesView() {
                   <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
               </select>
-              {addErrors.positionId && <p className="mt-1 text-agent-coral">{addErrors.positionId}</p>}
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Ngày vào làm</label>
+          <Field label="Ngày vào làm" error={addErrors.joinDate}>
             <input
               type="date"
               value={addForm.joinDate}
               onChange={(e) => setAddForm({ ...addForm, joinDate: e.target.value })}
               className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
             />
-            {addErrors.joinDate && <p className="mt-1 text-agent-coral">{addErrors.joinDate}</p>}
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Role tài khoản</label>
+          </Field>
+          <Field label="Role tài khoản">
             <select
               value={addForm.role ?? "EMPLOYEE"}
               onChange={(e) => setAddForm({ ...addForm, role: e.target.value as "ADMIN" | "EMPLOYEE" })}
@@ -756,7 +857,7 @@ export function EmployeesView() {
             <p className="mt-1 text-[10px] text-muted-foreground">
               Email này sẽ được kích hoạt làm whitelist đăng nhập (Email/Google/Facebook).
             </p>
-          </div>
+          </Field>
           {addErrors.form && <p className="text-agent-coral">{addErrors.form}</p>}
         </div>
         <DialogFooter>
@@ -776,8 +877,7 @@ export function EmployeesView() {
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-3 text-xs">
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Email đăng nhập mới</label>
+          <Field label="Email đăng nhập mới">
             <Input
               type="email"
               value={editAccountForm.email ?? ""}
@@ -785,9 +885,8 @@ export function EmployeesView() {
               placeholder="email@gmail.com hoặc email@facebook.com"
               className="mt-1 h-8 text-xs"
             />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Role tài khoản</label>
+          </Field>
+          <Field label="Role tài khoản">
             <select
               value={editAccountForm.role ?? "EMPLOYEE"}
               onChange={(e) => setEditAccountForm({ ...editAccountForm, role: e.target.value as "ADMIN" | "EMPLOYEE" })}
@@ -796,7 +895,7 @@ export function EmployeesView() {
               <option value="EMPLOYEE">Nhân viên (Employee)</option>
               <option value="ADMIN">Quản trị (Admin)</option>
             </select>
-          </div>
+          </Field>
           {editAccountError && <p className="text-agent-coral">{editAccountError}</p>}
         </div>
         <DialogFooter>
@@ -804,6 +903,74 @@ export function EmployeesView() {
           <Button variant="default" onClick={handleSaveAccount} disabled={editAccountBusy} className="gap-1.5">
             {editAccountBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu Tài Khoản
           </Button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* Reset Password Dialog — admin đặt lại mật khẩu cho nhân viên (mật khẩu tự sinh chỉ hiện 1 lần) */}
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogHeader>
+          <DialogTitle>Đặt Lại Mật Khẩu — {selectedEmployee?.fullName}</DialogTitle>
+          <DialogDescription>
+            Mật khẩu mới dùng cho đăng nhập bằng Email. Mọi phiên đăng nhập hiện có của nhân viên sẽ bị đăng xuất. Hệ thống không có email — hãy chuyển mật khẩu cho nhân viên trực tiếp.
+          </DialogDescription>
+        </DialogHeader>
+        {resetResult ? (
+          <div className="flex flex-col gap-3 py-3 text-xs">
+            <p className="font-medium text-emerald-400">{resetResult.message}</p>
+            {resetResult.generatedPassword && (
+              <div className="rounded-lg border border-agent-amber/40 bg-agent-amber/10 p-3">
+                <p className="mb-1.5 text-[11px] font-semibold text-agent-amber">
+                  Mật khẩu mới — chỉ hiển thị MỘT LẦN:
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 select-all rounded-md border border-border bg-background/60 px-2.5 py-1.5 font-mono text-sm text-foreground">
+                    {resetResult.generatedPassword}
+                  </code>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={copyGeneratedPassword}>
+                    {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} {copied ? "Đã chép" : "Sao chép"}
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                  Gửi cho nhân viên qua email {resetResult.email}. Sau khi đóng dialog sẽ không xem lại được.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 py-3 text-xs">
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 p-2.5">
+              <div>
+                <p className="font-medium text-foreground">Tự sinh mật khẩu ngẫu nhiên</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  Bỏ chọn nếu muốn tự nhập mật khẩu dễ nhớ — server vẫn kiểm tra theo chính sách bảo mật
+                </p>
+              </div>
+              <Switch checked={resetAuto} onCheckedChange={(v) => setResetAuto(v)} />
+            </div>
+            {!resetAuto && (
+              <Field label="Mật khẩu mới">
+                <Input
+                  type="text"
+                  value={resetPasswordInput}
+                  onChange={(e) => setResetPasswordInput(e.target.value)}
+                  placeholder="Nhập mật khẩu mới cho nhân viên"
+                  autoComplete="off"
+                  className="mt-1 h-8 font-mono text-xs"
+                />
+              </Field>
+            )}
+            {resetError && <p className="text-agent-coral">{resetError}</p>}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetBusy}>
+            {resetResult ? "Đóng" : "Hủy"}
+          </Button>
+          {!resetResult && (
+            <Button variant="default" onClick={handleResetPassword} disabled={resetBusy} className="gap-1.5">
+              {resetBusy && <Loader2 className="size-3.5 animate-spin" />} Đặt Lại Mật Khẩu
+            </Button>
+          )}
         </DialogFooter>
       </Dialog>
     </div>
@@ -840,6 +1007,17 @@ function EmployeeLeavesMini({ employeeId }: { employeeId: string }) {
           </Badge>
         </div>
       ))}
+    </div>
+  )
+}
+
+/** Ô nhập chuẩn trong dialog: label + control + lỗi (nếu có) — ép mọi dialog dùng chung một kiểu */
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-[11px] font-semibold text-muted-foreground">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-agent-coral">{error}</p>}
     </div>
   )
 }

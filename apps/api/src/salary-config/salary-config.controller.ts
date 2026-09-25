@@ -4,7 +4,10 @@ import {
   Post,
   Body,
   Query,
+  Request,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SalaryConfigService } from './salary-config.service';
@@ -33,9 +36,10 @@ export class SalaryConfigController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN_GROUP')
-  @ApiOperation({ summary: 'Tạo/cập nhật cấu hình lương theo năm (Admin)' })
+  @ApiOperation({ summary: 'Tạo/cập nhật cấu hình lương theo năm — ghi audit log (Admin)' })
   @Post()
-  upsert(@Body() dto: any) {
-    return this.service.upsert(dto);
+  @HttpCode(HttpStatus.OK)
+  upsert(@Request() req: { user: { sub: string; email: string } }, @Body() dto: any) {
+    return this.service.upsert(dto, { id: req.user?.sub, email: req.user?.email });
   }
 }

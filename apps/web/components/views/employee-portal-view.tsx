@@ -38,6 +38,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { todayVN, leaveTypeLabel, payrollStatusLabel, vnd } from "@/lib/utils"
 import { settingsApi } from "@/lib/api/settings.api"
 import type { Geofence } from "@/lib/schemas/settings.schema"
+import { MonthlyTimesheetStrip } from "@/components/portal/monthly-timesheet-strip"
 
 // Tọa độ văn phòng: ưu tiên cấu hình trong DB (Trang Cài Đặt → Geofence),
 // fallback qua biến env NEXT_PUBLIC_OFFICE_* rồi mới đến mặc định.
@@ -73,6 +74,17 @@ function timeHM(iso: string | null | undefined): string {
   return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
 }
 
+function formatDateVN(dateStr: string | null | undefined): string {
+  if (!dateStr) return "--/--/----"
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr.slice(0, 10)
+    return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
+  } catch {
+    return dateStr.slice(0, 10)
+  }
+}
+
 export function EmployeePortalView() {
   const { user } = useAuth()
   const employeeId = user?.employee?.id ?? ""
@@ -80,6 +92,12 @@ export function EmployeePortalView() {
   const empCode = user?.employee?.employeeCode ?? ""
   const deptName = user?.employee?.departmentName ?? ""
   const posTitle = user?.employee?.positionTitle ?? ""
+
+  const nowDate = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(nowDate.getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(nowDate.getFullYear())
+  const [monthlyAttendance, setMonthlyAttendance] = useState<AttendanceRecord[]>([])
+  const [timesheetLoading, setTimesheetLoading] = useState(false)
 
   const [leaveBalance, setLeaveBalance] = useState<{ remainingDays: number; totalDays: number } | null>(null)
   const [leaveHistory, setLeaveHistory] = useState<LeaveRequest[]>([])
@@ -169,31 +187,34 @@ export function EmployeePortalView() {
 
   const today = todayVN()
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (m = selectedMonth, y = selectedYear) => {
     if (!employeeId) return
     setDataLoading(true)
-    const nowDate = new Date()
-    const month = nowDate.getMonth() + 1
-    const year = nowDate.getFullYear()
+    setTimesheetLoading(true)
     // Vùng chấm công trong DB (HR_ADMIN cấu hình ở trang Cài Đặt)
     settingsApi
       .getGeofence()
       .then((g) => setOffice({ name: g.name, lat: g.lat, lng: g.lng, radiusM: g.radiusM }))
       .catch(() => {/* giữ fallback */})
     const [balanceRes, leavesRes, slipRes, attendanceRes, onboardingRes] = await Promise.allSettled([
-      leaveApi.getBalance(employeeId, year),
+      leaveApi.getBalance(employeeId, y),
       leaveApi.list({ employeeId }),
-      payrollApi.getMyPayslip(month, year),
-      attendanceApi.listByEmployee(employeeId, month, year),
+      payrollApi.getMyPayslip(m, y),
+      attendanceApi.listByEmployee(employeeId, m, y),
       onboardingApi.getMy(),
     ])
     if (balanceRes.status === "fulfilled") {
       setLeaveBalance({ remainingDays: balanceRes.value.remainingDays, totalDays: balanceRes.value.totalDays })
     }
     if (leavesRes.status === "fulfilled") setLeaveHistory(leavesRes.value)
-    if (slipRes.status === "fulfilled") setPayslip(slipRes.value)
+    if (slipRes.status === "fulfilled") {
+      setPayslip(slipRes.value)
+    } else {
+      setPayslip(null)
+    }
     if (attendanceRes.status === "fulfilled") {
       const records = attendanceRes.value
+      setMonthlyAttendance(records)
       const record = records.find((r) => (r.date ?? "").slice(0, 10) === today) ?? null
       setTodayRecord(record)
     }
@@ -206,11 +227,18 @@ export function EmployeePortalView() {
       })
     }
     setDataLoading(false)
-  }, [employeeId, today])
+    setTimesheetLoading(false)
+  }, [employeeId, today, selectedMonth, selectedYear])
+
+  const handleMonthChange = (newMonth: number, newYear: number) => {
+    setSelectedMonth(newMonth)
+    setSelectedYear(newYear)
+    loadAll(newMonth, newYear)
+  }
 
   useEffect(() => {
-    loadAll()
-  }, [loadAll])
+    loadAll(selectedMonth, selectedYear)
+  }, [loadAll, selectedMonth, selectedYear])
 
   // ── GPS Check-in / Check-out ────────────────────────────────────────────
   const getPosition = () =>
@@ -439,7 +467,9 @@ export function EmployeePortalView() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-              {payslip ? `Phiếu Lương Tháng ${String(payslip.month).padStart(2, "0")}/${payslip.year}` : "Phiếu Lương"}
+              {payslip
+                ? `Phiếu Lương Tháng ${String(payslip.month).padStart(2, "0")}/${payslip.year}`
+                : `Phiếu Lương Tháng ${String(selectedMonth).padStart(2, "0")}/${selectedYear}`}
             </CardTitle>
             <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
               <CreditCard className="size-4" />
@@ -464,7 +494,9 @@ export function EmployeePortalView() {
               </>
             ) : (
               <p className="text-xs text-muted-foreground">
-                {dataLoading ? "Đang tải phiếu lương..." : "Chưa có phiếu lương trong kỳ này. Phiếu xuất hiện sau khi HR chạy Rule Engine."}
+                {dataLoading
+                  ? "Đang tải phiếu lương..."
+                  : `Chưa có phiếu lương kỳ ${String(selectedMonth).padStart(2, "0")}/${selectedYear}. Phiếu xuất hiện sau khi HR chạy Rule Engine.`}
               </p>
             )}
           </CardContent>
@@ -511,82 +543,154 @@ export function EmployeePortalView() {
         </Card>
       )}
 
-      {/* Đơn nghỉ phép của tôi — dữ liệu thật */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Calendar className="size-4 text-agent-teal" />
-            Đơn Nghỉ Phép Của Tôi
-          </CardTitle>
-          <CardDescription>Lịch sử các đơn đã gửi và trạng thái duyệt</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {leaveHistory.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Bạn chưa gửi đơn nghỉ phép nào.</p>
-          ) : (
-            <div className="flex flex-col gap-2 text-xs">
-              {leaveHistory.map((leave) => (
-                <div key={leave.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {leaveTypeLabel(leave.type)} • {leave.startDate} → {leave.endDate} ({leave.totalDays} ngày)
-                    </p>
-                    <p className="text-[11px] text-muted-foreground italic">&ldquo;{leave.reason}&rdquo;</p>
-                  </div>
-                  <Badge variant={leave.status === "APPROVED" ? "success" : leave.status === "REJECTED" ? "destructive" : "warning"}>
-                    {leave.status === "APPROVED" ? "Đã duyệt" : leave.status === "REJECTED" ? "Từ chối" : leave.status === "CANCELLED" ? "Đã hủy" : "Chờ duyệt"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* ── ROW: Lịch chấm công (trái) + Đơn nghỉ & Hội nhập (phải) ── */}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
 
-      {/* Lộ Trình Hội Nhập — dữ liệu thật từ Onboarding */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-emerald-400" />
-            Lộ Trình Hội Nhập Của Bạn (Onboarding Journey)
-          </CardTitle>
-          <CardDescription>
-            {onboarding
-              ? `Hoàn thành ${onboarding.completed}/${onboarding.total} hạng mục`
-              : "Tiến độ hội nhập sẽ hiển thị tại đây"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!onboarding || onboarding.items.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              {dataLoading ? "Đang tải lộ trình..." : "Chưa có lộ trình hội nhập nào được gán cho bạn."}
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3 text-xs">
-              {onboarding.items.map((item, idx) => (
-                <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className={`size-5 ${item.isCompleted ? "text-emerald-400" : "text-muted-foreground"}`} />
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        {idx + 1}. {item.title}
-                      </p>
-                      {item.description && (
-                        <p className="text-[11px] text-muted-foreground">{item.description}</p>
-                      )}
+        {/* Lịch chấm công — tự kéo dài bằng chiều cao hàng */}
+        <div className="shrink-0 flex flex-col">
+          <MonthlyTimesheetStrip
+            employeeId={employeeId}
+            month={selectedMonth}
+            year={selectedYear}
+            onMonthChange={handleMonthChange}
+            attendanceRecords={monthlyAttendance}
+            loading={timesheetLoading}
+          />
+        </div>
+
+        {/* Cột phải: Đơn nghỉ phép + Lộ trình hội nhập — 2 ô ngang */}
+        <div className="grid grid-cols-2 gap-4 flex-1 min-w-0 items-stretch">
+
+          {/* Đơn nghỉ phép của tôi */}
+          <Card className="border-border h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="size-4 text-agent-teal" />
+                  Đơn Nghỉ Phép Của Tôi
+                </CardTitle>
+                <CardDescription className="text-xs">Lịch sử các đơn đã gửi và trạng thái phê duyệt</CardDescription>
+              </div>
+              <Button
+                size="xs"
+                variant="outline"
+                className="text-xs gap-1"
+                onClick={() => {
+                  setShowLeaveModal(true)
+                  setLeaveErrors({})
+                  setLeaveSuccess(null)
+                }}
+              >
+                <Plus className="size-3.5" /> Tạo Đơn Mới
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {leaveHistory.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Bạn chưa gửi đơn nghỉ phép nào.</p>
+              ) : (
+                <div className="flex flex-col gap-2.5 text-xs">
+                  {leaveHistory.map((leave) => (
+                    <div
+                      key={leave.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border bg-muted/15 p-3 hover:bg-muted/30 transition-colors gap-2"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Calendar className="size-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{leaveTypeLabel(leave.type)}</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border">
+                              {leave.totalDays} ngày
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {formatDateVN(leave.startDate)} → {formatDateVN(leave.endDate)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground italic mt-0.5">&ldquo;{leave.reason}&rdquo;</p>
+                          {leave.rejectionReason && (
+                            <p className="text-[11px] text-rose-400 mt-1">Lý do từ chối: {leave.rejectionReason}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <Badge
+                          variant={
+                            leave.status === "APPROVED"
+                              ? "success"
+                              : leave.status === "REJECTED"
+                              ? "destructive"
+                              : leave.status === "CANCELLED"
+                              ? "secondary"
+                              : "warning"
+                          }
+                          className="text-xs"
+                        >
+                          {leave.status === "APPROVED"
+                            ? "Đã duyệt"
+                            : leave.status === "REJECTED"
+                            ? "Từ chối"
+                            : leave.status === "CANCELLED"
+                            ? "Đã hủy"
+                            : "Chờ duyệt"}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <Badge variant={item.isCompleted ? "success" : "secondary"}>
-                    {item.isCompleted
-                      ? `Hoàn thành${item.completedAt ? ` ${new Date(item.completedAt).toLocaleDateString("vi-VN")}` : ""}`
-                      : "Chờ xử lý"}
-                  </Badge>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Lộ Trình Hội Nhập */}
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-emerald-400" />
+                Lộ Trình Hội Nhập Của Bạn (Onboarding Journey)
+              </CardTitle>
+              <CardDescription>
+                {onboarding
+                  ? `Hoàn thành ${onboarding.completed}/${onboarding.total} hạng mục`
+                  : "Tiến độ hội nhập sẽ hiển thị tại đây"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!onboarding || onboarding.items.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {dataLoading ? "Đang tải lộ trình..." : "Chưa có lộ trình hội nhập nào được gán cho bạn."}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3 text-xs">
+                  {onboarding.items.map((item, idx) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className={`size-5 ${item.isCompleted ? "text-emerald-400" : "text-muted-foreground"}`} />
+                        <div>
+                          <p className="font-semibold text-foreground">
+                            {idx + 1}. {item.title}
+                          </p>
+                          {item.description && (
+                            <p className="text-[11px] text-muted-foreground">{item.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant={item.isCompleted ? "success" : "secondary"}>
+                        {item.isCompleted
+                          ? `Hoàn thành${item.completedAt ? ` ${new Date(item.completedAt).toLocaleDateString("vi-VN")}` : ""}`
+                          : "Chờ xử lý"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+        </div>{/* end cột phải */}
+      </div>{/* end flex row */}
+
 
       {/* Leave Application Modal — form hoạt động thật */}
       <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal}>

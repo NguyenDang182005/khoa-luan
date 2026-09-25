@@ -57,6 +57,16 @@ export const EmployeeDetailSchema = EmployeeSchema.extend({
 export type Contract = z.infer<typeof ContractSchema>
 export type EmployeeDetail = z.infer<typeof EmployeeDetailSchema>
 
+/** POST /employees/:id/reset-password — generatedPassword chỉ có khi mode=GENERATE và chỉ trả MỘT LẦN */
+export const ResetPasswordResponseSchema = z.object({
+  message: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  generatedPassword: z.string().optional(),
+})
+
+export type ResetPasswordResult = z.infer<typeof ResetPasswordResponseSchema>
+
 export type Employee = z.infer<typeof EmployeeSchema>
 export type EmployeeList = z.infer<typeof EmployeeListSchema>
 export type Department = z.infer<typeof DepartmentSchema>

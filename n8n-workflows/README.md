@@ -43,7 +43,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 ```json
 {
   "message": "Toi con bao nhieu ngay phep?",
-  "channel": "web | mobile | zalo",
+  "channel": "web",  // enum: web | zalo | mobile (mobile = reserved Phase 2 — web-only scope 25/09)
   "employeeId": "clx...",
   "sessionId": null,
   "scenarioType": "customer_complaint"
@@ -55,7 +55,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 
 **Notes:**
 - Model: `gemini-3.1-flash-lite` (cho các sub-agents)
-- `scenarioType` duoc truyen thang tu Mobile App (Q3), khong can AI detect
+- `scenarioType` duoc truyen thang tu client (Web Portal — view My Training; Mobile la Phase 2), khong can AI detect
 - Switch node v3.2 voi `rules.values[]` va `combinator: "and"` theo docs chinh thuc
 
 ---
@@ -137,7 +137,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 |---|---|---|
 | Q1 | Full history | Build multi-turn `contents[]` tu `session.messages[]` |
 | Q2 | Keyword escalation | IF node + Escalate to Admin node trong WF04 |
-| Q3 | scenarioType tu Mobile | Bo keyword detection, doc `body.scenarioType` truc tiep |
+| Q3 | scenarioType client truyen thang | Bo keyword detection, doc `body.scenarioType` truc tiep |
 | Q4 | Error handling | `specifyBody: "json"` dung theo docs, Switch v3.2 |
 | Q6 | gemini-3.1-flash-lite | Tat ca 4 workflow (500 req/day quota, 15 RPM, on dinh) |
 | Q7 | Session kem messages[] | NestJS `createOrGetSession` tra `include: { messages }` |

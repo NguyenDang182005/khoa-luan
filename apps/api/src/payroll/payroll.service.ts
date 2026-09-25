@@ -101,6 +101,17 @@ export class PayrollService {
         year: year ?? vnYear ?? new Date().getFullYear(),
       },
       orderBy: { createdAt: 'desc' },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            fullName: true,
+            employeeCode: true,
+            department: { select: { name: true } },
+            position: { select: { title: true } },
+          },
+        },
+      },
     });
 
     return { payroll };

@@ -69,7 +69,7 @@ export function exportPayrollCsv(records: PayrollRecord[], month: number, year: 
   ]
   const grossOf = (p: PayrollRecord) => p.baseSalary + p.allowances + p.overtimePay + p.bonus
   const rows = records.map((p) => [
-    p.employee.employeeCode, p.employee.fullName, p.employee.department.name, p.employee.position.title,
+    p.employee?.employeeCode ?? '', p.employee?.fullName ?? '', p.employee?.department?.name ?? '', p.employee?.position?.title ?? '',
     p.baseSalary, p.actualWorkingDays, p.workingDays,
     p.overtimeHours, p.overtimePay, p.allowances, p.bonus,
     grossOf(p), p.deductions, p.tax, p.netSalary, p.status,

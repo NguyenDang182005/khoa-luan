@@ -11,6 +11,8 @@ import {
   RefreshCw,
   Banknote,
   AlertTriangle,
+  Calendar,
+  ChevronDown,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -202,138 +204,200 @@ export function PayrollView() {
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Bảng Lương & Rule Engine Tính Lương Tự Động
-            </h1>
-            <Badge variant="warning">Kỳ Tháng {String(month).padStart(2, "0")}/{year}</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground sm:text-sm">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Bảng Lương & Rule Engine Tính Lương Tự Động
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
             Tính toán thật từ hợp đồng + chấm công trong database, theo Luật Lao động Việt Nam
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={month}
-            onChange={(e) => { setMonth(Number(e.target.value)); setEngineResult(null) }}
-            className="h-8 rounded-lg border border-border bg-muted/40 px-2 text-xs text-foreground"
-            aria-label="Chọn tháng"
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowConfig(true)}
+            className="h-9 gap-1.5 border-border bg-card/70 text-xs shadow-2xs hover:bg-accent"
           >
-            {MONTHS.map((m) => (
-              <option key={m} value={m}>Tháng {m}</option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => { setYear(Number(e.target.value)); setEngineResult(null) }}
-            className="h-8 rounded-lg border border-border bg-muted/40 px-2 text-xs text-foreground"
-            aria-label="Chọn năm"
-          >
-            {[now.year - 1, now.year, now.year + 1].map((y) => (
-              <option key={y} value={y}>Năm {y}</option>
-            ))}
-          </select>
-          <Button variant="outline" size="sm" onClick={() => setShowConfig(true)} className="gap-1.5">
-            <Settings className="size-4" /> Cài Đặt Quy Chế
+            <Settings className="size-3.5 text-muted-foreground" /> Cài Đặt Quy Chế
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5"
+            className="h-9 gap-1.5 border-border bg-card/70 text-xs shadow-2xs hover:bg-accent"
             disabled={payrollData.length === 0}
             onClick={() => exportPayrollCsv(payrollData, month, year)}
           >
-            <Download className="size-4" /> Xuất Excel (CSV)
+            <Download className="size-3.5 text-muted-foreground" /> Xuất Excel (CSV)
           </Button>
           <Button
             size="sm"
             onClick={handleRunRuleEngine}
             disabled={isCalculating}
-            className="gap-1.5 bg-primary text-primary-foreground"
+            className="h-9 gap-1.5 bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90"
           >
             {isCalculating ? (
               <>
-                <RefreshCw className="size-4 animate-spin" /> Đang Chạy Engine...
+                <RefreshCw className="size-3.5 animate-spin" /> Đang Chạy Engine...
               </>
             ) : (
               <>
-                <Calculator className="size-4" /> Chạy Rule Engine Tính Lương
+                <Calculator className="size-3.5" /> Chạy Rule Engine Tính Lương
               </>
             )}
           </Button>
         </div>
       </div>
 
+      {/* Thanh Công Cụ: Chọn kỳ lương & Thao tác phê duyệt / chi trả hàng loạt */}
+      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/60 p-3 shadow-2xs backdrop-blur-xs lg:flex-row lg:items-center lg:justify-between">
+        {/* Nhóm Trái: Bộ chọn Kỳ Tháng / Năm */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex items-center rounded-lg border border-border/80 bg-background/70 p-1 shadow-2xs">
+            <div className="flex items-center gap-1.5 px-2 text-xs font-medium text-muted-foreground">
+              <Calendar className="size-3.5 text-primary" />
+              <span>Kỳ lương:</span>
+            </div>
+
+            {/* Select Tháng */}
+            <div className="relative">
+              <select
+                value={month}
+                onChange={(e) => {
+                  setMonth(Number(e.target.value))
+                  setEngineResult(null)
+                }}
+                className="h-7 cursor-pointer appearance-none rounded-md border border-border/50 bg-muted/40 pl-2.5 pr-6 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-muted/70 focus:border-primary focus:ring-1 focus:ring-primary"
+                aria-label="Chọn tháng"
+              >
+                {MONTHS.map((m) => (
+                  <option key={m} value={m}>
+                    Tháng {m}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            </div>
+
+            <span className="px-1 text-xs font-bold text-muted-foreground/40">/</span>
+
+            {/* Select Năm */}
+            <div className="relative">
+              <select
+                value={year}
+                onChange={(e) => {
+                  setYear(Number(e.target.value))
+                  setEngineResult(null)
+                }}
+                className="h-7 cursor-pointer appearance-none rounded-md border border-border/50 bg-muted/40 pl-2.5 pr-6 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-muted/70 focus:border-primary focus:ring-1 focus:ring-primary"
+                aria-label="Chọn năm"
+              >
+                {[now.year - 1, now.year, now.year + 1].map((y) => (
+                  <option key={y} value={y}>
+                    Năm {y}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </div>
+
+          <Badge
+            variant="outline"
+            className="h-8 gap-1.5 border-border/80 bg-muted/40 px-2.5 font-mono text-xs font-medium text-foreground"
+          >
+            <span className="size-1.5 rounded-full bg-emerald-400" />
+            <span>Kỳ {String(month).padStart(2, "0")}/{year}</span>
+            <span className="font-sans font-normal text-muted-foreground">• {payrollData.length} bản ghi</span>
+          </Badge>
+        </div>
+
+        {/* Nhóm Phải: Thao tác hàng loạt (Bulk Actions) */}
+        {payrollData.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground">
+              <CheckCheck className="size-3.5 text-primary" />
+              <span>
+                Đã chọn <strong className="font-semibold text-foreground">{selectedIds.length}</strong>/{selectableIds.length} dòng
+              </span>
+              {lockedCount > 0 && (
+                <span
+                  className="ml-1 text-[11px] text-muted-foreground/70"
+                  title="Các dòng đã chi trả không thể thay đổi trạng thái"
+                >
+                  • {lockedCount} đã chi trả (khóa)
+                </span>
+              )}
+            </div>
+
+            {selectedIds.length > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="gap-1 border-emerald-500/50 bg-emerald-500/10 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20"
+                  disabled={isBulkRunning}
+                  onClick={() => setBulkAction("approveSelected")}
+                >
+                  <Check className="size-3.5" /> Duyệt mục đã chọn ({selectedIds.length})
+                </Button>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="gap-1 border-agent-teal/50 bg-agent-teal/10 text-[11px] font-semibold text-agent-teal hover:bg-agent-teal/20"
+                  disabled={isBulkRunning}
+                  onClick={() => setBulkAction("paidSelected")}
+                >
+                  <Banknote className="size-3.5" /> Chi trả mục đã chọn ({selectedIds.length})
+                </Button>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  className="text-[11px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Bỏ chọn
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="gap-1 border-emerald-500/40 bg-emerald-500/5 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/15 disabled:opacity-40"
+                  disabled={draftCount === 0 || isBulkRunning}
+                  onClick={() => setBulkAction("approveAll")}
+                >
+                  <CheckCheck className="size-3.5" /> Duyệt Tất Cả ({draftCount} chờ duyệt)
+                </Button>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="gap-1 border-agent-teal/40 bg-agent-teal/5 text-[11px] font-medium text-agent-teal hover:bg-agent-teal/15 disabled:opacity-40"
+                  disabled={approvedCount === 0 || isBulkRunning}
+                  onClick={() => setBulkAction("paidAll")}
+                >
+                  <Banknote className="size-3.5" /> Chi Trả Tất Cả Đã Duyệt ({approvedCount})
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-xs italic text-muted-foreground">
+            Chưa có bảng lương kỳ này — nhấn &ldquo;Chạy Rule Engine Tính Lương&rdquo; để khởi tạo.
+          </div>
+        )}
+      </div>
+
       {engineResult && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-400">
           {engineResult}
         </div>
       )}
       {actionError && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-          <AlertTriangle className="size-3.5" /> {actionError}
-        </div>
-      )}
-
-      {/* Bulk approval bar — duyệt/chi trả toàn bộ kỳ hoặc theo lựa chọn */}
-      {payrollData.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
-          <CheckCheck className="size-4 text-primary" />
-          <span className="text-xs text-muted-foreground">
-            Đã chọn <span className="font-semibold text-foreground">{selectedIds.length}</span>/{selectableIds.length} dòng có thể thao tác
-            {lockedCount > 0 && (
-              <span className="ml-1 text-[10px] text-muted-foreground/70">
-                • {lockedCount} dòng đã chi trả không thể chọn
-              </span>
-            )}
-          </span>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button
-              size="xs"
-              variant="outline"
-              className="gap-1 border-emerald-500/40 text-[11px] text-emerald-400 hover:bg-emerald-500/10"
-              disabled={draftCount === 0 || isBulkRunning}
-              onClick={() => setBulkAction("approveAll")}
-            >
-              <CheckCheck className="size-3.5" /> Duyệt Tất Cả ({draftCount} chờ duyệt)
-            </Button>
-            <Button
-              size="xs"
-              variant="outline"
-              className="gap-1 border-agent-teal/40 text-[11px] text-agent-teal hover:bg-agent-teal/10"
-              disabled={approvedCount === 0 || isBulkRunning}
-              onClick={() => setBulkAction("paidAll")}
-            >
-              <Banknote className="size-3.5" /> Chi Trả Tất Cả Đã Duyệt ({approvedCount})
-            </Button>
-            {selectedIds.length > 0 && (
-              <>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  className="text-[11px]"
-                  disabled={isBulkRunning}
-                  onClick={() => setBulkAction("approveSelected")}
-                >
-                  Duyệt Mục Đã Chọn
-                </Button>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  className="text-[11px]"
-                  disabled={isBulkRunning}
-                  onClick={() => setBulkAction("paidSelected")}
-                >
-                  Chi Trả Mục Đã Chọn
-                </Button>
-                <Button size="xs" variant="ghost" className="text-[11px]" onClick={() => setSelectedIds([])}>
-                  Bỏ chọn
-                </Button>
-              </>
-            )}
-          </div>
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-400">
+          <AlertTriangle className="size-3.5 shrink-0" /> {actionError}
         </div>
       )}
 
@@ -446,7 +510,7 @@ export function PayrollView() {
                           ? "cursor-pointer"
                           : "cursor-not-allowed opacity-40"
                       }`}
-                      aria-label={`Chọn bảng lương ${item.employee.employeeCode}`}
+                      aria-label={`Chọn bảng lương ${item.employee?.employeeCode ?? ''}`}
                       disabled={item.status !== "DRAFT" && item.status !== "APPROVED"}
                       title={
                         item.status === "PAID"
@@ -461,10 +525,10 @@ export function PayrollView() {
                       onChange={() => toggleSelect(item.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-semibold text-primary">{item.employee.employeeCode}</TableCell>
+                  <TableCell className="font-mono text-xs font-semibold text-primary">{item.employee?.employeeCode ?? '--'}</TableCell>
                   <TableCell className="font-medium text-xs text-foreground">
-                    {item.employee.fullName}
-                    <p className="text-[10px] text-muted-foreground">{item.employee.department.name}</p>
+                    {item.employee?.fullName ?? '--'}
+                    <p className="text-[10px] text-muted-foreground">{item.employee?.department?.name ?? ''}</p>
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-muted-foreground">
                     {vnd(item.baseSalary)}

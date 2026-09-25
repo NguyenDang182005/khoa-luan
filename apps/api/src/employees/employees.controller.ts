@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Query, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -26,7 +27,9 @@ export class EmployeesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách nhân viên' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Danh sách nhân viên (chỉ ADMIN)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -91,6 +94,24 @@ export class EmployeesController {
     @Body() dto: UpdateAccountDto,
   ) {
     return this.employeesService.updateAccount(id, dto);
+  }
+
+  @Post(':id/reset-password')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({
+    summary: 'Admin đặt lại mật khẩu nhân viên (chỉ EMPLOYEE active) — GENERATE trả plaintext 1 lần, thu hồi mọi phiên, ghi audit',
+  })
+  resetPassword(
+    @Param('id') id: string,
+    @Body() dto: ResetPasswordDto,
+    @Request() req: { user?: { sub?: string; email?: string } },
+  ) {
+    return this.employeesService.resetPassword(
+      id,
+      dto,
+      { id: req.user?.sub, email: req.user?.email },
+    );
   }
 }
 

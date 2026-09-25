@@ -18,7 +18,7 @@ Dự án khóa luận được chia thành **5 giai đoạn** trong **15 tuần*
 | **5–6** | 🤖 **Tác tử Điều phối & Bảo mật** — Tích hợp luồng AI, xây dựng Router Agent và Middleware Ẩn danh hóa dữ liệu (PII) | Tin nhắn nội bộ được định tuyến an toàn tới các Tác tử | ✅ Hoàn thành |
 | **7–8** | 📊 **Triển khai GraphRAG & Tác tử HR** — Số hóa nội quy, thiết lập CSDL đồ thị, tích hợp AI hỏi đáp luật lao động | Trợ lý HR trả lời chuẩn xác kèm trích dẫn nguồn | 🔄 **RAG + pgvector đã chạy 14/09** (`policy_chunks` + tool SearchPolicyKnowledge WF02, E2E trích dẫn đúng tài liệu) — GraphRAG đa nhịp là mở rộng tiếp theo |
 | **9–10** | 🎮 **Tác tử Đào tạo & Tích hợp CSKH** — Cấu hình AI Role-play, thiết lập luồng n8n cho kênh khách hàng (Zalo OA — demo qua Slack DM) và bắn Webhook/WebSocket về NestJS | Module bài test thực chiến hoạt động; Hệ thống cảnh báo khiếu nại CSKH chạy thời gian thực | ✅ Hoàn thành |
-| **11–12** | 🏠 **Phát triển Frontend** — Dựng Web Portal cho Admin (Next.js) nhận cảnh báo WebSocket, và App Mobile cho nhân viên (React Native) | Admin và Nhân viên tương tác thành công với các chức năng phân quyền | 🔄 Web Portal hoàn thành — Mobile đang bắt đầu |
+| **11–12** | 🏠 **Phát triển Frontend** — Dựng Web Portal cho Admin (Next.js) nhận cảnh báo WebSocket, và App Mobile cho nhân viên (React Native) | Admin và Nhân viên tương tác thành công với các chức năng phân quyền | ✅ Web Portal hoàn thành — Mobile **cắt khỏi scope 25/09**, chuyển hướng phát triển ([[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]]) |
 | **13–14** | 🔍 **Tích hợp, Kiểm thử & Tinh chỉnh** — Ráp nối toàn bộ hệ thống, test các ca kiểm thử biên và đánh giá độ trễ | Hệ thống đồng bộ xuyên suốt từ luồng nhập liệu đến trích xuất kết quả | 🔄 E2E từng luồng AI đã pass — tiếp tục tinh chỉnh |
 | **15** | 🏁 **Hoàn thiện** — Đóng gói mã nguồn, viết báo cáo đồ án và thiết lập môi trường Demo | Sẵn sàng dữ liệu và sản phẩm cho buổi bảo vệ | ⏳ Chưa bắt đầu |
 
@@ -43,7 +43,7 @@ Dự án khóa luận được chia thành **5 giai đoạn** trong **15 tuần*
 - [x] Frontend Web Portal (Next.js) — 10 views chạy real API + Zod
 - [x] Duyệt lương hàng loạt + hồ sơ 5 nhóm + thống kê intent + CSKH Slack
 - [x] RAG + pgvector (dual-mode) cho HR Q&A — GraphRAG đa nhịp là mở rộng tiếp theo
-- [ ] Mobile App (React Native) hoàn chỉnh
+- [x] Chốt scope Web-only: cắt Mobile App khỏi Phase 1 (25/09 — [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]])
 - [ ] Full regression testing
 - [ ] Demo environment
 

@@ -31,6 +31,7 @@ export const PendingLeaveSchema = z.object({
   reason: z.string(),
   status: z.string(),
   employee: z.object({
+    id: z.string().optional(),
     fullName: z.string(),
     employeeCode: z.string(),
     department: z.object({ name: z.string() }),

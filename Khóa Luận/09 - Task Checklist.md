@@ -1,11 +1,42 @@
 # ✅ Task Checklist & Kế Hoạch Tính Năng Cần Phát Triển
 
-> Cập nhật: **2026-09-15** | Đánh giá tổng thể: **~93% hoàn thành**
+> Cập nhật: **2026-09-23** | Đánh giá tổng thể: **~95% hoàn thành**
 > Người cập nhật: AI Agent (Antigravity)
 
 ---
 
-## 🚀 Cập Nhật 15/09 — Fix Bug & Real-time WebSocket (mới)
+## 🚀 Cập Nhật 23/09 — Router Gateway Hub & Fix Bug Đào Tạo (mới)
+
+- [x] **Redesign Bảng Thông Báo Router (WF01)** — xây dựng Router Gateway Hub 3 tab:
+  - *Tab 1 Sandbox PII & Intent*: 4 preset mẫu nhanh, Regex Sanitizer live preview, Intent routing preview, nút Ping AI E2E đo latency
+  - *Tab 2 Quy Chuẩn Bảo Mật*: Pipeline 4 giai đoạn, 3 thẻ Regex chuẩn Nghị định 13/2023/NĐ-CP (CCCD, SĐT, Email)
+  - *Tab 3 Live Audit Trail*: Bảng đối chiếu tin nhắn gốc vs tin nhắn đã che giấu PII đọc từ API `/agents/pii-audit`
+- [x] **Khôi phục WF04 (Zalo CSKH & Escalation Agent)** — đưa lại vào `agentList` với tab riêng biệt chứa bảng thông báo Slack chỉ đọc và nút chuyển tiếp sang phân hệ Tiếp Quản CSKH
+- [x] **Fix Zod Schema crash Training** — nới lỏng `AiScoreSchema` với `.nullish().passthrough()`, chấp nhận `department: null`
+- [x] **Fix bug điểm vượt khung (100/50) và âm (-27.5/50)** — chuẩn hóa $\text{quizPart} = \text{quizScore} \times 0.5$, $\text{aiPart} = \max(0, \text{totalScore} - \text{quizPart})$, sửa `avgAiScore` và đồng bộ `my-training-view.tsx`
+- [x] Kết quả kiểm thử: `web check-types` 0 errors ✅, `api build` 0 errors ✅
+
+*Xem chi tiết: [[19 - Nhật Ký Ngày 23-09-2026]]*
+
+---
+
+## 🚀 Cập Nhật 17/09 — Training Quiz & Dashboard
+
+- [x] **WF03 Training Agent — viết lại hoàn toàn** — thêm webhook + 3 luồng (`generate_quiz` / `submit_quiz` / role-play)
+- [x] **WF01 Router** — thêm quiz keywords (`bài test`, `quiz`, `trắc nghiệm`...) + tự set `action='generate_quiz'`
+- [x] **WF01 PII Masking** — extract thêm `action` field từ request body
+- [x] **3 Gemini nodes riêng biệt** trong WF03 (Gemini Gen, Gemini Grade, Gemini Roleplay)
+- [x] **NestJS `POST /training/submit`** — gọi WF03, lưu TrainingSession + TrainingAttempt
+- [x] **NestJS `GET /training/dashboard/me`** — dashboard cá nhân (JWT)
+- [x] **NestJS `GET /training/dashboard/overview`** — dashboard toàn công ty (JWT + Admin)
+- [x] **Kết quả kiểm thử:** 5 MCQ + 2 essay ✅, chấm điểm 3/5=60% ✅, WF02 HR Q&A 7.8s ✅, WF03 roleplay 6s ✅
+- [x] **Bài học:** 1 LLM node → nhiều Agent = crash; `responseMode: 'lastNode'` thay vì `responseNode`
+
+*Xem chi tiết: [[14 - Training Quiz & Dashboard]]*
+
+---
+
+## 🚀 Cập Nhật 15/09 — Fix Bug & Real-time WebSocket
 
 - [x] **Kiểm tra 37 endpoint** — audit toàn bộ port 3001, tìm ra 4 endpoint 500
 - [x] **Fix NaN crash** khi thiếu `?month=&year=` trong 3 controller (`attendance`, `payroll`, `ai-context`)
@@ -19,12 +50,12 @@
 
 ---
 
-## 🚀 Cập Nhật 14/09 — Mở Rộng Tính Năng & Dữ Liệu Demo (mới)
+## 🚀 Cập Nhật 14/09 — Mở Rộng Tính Năng & Dữ Liệu Demo
 
 - [x] **Duyệt lương hàng loạt** — multi-select trên Bảng Lương; `POST /payroll/approve-bulk` & `paid-bulk`
 - [x] **Hồ sơ nhân viên 5 nhóm** — drawer mới + `PATCH /employees/:id`
 - [x] **Router card + thống kê intent** — `GET /agents/intent-stats`
-- [x] **CSKH kênh Zalo — transport Slack** — WF04 + tab "Tất cả hội thoại"
+- [x] **CSKH kênh Zalo — transport Slack** — WF04 + tab \"Tất cả hội thoại\"
 - [x] **Trang Cài Đặt** (`settings-view`, chỉ HR_ADMIN/ADMIN)
 - [x] **Seed demo đầy đủ** — 30 NV, 2.183 chấm công, 4 phiên AI
 - [x] **Chạy thật luồng Slack CSKH end-to-end** — challenge echo + full AI pipeline ✓
@@ -48,18 +79,18 @@
 
 | Hạng mục | Trước | Hôm nay | Ghi chú |
 |---|:---:|:---:|---|
-| Backend NestJS | 97% | **98%** ✅ | +WS emit, fix NaN |
+| Backend NestJS | 98% | **98%** ✅ | Ổn định |
 | Database Schema | 100% | **100%** ✅ | |
 | Database Seed | 100% | **100%** ✅ | |
 | n8n AI Workflows | 100% | **100%** ✅ | |
-| Web Portal — UI | 100% | **100%** ✅ | Redesign AI panel |
-| Web Portal — API | 100% | **100%** ✅ | |
+| Web Portal — UI | 100% | **100%** ✅ | Router Hub 3 tab, fix scale score |
+| Web Portal — API | 100% | **100%** ✅ | Nới lỏng Zod schema |
 | Firebase Auth | 90% | **90%** ✅ | |
-| **Real-time WebSocket** | 50% | **90%** ✅ | Push-only AI panel + badge live |
-| Mobile App | 10% | **10%** 🔴 | Ngoài scope |
+| Real-time WebSocket | 90% | **90%** ✅ | |
+| Mobile App | 10% | **Đã cắt scope** | Hướng phát triển — quyết định 25/09 ([[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]]) |
 | RAG / pgvector | 85% | **85%** ✅ | |
-| Báo cáo luận văn | 30% | **30%** | |
-| **Tổng** | **91%** | **93%** | **+2% đợt 15/09** |
+| Báo cáo luận văn | 30% | **35%** | |
+| **Tổng** | **93%** | **95%** | **+2% đợt 23/09** |
 
 ---
 
@@ -67,12 +98,8 @@
 
 ### 🔴 P0 — Critical
 
-#### Mobile App — 0/8 màn hình (chưa bắt đầu)
-- [ ] Expo Router setup
-- [ ] Màn hình Login
-- [ ] **Tab 1: Home + GPS Geofencing** 🌟 Killer Feature #1
-- [ ] **Tab 2: Hybrid Assessment** 🌟 Killer Feature #3 Mobile
-- [ ] Tab 3: AI Chat | Tab 4: Profile + Lương + Phép
+#### Mobile App — ĐÃ CẮT KHỎI SCOPE (quyết định 25/09)
+> Không còn là P0. Mobile App chuyển thành **hướng phát triển** ([[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]] | `docs/adr/0003-web-only-client-phase-1.md`). `apps/mobile/` đã xóa khỏi monorepo. Killer #1 (GPS Geofencing) đã chạy trên **Web ESS employee-portal**; Killer #3 hiển thị Web.
 
 #### Quick Fixes
 - [ ] Fix `externalId = employeeId` cho session channel=web
@@ -98,7 +125,7 @@
 
 ---
 
-## ✅ ĐÃ HOÀN THÀNH (tích lũy đến 15/09/2026)
+## ✅ ĐÃ HOÀN THÀNH (tích lũy đến 23/09/2026)
 
 ### 🏗️ Hạ tầng
 - [x] Monorepo Turborepo + pnpm + TypeScript + Docker + Prisma
@@ -120,38 +147,21 @@
 ### 🌐 Web Portal (10 views + Firebase Auth + Real-time WS)
 - [x] 10 views: dashboard, employees, payroll, ai-agents, cskh-escalation, training, employee-portal, my-training, settings, onboarding
 - [x] Firebase Auth Google + Facebook OAuth
-- [x] **Redesign panel AI** — aggregate 3 workflow + latency bar (15/09)
-- [x] **`useAiSocket` hook** — WebSocket push-only (15/09)
-- [x] **Badge live state** (15/09)
+- [x] **Router Gateway Hub 3 tab** — Interactive Sandbox + Pipeline Standards + Live Audit Trail (23/09)
+- [x] **Fix thang điểm Hybrid Assessment** — Trắc nghiệm 50% + Tự luận 50% (23/09)
+- [x] **Redesign Toolbar Bảng Lương & Chẩn đoán CSKH Escalation** (25/09)
+- [x] **Audit cơ chế chấm điểm + fix Radar 4 tiêu chí** — WF03 grade prompt yêu cầu `criteria` từng essay, `submitQuiz` lưu 4 giá trị riêng (25/09 — [[24 - Audit Cơ Chế Chấm Điểm AI]], E2E live pass)
 
 ### 🌟 4 Killer Features
 | # | Feature | Trạng thái |
 |:---:|---|:---:|
-| 1 | 📍 GPS Geofencing | 🔴 Mobile chưa làm |
+| 1 | 📍 GPS Geofencing | 🟢 Web ESS ✅ (employee-portal: geolocation + Haversine + geofence từ Cài Đặt) |
 | 2 | 🚨 Escalation Alert WS Real-time | 🟢 Xong |
-| 3 | 📊 Radar Năng Lực Đào Tạo | Web ✅ / Mobile 🔴 |
-| 4 | 🔒 PII Masking & Audit Trail | 🟢 Xong 17/09 — fix WF04 mask node + audit đối chiếu song song (trước đó luồng CSKH/quiz bị raw, xem [[2026-09-17 Audit PII Masking - Kế Hoạch vs Hiện Trạng]]) |
-
-> ⚠️ **Cần Mobile App để có đủ 4/4 Killer Features!**
+| 3 | 📊 Radar Năng Lực Đào Tạo | 🟢 Web ✅ (chuẩn điểm 23/09) |
+| 4 | 🔒 PII Masking & Audit Trail | 🟢 Xong — Sandbox + Live Audit Hub (23/09) |
 
 ---
 
-*Cập nhật bởi AI Agent (Antigravity) — 2026-09-15 14:46 ICT*  
-*Xem chi tiết hôm nay: [[16 - Nhật Ký Ngày 15-09-2026]]*  
-*Liên kết: [[00 - Tổng Quan Dự Án]] | [[15 - Refactor Real API Toàn Portal & Review Best Practice]]*
-
----
-
-## 🚀 Cập Nhật 17/09 — Training Quiz & Dashboard (mới)
-
-- [x] **WF03 Training Agent — viết lại hoàn toàn** — thêm webhook + 3 luồng (`generate_quiz` / `submit_quiz` / role-play)
-- [x] **WF01 Router** — thêm quiz keywords (`bài test`, `quiz`, `trắc nghiệm`...) + tự set `action='generate_quiz'`
-- [x] **WF01 PII Masking** — extract thêm `action` field từ request body
-- [x] **3 Gemini nodes riêng biệt** trong WF03 (Gemini Gen, Gemini Grade, Gemini Roleplay)
-- [x] **NestJS `POST /training/submit`** — gọi WF03, lưu TrainingSession + TrainingAttempt
-- [x] **NestJS `GET /training/dashboard/me`** — dashboard cá nhân (JWT)
-- [x] **NestJS `GET /training/dashboard/overview`** — dashboard toàn công ty (JWT + Admin)
-- [x] **Kết quả kiểm thử:** 5 MCQ + 2 essay ✅, chấm điểm 3/5=60% ✅, WF02 HR Q&A 7.8s ✅, WF03 roleplay 6s ✅
-- [x] **Bài học:** 1 LLM node → nhiều Agent = crash; `responseMode: 'lastNode'` thay vì `responseNode`
-
-*Xem chi tiết: [[14 - Training Quiz & Dashboard]]*
+*Cập nhật bởi AI Agent (Antigravity) — 2026-09-25 14:42 ICT*  
+*Xem chi tiết hôm nay: [[21 - Nhật Ký Ngày 25-09-2026 (Chẩn Đoán Slack CSKH & Redesign Toolbar Bảng Lương)]]*  
+*Liên kết: [[00 - Tổng Quan Dự Án]] | [[03 - Web Portal (Next.js)]] | [[14 - Training Quiz & Dashboard]]*

@@ -70,36 +70,39 @@ export function MyTrainingView() {
     )
   }
 
+  const fallbackScore = selected?.aiScore?.essay_avg ?? 0
   const radarData = [
     {
       subject: "Chuyên nghiệp",
-      "Của bạn": selected?.aiScore?.professional ?? 0,
+      "Của bạn": selected?.aiScore?.professional ?? fallbackScore,
       "Chuẩn công ty": BENCHMARK.professional,
     },
     {
       subject: "Thấu cảm",
-      "Của bạn": selected?.aiScore?.empathy ?? 0,
+      "Của bạn": selected?.aiScore?.empathy ?? fallbackScore,
       "Chuẩn công ty": BENCHMARK.empathy,
     },
     {
       subject: "Giải pháp",
-      "Của bạn": selected?.aiScore?.problemSolving ?? 0,
+      "Của bạn": selected?.aiScore?.problemSolving ?? fallbackScore,
       "Chuẩn công ty": BENCHMARK.problemSolving,
     },
     {
       subject: "Rõ ràng",
-      "Của bạn": selected?.aiScore?.clarity ?? 0,
+      "Của bạn": selected?.aiScore?.clarity ?? fallbackScore,
       "Chuẩn công ty": BENCHMARK.clarity,
     },
   ]
 
-  const avgAiScore = selected?.aiScore ? (
-    (selected.aiScore.professional +
-      selected.aiScore.empathy +
-      selected.aiScore.problemSolving +
-      selected.aiScore.clarity) /
-    4
-  ).toFixed(1) : "0.0"
+  const avgAiScore = selected?.aiScore
+    ? (
+        ((selected.aiScore.professional ?? fallbackScore) +
+          (selected.aiScore.empathy ?? fallbackScore) +
+          (selected.aiScore.problemSolving ?? fallbackScore) +
+          (selected.aiScore.clarity ?? fallbackScore)) /
+        4
+      ).toFixed(1)
+    : "0.0"
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -256,23 +259,27 @@ export function MyTrainingView() {
               <div className="flex items-center gap-6 text-right">
                 <div>
                   <p className="text-xs text-muted-foreground">Quiz</p>
-                  <p className="text-sm font-semibold text-foreground">{item.quizScore ?? 0}/50</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {Math.round(((item.quizScore ?? 0) * 0.5) * 10) / 10}/50
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">AI</p>
                   <p className="text-sm font-semibold text-agent-amber">
-                    {item.aiScore ? (
-                      (item.aiScore.professional +
-                        item.aiScore.empathy +
-                        item.aiScore.problemSolving +
-                        item.aiScore.clarity) /
-                      4
-                    ).toFixed(1) : "0.0"}/10
+                    {item.aiScore
+                      ? (
+                          ((item.aiScore.professional ?? item.aiScore.essay_avg ?? 0) +
+                            (item.aiScore.empathy ?? item.aiScore.essay_avg ?? 0) +
+                            (item.aiScore.problemSolving ?? item.aiScore.essay_avg ?? 0) +
+                            (item.aiScore.clarity ?? item.aiScore.essay_avg ?? 0)) /
+                          4
+                        ).toFixed(1)
+                      : "0.0"}
+                    /10
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Tổng</p>
-                  <p className={`text-sm font-bold ${item.totalScore >= 80 ? "text-emerald-500" : item.totalScore >= 65 ? "text-agent-amber" : "text-agent-coral"}`}>
+                  <p className={`text-sm font-bold ${(item.totalScore ?? 0) >= 80 ? "text-emerald-500" : (item.totalScore ?? 0) >= 65 ? "text-agent-amber" : "text-agent-coral"}`}>
                     {item.totalScore ?? 0}/100
                   </p>
                 </div>

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiContextService } from '../ai-context/ai-context.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
+import { ensureDefaultAiAgentConfig } from '../settings/single-row.utils';
 
 // Gemini free-tier latency khi agent gọi tool RAG có thể tới ~40-50s; 30s gây 502 chớp nhoáng.
 const N8N_CHAT_TIMEOUT_MS = 90_000;
@@ -129,6 +130,7 @@ export class AgentsService {
     message: string,
     sessionId?: string,
     sessionType?: string,
+    scenarioType?: string,
   ): Promise<{
     answer: string;
     latencyMs: number;
@@ -136,31 +138,47 @@ export class AgentsService {
     scenarioType?: string;
     sessionId: string;
     sessionType: string;
+    intent?: string;
   }> {
     const employee = await this.resolveEmployee(userId);
 
     // Q16/Q18 — backend sở hữu phiên chat: dùng sessionId client gửi (nếu hợp lệ),
     // không thì get-or-create phiên cùng ngày theo (employee, type, channel=web)
-    const type = (sessionType ?? 'OTHER') as string;
-    let session: { id: string } | null = null;
-    if (sessionId) {
-      session = await this.prisma.aiChatSession.findFirst({
-        where: { id: sessionId, employeeId: employee.id },
-        select: { id: true },
-      });
-    }
-    if (!session) {
-      session = await this.aiContext.createOrGetSession({
+    // type phải thuộc enum ChatSessionType (HR_QA|CSKH|TRAINING) — giá trị khác (vd OTHER)
+    // chuẩn hóa về HR_QA để tránh Prisma lỗi enum (fix 500 có sẵn với sessionType lạ)
+    const rawType = (sessionType ?? 'OTHER') as string;
+    const type = (['HR_QA', 'CSKH', 'TRAINING'] as string[]).includes(rawType) ? rawType : 'HR_QA';
+
+    // ── Cấu hình AI Agent từ trang Cài Đặt (DB) — fallback env ──
+    const aiCfg = await ensureDefaultAiAgentConfig(this.prisma);
+    if (!aiCfg.enabled) {
+      // Agent bị tắt bởi quản trị viên — trả lời thân thiện, không gọi n8n
+      const disabledSession = await this.aiContext.createOrGetSession({
         employeeId: employee.id,
         type,
         channel: 'web',
       });
+      return {
+        answer:
+          '🔴 AI Agent đang tạm tắt bởi quản trị viên. Vui lòng liên hệ bộ phận HR hoặc thử lại sau.',
+        latencyMs: 0,
+        sessionId: disabledSession.id,
+        sessionType: type,
+      };
     }
+    const webhookUrl = aiCfg.webhookUrl || this.config.get<string>('N8N_WEBHOOK_URL') || 'http://localhost:5678/webhook/chat';
+    const apiKey = aiCfg.apiKey || this.config.get<string>('N8N_API_KEY') || '';
+    const chatTimeoutMs = aiCfg.timeoutMs || N8N_CHAT_TIMEOUT_MS;
 
-    const webhookUrl =
-      this.config.get<string>('N8N_WEBHOOK_URL') ??
-      'http://localhost:5678/webhook/chat';
-    const apiKey = this.config.get<string>('N8N_API_KEY');
+    // Q16/Q18/Q7-day — backend sở hữu phiên: resolution LUÔN qua createOrGetSession
+    // (phiên còn active + cùng ngày VN mới được dùng lại; hết hạn thì tự đóng phiên
+    // cũ và mở phiên mới) — fix lỗi portal gửi kèm sessionId cũ mãi không reset.
+    const session = await this.aiContext.createOrGetSession({
+      sessionId,
+      employeeId: employee.id,
+      type,
+      channel: 'web',
+    });
 
     const startedAt = Date.now();
     let response: Response;
@@ -176,8 +194,10 @@ export class AgentsService {
           employeeId: employee.id,
           employeeCode: employee.employeeCode,
           sessionId: session.id,
+          sessionType: rawType,
+          ...(scenarioType ? { scenarioType } : {}),
         }),
-        signal: AbortSignal.timeout(N8N_CHAT_TIMEOUT_MS),
+        signal: AbortSignal.timeout(chatTimeoutMs),
       });
     } catch {
       throw new BadGatewayException(
@@ -228,6 +248,7 @@ export class AgentsService {
       answer?: unknown;
       questions?: unknown;
       scenarioType?: unknown;
+      intent?: unknown;
     } | null;
     const answer = obj?.answer;
     if (typeof answer !== 'string' || answer.length === 0) {
@@ -241,10 +262,18 @@ export class AgentsService {
     const questions = Array.isArray(obj?.questions)
       ? (obj?.questions as Array<Record<string, unknown>>)
       : undefined;
-    const scenarioType =
+    const responseScenarioType =
       typeof obj?.scenarioType === 'string' ? obj?.scenarioType : undefined;
 
-    return { answer, latencyMs, questions, scenarioType, sessionId: session.id, sessionType: type };
+    return {
+      answer,
+      latencyMs,
+      questions,
+      scenarioType: responseScenarioType,
+      sessionId: session.id,
+      sessionType: type,
+      intent: typeof obj?.intent === 'string' ? obj.intent : undefined,
+    };
   }
 
   /** POST /agents/chat-session/:id/reply — human reply lưu vào lịch sử session

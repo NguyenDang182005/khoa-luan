@@ -4,16 +4,22 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomInt } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsAuditService } from '../settings/settings-audit.service';
+import { ensureDefaultSecurityPolicy } from '../settings/single-row.utils';
+import { validatePasswordPolicy } from '../auth/password-policy';
 
 const EMPLOYMENT_STATUSES = ['ACTIVE', 'ON_LEAVE', 'TERMINATED', 'PROBATION'];
 const GENDERS = ['MALE', 'FEMALE', 'OTHER'];
 
 @Injectable()
 export class EmployeesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: SettingsAuditService,
+  ) {}
 
   async findAll(params: {
     page?: number;
@@ -192,6 +198,142 @@ export class EmployeesService {
     });
 
     return updatedUser;
+  }
+
+  /**
+   * Admin đặt lại mật khẩu cho nhân viên (POST /employees/:id/reset-password).
+   *
+   * Phễu quyền & điều kiện:
+   * - Endpoint đã chặn bởi JwtAuthGuard + RolesGuard @Roles('ADMIN_GROUP')
+   * - Target chỉ chấp nhận tài khoản EMPLOYEE đang kích hoạt:
+   *   + role ADMIN → từ chối (admin tự đổi mật khẩu của mình ở Cài Đặt → Bảo Mật & Phiên)
+   *   + user chưa kích hoạt (placeholder isActive=false) → từ chối (phải cấp tài khoản trước)
+   *
+   * Hành vi khi đặt lại:
+   * - GENERATE: server sinh mật khẩu ngẫu nhiên đạt SecurityPolicy, trả plaintext ĐÚNG 1 LẦN
+   * - MANUAL: validate newPassword theo SecurityPolicy
+   * - Cập nhật passwordChangedAt + thu hồi TOÀN BỘ phiên (refresh token) của nhân viên
+   * - Ghi audit log section 'account' — giá trị chỉ là mask, không bao giờ log mật khẩu thật
+   */
+  async resetPassword(
+    employeeId: string,
+    dto: { mode: 'GENERATE' | 'MANUAL'; newPassword?: string },
+    admin: { id?: string; email?: string },
+  ) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        id: true,
+        fullName: true,
+        employeeCode: true,
+        user: { select: { id: true, email: true, role: true, isActive: true } },
+      },
+    });
+    if (!employee || !employee.user) {
+      throw new NotFoundException('Không tìm thấy nhân viên');
+    }
+    if (employee.user.role === 'ADMIN') {
+      throw new BadRequestException(
+        'Chỉ được đặt lại mật khẩu cho tài khoản EMPLOYEE — mật khẩu ADMIN tự đổi trong Cài Đặt → Bảo Mật & Phiên',
+      );
+    }
+    if (!employee.user.isActive) {
+      throw new BadRequestException(
+        'Nhân viên chưa có tài khoản đang kích hoạt — dùng "Sửa Email & Role" để cấp tài khoản trước',
+      );
+    }
+
+    const policy = await ensureDefaultSecurityPolicy(this.prisma);
+
+    let newPassword: string;
+    if (dto.mode === 'GENERATE') {
+      newPassword = this.generatePolicyPassword(policy);
+    } else {
+      if (!dto.newPassword) {
+        throw new BadRequestException('Chưa nhập mật khẩu mới cho chế độ MANUAL');
+      }
+      const errors = validatePasswordPolicy(dto.newPassword, policy);
+      if (errors.length > 0) {
+        throw new BadRequestException(
+          `Mật khẩu chưa đạt yêu cầu: cần ${errors.join(', ')}.`,
+        );
+      }
+      newPassword = dto.newPassword;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: employee.user.id },
+        data: { passwordHash, passwordChangedAt: new Date() },
+      }),
+      // Mật khẩu mới ⇒ mọi phiên cũ của nhân viên (mọi thiết bị) phải đăng nhập lại
+      this.prisma.refreshToken.deleteMany({ where: { userId: employee.user.id } }),
+    ]);
+
+    // Audit — mask tuyệt đối, không log mật khẩu thật; lỗi audit không chặn nghiệp vụ
+    await this.audit.logAction({
+      section: 'account',
+      admin,
+      field: 'password',
+      oldValue: '••••••',
+      newValue: `đặt lại bởi admin — ${employee.employeeCode} (${employee.user.email})`,
+    });
+
+    return {
+      message:
+        dto.mode === 'GENERATE'
+          ? `Đã đặt lại mật khẩu cho ${employee.fullName}. Hãy chuyển mật khẩu dưới đây cho nhân viên — nó chỉ hiển thị MỘT LẦN.`
+          : `Đã đặt lại mật khẩu cho ${employee.fullName}.`,
+      fullName: employee.fullName,
+      email: employee.user.email,
+      generatedPassword: dto.mode === 'GENERATE' ? newPassword : undefined,
+    };
+  }
+
+  /**
+   * Sinh mật khẩu ngẫu nhiên thỏa mãn SecurityPolicy hiện hành.
+   * Dùng crypto.randomInt (an toàn mật mã) + Fisher–Yates shuffle,
+   * đảm bảo mỗi nhóm ký tự bắt buộc có mặt ít nhất 1 lần.
+   */
+  private generatePolicyPassword(policy: {
+    passwordMinLength: number;
+    requireUppercase: boolean;
+    requireLowercase: boolean;
+    requireDigit: boolean;
+    requireSpecial: boolean;
+  }): string {
+    const length = Math.max(12, policy.passwordMinLength);
+    const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+    const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const DIGIT = '0123456789';
+    const SPECIAL = '!@#$%^&*()-_=+';
+    const ALL = LOWER + UPPER + DIGIT + SPECIAL;
+    const pick = (set: string) => set[randomInt(set.length)]!;
+
+    // Mỗi nhóm bắt buộc đảm bảo có ít nhất 1 ký tự
+    const chars: string[] = [];
+    if (policy.requireLowercase) chars.push(pick(LOWER));
+    if (policy.requireUppercase) chars.push(pick(UPPER));
+    if (policy.requireDigit) chars.push(pick(DIGIT));
+    if (policy.requireSpecial) chars.push(pick(SPECIAL));
+    while (chars.length < length) chars.push(pick(ALL));
+
+    // Fisher–Yates shuffle
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [chars[i], chars[j]] = [chars[j]!, chars[i]!];
+    }
+
+    const password = chars.join('');
+    // Tự kiểm tra chốt hạ — phòng cấu hình policy đặc biệt
+    const errors = validatePasswordPolicy(password, policy);
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        `Không sinh được mật khẩu đạt chính sách: cần ${errors.join(', ')}.`,
+      );
+    }
+    return password;
   }
 
   async update(

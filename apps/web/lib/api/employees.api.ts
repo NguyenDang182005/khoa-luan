@@ -4,6 +4,7 @@ import {
   EmployeeDetailSchema,
   DepartmentsListSchema,
   ActiveContractSchema,
+  ResetPasswordResponseSchema,
 } from '../schemas/employee.schema'
 import type { Contract, EmployeeDetail } from '../schemas/employee.schema'
 
@@ -30,6 +31,11 @@ export interface CreateEmployeeInput {
 export interface UpdateAccountInput {
   email?: string
   role?: 'ADMIN' | 'EMPLOYEE'
+}
+
+export interface ResetPasswordInput {
+  mode: 'GENERATE' | 'MANUAL'
+  newPassword?: string
 }
 
 export interface Position {
@@ -73,6 +79,15 @@ export const employeesApi = {
   updateAccount: async (id: string, input: UpdateAccountInput) => {
     const { data } = await apiClient.patch(`/employees/${id}/account`, input)
     return data as { id: string; email: string; role: string; isActive: boolean; googleId: string | null; facebookId: string | null }
+  },
+  /**
+   * Admin đặt lại mật khẩu nhân viên (chỉ ADMIN).
+   * mode=GENERATE → response có generatedPassword, server chỉ trả ĐÚNG 1 LẦN để admin chuyển tay.
+   * Mọi phiên đăng nhập cũ của nhân viên bị thu hồi sau khi đặt lại.
+   */
+  resetPassword: async (id: string, input: ResetPasswordInput) => {
+    const { data } = await apiClient.post(`/employees/${id}/reset-password`, input)
+    return ResetPasswordResponseSchema.parse(data)
   },
   getByCode: async (code: string) => {
     const { data } = await apiClient.get(`/employees/by-code/${code}`)

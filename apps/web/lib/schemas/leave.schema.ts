@@ -13,17 +13,42 @@ export const LeaveRequestSchema = z.object({
   status: LeaveStatusEnum,
   approvedAt: z.string().nullable().optional(),
   rejectionReason: z.string().nullable().optional(),
-  employee: z.object({ fullName: z.string(), employeeCode: z.string() }).optional(),
+  employee: z
+    .object({
+      id: z.string().optional(),
+      fullName: z.string(),
+      employeeCode: z.string(),
+      department: z.object({ name: z.string() }).optional().nullable(),
+    })
+    .optional(),
+  approvedBy: z
+    .object({
+      id: z.string(),
+      fullName: z.string(),
+    })
+    .optional()
+    .nullable(),
+  createdAt: z.string().optional(),
 })
 export const LeaveListSchema = z.array(LeaveRequestSchema)
 
 export const LeaveBalanceSchema = z.object({
-  employeeId: z.string(),
+  employeeId: z.string().optional(),
   year: z.number(),
-  totalDays: z.number(),
-  usedDays: z.number(),
-  remainingDays: z.number(),
-})
+  // Backend cũ trả { total, used, remaining }, backend mới có thể thêm totalDays/usedDays/remainingDays
+  total: z.number().optional(),
+  used: z.number().optional(),
+  remaining: z.number().optional(),
+  totalDays: z.number().optional(),
+  usedDays: z.number().optional(),
+  remainingDays: z.number().optional(),
+}).transform((v) => ({
+  employeeId: v.employeeId ?? '',
+  year: v.year,
+  totalDays: v.totalDays ?? v.total ?? 12,
+  usedDays: v.usedDays ?? v.used ?? 0,
+  remainingDays: v.remainingDays ?? v.remaining ?? (v.total ?? 12) - (v.used ?? 0),
+}))
 
 export const LeaveCreateSchema = z.object({
   employeeId: z.string().min(1, 'Vui lòng chọn nhân viên'),

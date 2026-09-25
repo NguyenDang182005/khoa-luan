@@ -38,6 +38,18 @@ import { dashboardApi } from '@/lib/api/dashboard.api'
 import type { KpiData, AttendanceChartData, DeptDistributionData, PendingLeaveData, AiWorkflowStat } from '@/lib/schemas/dashboard.schema'
 import { useAuth } from '@/lib/auth-context'
 import { useAiSocket } from '@/lib/hooks/useAiSocket'
+import { LeaveDetailModal } from "@/components/employees/leave-detail-modal"
+
+function fmtVN(iso: string) {
+  if (!iso) return "--"
+  try {
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return iso.slice(0, 10)
+    return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
+  } catch {
+    return iso.slice(0, 10)
+  }
+}
 import type { AiActivityEvent } from '@/lib/hooks/useAiSocket'
 
 export function DashboardView() {
@@ -99,6 +111,7 @@ export function DashboardView() {
     } catch (e) { console.error(e) }
   }
 
+  const [detailTarget, setDetailTarget] = React.useState<PendingLeaveData | null>(null)
   const [rejectTarget, setRejectTarget] = React.useState<PendingLeaveData | null>(null)
   const [rejectReason, setRejectReason] = React.useState('')
   const confirmReject = async () => {
@@ -309,22 +322,43 @@ export function DashboardView() {
                 {pendingLeaves.map((leave) => (
                   <div
                     key={leave.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3 hover:bg-muted/40 transition-colors"
+                    onClick={() => setDetailTarget(leave)}
+                    className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-3 hover:bg-muted/40 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar initials={leave.employee.fullName.substring(0, 2).toUpperCase()} className="bg-primary/20 text-primary border border-primary/30" />
                       <div>
-                        <p className="text-xs font-semibold text-foreground">{leave.employee.fullName}</p>
-                        <p className="text-[11px] text-muted-foreground">{leave.employee.department.name} • {leave.startDate} - {leave.endDate} ({leave.totalDays} ngày)</p>
-                        <p className="text-[11px] text-muted-foreground italic">&ldquo;{leave.reason}&rdquo;</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {leave.employee.fullName}
+                          </p>
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-border">
+                            {leave.totalDays} ngày
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {leave.employee.department.name} • {fmtVN(leave.startDate)} → {fmtVN(leave.endDate)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground italic mt-0.5 truncate max-w-sm">&ldquo;{leave.reason}&rdquo;</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Button size="xs" variant="default" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handleAction(leave.id, 'approve')}>
-                        <CheckCircle2 className="size-3 mr-1" /> Duyệt
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="xs"
+                        variant="default"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                        onClick={() => setDetailTarget(leave)}
+                      >
+                        <CheckCircle2 className="size-3" /> Xem & Duyệt
                       </Button>
-                      <Button size="xs" variant="ghost" className="text-destructive hover:bg-destructive/10" aria-label="Từ chối đơn" onClick={() => { setRejectTarget(leave); setRejectReason('') }}>
-                        <XCircle className="size-3" />
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive/10"
+                        aria-label="Từ chối đơn"
+                        onClick={() => { setRejectTarget(leave); setRejectReason('') }}
+                      >
+                        <XCircle className="size-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -475,6 +509,37 @@ export function DashboardView() {
           </Button>
         </DialogFooter>
       </Dialog>
+
+      {/* Pop up chi tiết đơn nghỉ phép kèm phê duyệt */}
+      <LeaveDetailModal
+        leave={
+          detailTarget
+            ? {
+                id: detailTarget.id,
+                type: detailTarget.type,
+                startDate: detailTarget.startDate,
+                endDate: detailTarget.endDate,
+                totalDays: detailTarget.totalDays,
+                reason: detailTarget.reason,
+                status: "PENDING",
+                employee: {
+                  id: detailTarget.employee.id,
+                  fullName: detailTarget.employee.fullName,
+                  employeeCode: detailTarget.employee.employeeCode || "--",
+                  department: detailTarget.employee.department,
+                },
+              }
+            : null
+        }
+        isOpen={detailTarget !== null}
+        onClose={() => setDetailTarget(null)}
+        onApprove={async (id) => {
+          await handleAction(id, "approve")
+        }}
+        onReject={async (id, reason) => {
+          await handleAction(id, "reject", reason)
+        }}
+      />
     </div>
   )
 }

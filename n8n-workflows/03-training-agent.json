@@ -169,7 +169,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10.\\nJSON THUAN:{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
+        "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10, moi TuLuan PHAI cham theo 4 tieu chi (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang.\\nJSON THUAN:{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
       },
       "id": "quiz-grade-prompt",
       "name": "Build Quiz Grade Prompt",
@@ -447,7 +447,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const pr=$(\"Parse Result\").first().json;return[{json:{answer:pr.roleplayResponse,roleplayResponse:pr.roleplayResponse,scoring:pr.scoring,sessionId:pr.sessionId,scenarioType:pr.scenarioType,intent:\"TRAINING\"}}];"
+        "jsCode": "// Detect branch: quiz / grade / roleplay\nlet out={questions:null,answer:\"\",scoring:null,scenarioType:\"\",sessionId:\"\",intent:\"TRAINING\"};\n// Quiz branch: read questions từ Format Quiz Output\ntry{const fqo=$(\"Format Quiz Output\").first().json;if(fqo&&Array.isArray(fqo.questions)){out.questions=fqo.questions;out.answer=fqo.answer||\"Đây là bài kiểm tra đào tạo của bạn:\";out.scenarioType=fqo.scenarioType||\"\";out.sessionId=fqo.sessionId||\"\";return[{json:out}];}}catch(_){}\n// Grade branch: read result từ Format Grade Output\ntry{const fgo=$(\"Format Grade Output\").first().json;if(fgo&&fgo.score_percent!==undefined){out.answer=fgo.overall_feedback||\"\";out.score_percent=fgo.score_percent;out.correct_count=fgo.correct_count;out.total_mcq=fgo.total_mcq;out.essay_avg=fgo.essay_avg;out.results=fgo.results;out.overall_feedback=fgo.overall_feedback||out.answer;out.scoring={score_percent:fgo.score_percent,correct_count:fgo.correct_count,total_mcq:fgo.total_mcq,essay_avg:fgo.essay_avg,results:fgo.results};out.scenarioType=fgo.scenarioType||\"\";out.sessionId=fgo.sessionId||\"\";return[{json:out}];}}catch(_){}\n// Roleplay branch: read từ Parse Result\ntry{const pr=$(\"Parse Result\").first().json;out.answer=pr.roleplayResponse||\"\";out.scoring=pr.scoring||null;out.scenarioType=pr.scenarioType||\"\";out.sessionId=pr.sessionId||\"\";}catch(_){}\nreturn[{json:out}];"
       },
       "id": "format-training-output",
       "name": "Format Training Output",
@@ -706,10 +706,26 @@
       ]
     },
     "Save Quiz Assistant Message": {
-      "main": []
+      "main": [
+        [
+          {
+            "node": "Format Training Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Save Grade Assistant Message": {
-      "main": []
+      "main": [
+        [
+          {
+            "node": "Format Training Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -919,7 +935,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10.\\nJSON THUAN:{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
+          "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10, moi TuLuan PHAI cham theo 4 tieu chi (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang.\\nJSON THUAN:{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
         },
         "id": "quiz-grade-prompt",
         "name": "Build Quiz Grade Prompt",

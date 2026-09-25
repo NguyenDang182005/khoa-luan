@@ -1,7 +1,7 @@
 # Hệ Thống Quản Trị Nhân Sự Tích Hợp AI Multi-Agent
 
 > **Đồ án Khóa Luận Tốt Nghiệp**  
-> Kiến trúc Monorepo hiện đại kết hợp NestJS 11, PostgreSQL, Prisma, Next.js, React Native và Hệ thống AI Multi-Agent điều phối qua n8n & Google Gemini 3.5 Flash.
+> Kiến trúc Monorepo hiện đại kết hợp NestJS 11, PostgreSQL, Prisma, Next.js và Hệ thống AI Multi-Agent điều phối qua n8n & Google Gemini 3.5 Flash.
 
 ---
 
@@ -11,7 +11,6 @@
 ┌───────────────────────────────────────────────────────────┐
 │                     Client Apps Layer                     │
 │  - Web Portal (Next.js 14, Tailwind CSS, shadcn/ui)       │
-│  - Mobile App (React Native, Expo, NativeWind)            │
 │  - Zalo OA / Chatbot Interface                            │
 └──────────────┬─────────────────────────────┬──────────────┘
                │                             │
@@ -32,6 +31,8 @@
 └──────────────────────────────┘    └──────────────────────────┘
 ```
 
+> **🎯 Scope (cập nhật 25/09):** Phase 1 = **Web-only** — Web Portal (Admin + Employee Self-Service) + kênh chatbot Zalo OA. Mobile App React Native đã **cắt khỏi scope Phase 1** và chuyển thành hướng phát triển (xem `docs/adr/0003-web-only-client-phase-1.md`).
+
 ---
 
 ## 📦 Cấu Trúc Monorepo (Turborepo)
@@ -40,12 +41,11 @@
 khoa-luan/
 ├── apps/
 │   ├── api/                 # NestJS 11 API Backend (Port 3001)
-│   ├── web/                 # Next.js HR Web Portal (Port 3000)
-│   └── mobile/              # React Native Mobile App (Expo)
+│   └── web/                 # Next.js HR Web Portal (Port 3000)
 ├── packages/
 │   ├── database/            # Prisma Schema, Migrations & Database Client
 │   ├── shared-types/        # TypeScript interfaces dùng chung (Auth, Employee, HR)
-│   └── typescript-config/   # Base tsconfig cho NestJS & React Native
+│   └── typescript-config/   # Base tsconfig cho NestJS & Next.js
 ├── n8n-workflows/           # 4 AI Multi-Agent Workflows (JSON exports)
 │   ├── 01-router-agent.json
 │   ├── 02-hr-qa-agent.json

@@ -22,6 +22,14 @@ export const leaveApi = {
     const { data } = await apiClient.patch(`/leave/${id}/reject`, { approverId, rejectionReason: reason })
     return data
   },
+  approveBulk: async (ids: string[], approverId: string) => {
+    return Promise.all(ids.map((id) => apiClient.patch(`/leave/${id}/approve`, { approverId })))
+  },
+  rejectBulk: async (ids: string[], approverId: string, reason: string) => {
+    return Promise.all(
+      ids.map((id) => apiClient.patch(`/leave/${id}/reject`, { approverId, rejectionReason: reason }))
+    )
+  },
   cancel: async (id: string, employeeId: string) => {
     const { data } = await apiClient.patch(`/leave/${id}/cancel`, { employeeId })
     return data

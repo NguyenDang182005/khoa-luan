@@ -149,16 +149,92 @@ export class TrainingService {
       gradeResult = this.fallbackGrade(answers);
     }
 
-    // Lưu TrainingSession
-    const mcqResults = (gradeResult.results ?? []).filter((r: any) => r.type === 'mcq');
-    const essayResults = (gradeResult.results ?? []).filter((r: any) => r.type === 'essay');
-    const correctCount = mcqResults.filter((r: any) => r.correct).length;
-    const quizScore = mcqResults.length > 0 ? (correctCount / mcqResults.length) * 100 : 0;
+    // Lưu TrainingSession — hỗ trợ cả trường trực tiếp lẫn trường lồng trong scoring (tương thích n8n)
+    const rawScoring = (gradeResult?.scoring && typeof gradeResult.scoring === 'object') ? gradeResult.scoring : {};
+    const rawResults: any[] = Array.isArray(gradeResult?.results)
+      ? gradeResult.results
+      : Array.isArray(rawScoring.results)
+        ? rawScoring.results
+        : [];
+    const mcqResults = rawResults.filter((r: any) => r.type === 'mcq');
+    const essayResults = rawResults.filter((r: any) => r.type === 'essay');
+
+    // ── Chấm MCQ deterministic phía server ──────────────────────────────────────
+    // Đáp án + đáp án đúng đã có sẵn trong payload. KHÔNG tin counter aggregate
+    // (correct_count/total_mcq) do LLM tự đếm — nó thường xuyên lệch với chính
+    // results[] từng câu (bug: attempts ghi 2/5 đúng nhưng quizScore lưu 20%).
+    /** Đúng/sai 1 câu MCQ: so sánh trực tiếp answer vs correctAnswer; fallback results[] của WF03 */
+    const mcqIsCorrect = (ans: { type: string; answer: string; correctAnswer?: string; questionId: number }): boolean | null => {
+      if (ans.type !== 'mcq') return null;
+      if (ans.correctAnswer && ans.answer) {
+        return ans.answer.trim().toUpperCase() === ans.correctAnswer.trim().toUpperCase();
+      }
+      const r = rawResults.find((item: any) => item.id === ans.questionId);
+      return typeof r?.correct === 'boolean' ? r.correct : null;
+    };
+
+    const mcqAnswers = answers.filter((a) => a.type === 'mcq');
+    const clientGradable = mcqAnswers.filter((a) => a.correctAnswer && a.answer);
+    const correctCount =
+      clientGradable.length > 0
+        ? mcqAnswers.filter((a) => mcqIsCorrect(a) === true).length
+        : mcqResults.filter((r: any) => r.correct === true).length > 0
+          ? mcqResults.filter((r: any) => r.correct === true).length
+          : typeof gradeResult?.correct_count === 'number'
+            ? gradeResult.correct_count
+            : typeof rawScoring.correct_count === 'number'
+              ? rawScoring.correct_count
+              : 0;
+    const totalMcq =
+      mcqAnswers.length > 0
+        ? mcqAnswers.length
+        : typeof gradeResult?.total_mcq === 'number'
+          ? gradeResult.total_mcq
+          : typeof rawScoring.total_mcq === 'number'
+            ? rawScoring.total_mcq
+            : mcqResults.length;
+    const quizScore = totalMcq > 0 ? (correctCount / totalMcq) * 100 : 0;
     const essayAvg =
-      essayResults.length > 0
-        ? essayResults.reduce((sum: number, r: any) => sum + (r.score ?? 0), 0) / essayResults.length
-        : 0;
+      typeof gradeResult?.essay_avg === 'number'
+        ? gradeResult.essay_avg
+        : typeof rawScoring.essay_avg === 'number'
+          ? rawScoring.essay_avg
+          : essayResults.length > 0
+            ? essayResults.reduce((sum: number, r: any) => sum + (r.score ?? 0), 0) / essayResults.length
+            : 0;
+
+    // ── Điểm 4 tiêu chí từ criteria{} từng essay (WF03 trả từ 25/09) ────────────
+    // LLM chấm mỗi câu tự luận theo 4 tiêu chí 0-10; trung bình theo tiêu chí.
+    // Fallback: nếu LLM không trả criteria (prompt cũ / parse hụt) → dùng essay_avg
+    // cho cả 4 trục như behavior cũ, radar không bao giờ crash.
+    const critAvg = (key: string): number => {
+      const graded = essayResults.filter(
+        (r: any) => r.criteria && typeof r.criteria[key] === 'number',
+      );
+      if (graded.length > 0) {
+        return graded.reduce((s: number, r: any) => s + r.criteria[key], 0) / graded.length;
+      }
+      const perEssay = essayResults
+        .map((r: any) => r.score)
+        .filter((s: any) => typeof s === 'number');
+      return perEssay.length > 0
+        ? perEssay.reduce((a: number, b: number) => a + b, 0) / perEssay.length
+        : essayAvg;
+    };
+    const criteriaScore = {
+      professional: Math.round(critAvg('chuyen_nghiep') * 10) / 10,
+      empathy: Math.round(critAvg('dong_cam') * 10) / 10,
+      problemSolving: Math.round(critAvg('giai_quyet') * 10) / 10,
+      clarity: Math.round(critAvg('ro_rang') * 10) / 10,
+      essay_avg: Math.round(essayAvg * 10) / 10,
+    };
     const totalScore = Math.round((quizScore * 0.5 + essayAvg * 10 * 0.5) * 10) / 10;
+
+    const overallFeedback =
+      gradeResult?.overall_feedback ||
+      rawScoring.overall_feedback ||
+      gradeResult?.answer ||
+      '';
 
     const session = await this.prisma.trainingSession.create({
       data: {
@@ -166,9 +242,15 @@ export class TrainingService {
         scenario,
         status: 'GRADED',
         quizScore: Math.round(quizScore * 10) / 10,
-        aiScore: { essay_avg: Math.round(essayAvg * 10) / 10 },
+        aiScore: {
+          professional: Math.round(essayAvg * 10) / 10,
+          empathy: Math.round(essayAvg * 10) / 10,
+          problemSolving: Math.round(essayAvg * 10) / 10,
+          clarity: Math.round(essayAvg * 10) / 10,
+          essay_avg: Math.round(essayAvg * 10) / 10,
+        },
         totalScore,
-        aiFeedback: gradeResult.overall_feedback ?? '',
+        aiFeedback: overallFeedback,
         completedAt: new Date(),
       },
     });
@@ -176,13 +258,14 @@ export class TrainingService {
     // Lưu TrainingAttempt cho từng câu (dùng questionId=0 vì câu hỏi do Gemini sinh động)
     const placeholder = await this.ensurePlaceholderQuestion(scenario);
     for (const ans of answers) {
-      const resultItem = (gradeResult.results ?? []).find((r: any) => r.id === ans.questionId) ?? {};
+      const resultItem = rawResults.find((r: any) => r.id === ans.questionId) ?? {};
       await this.prisma.trainingAttempt.create({
         data: {
           sessionId: session.id,
           questionId: placeholder.id,
           answer: ans.answer,
-          isCorrect: ans.type === 'mcq' ? (resultItem.correct ?? null) : null,
+          // Cùng nguồn sự thật với aggregate phía trên — không còn NULL dù WF03 khuyết results
+          isCorrect: mcqIsCorrect(ans),
           aiEvaluation: {
             question: ans.question,
             type: ans.type,
@@ -194,15 +277,18 @@ export class TrainingService {
       });
     }
 
+    // Tính local từ chính điểm đã lưu — đảm bảo chat (score_percent) và tab (totalScore) luôn khớp nhau
+    const scorePercent = Math.round(totalScore);
+
     return {
       sessionId: session.id,
       scenario,
-      score_percent: gradeResult.score_percent ?? Math.round(totalScore),
+      score_percent: scorePercent,
       correct_count: correctCount,
-      total_mcq: mcqResults.length,
+      total_mcq: totalMcq,
       essay_avg: Math.round(essayAvg * 10) / 10,
-      results: gradeResult.results ?? [],
-      overall_feedback: gradeResult.overall_feedback ?? '',
+      results: rawResults,
+      overall_feedback: overallFeedback,
     };
   }
 
@@ -381,10 +467,11 @@ export class TrainingService {
     for (const s of sessions) {
       const ai = s.aiScore as any;
       if (ai) {
-        totals.professional += ai.professional ?? 0;
-        totals.empathy += ai.empathy ?? 0;
-        totals.problemSolving += ai.problemSolving ?? 0;
-        totals.clarity += ai.clarity ?? 0;
+        const fallback = ai.essay_avg ?? 0;
+        totals.professional += ai.professional ?? fallback;
+        totals.empathy += ai.empathy ?? fallback;
+        totals.problemSolving += ai.problemSolving ?? fallback;
+        totals.clarity += ai.clarity ?? fallback;
         count++;
       }
     }

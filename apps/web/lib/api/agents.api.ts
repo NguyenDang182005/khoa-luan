@@ -40,6 +40,7 @@ export interface AgentChatResult {
   /** Q16-session: phiên chat (backend sở hữu) — client lưu và gửi lại lượt sau */
   sessionId?: string
   sessionType?: string
+  intent?: string
 }
 
 export interface ChatHistoryMessage {
@@ -76,14 +77,14 @@ export const agentsApi = {
    */
   chat: async (
     message: string,
-    opts?: { sessionId?: string; sessionType?: string },
+    opts?: { sessionId?: string; sessionType?: string; scenarioType?: string },
   ): Promise<AgentChatResult> => {
     const startTime = Date.now()
     try {
       // Chat AI có thể mất 30-60s (Gemini + RAG): vượt quá timeout mặc định 15s của apiClient.
       const { data } = await apiClient.post(
         '/agents/chat',
-        { message, sessionId: opts?.sessionId, sessionType: opts?.sessionType },
+        { message, sessionId: opts?.sessionId, sessionType: opts?.sessionType, scenarioType: opts?.scenarioType },
         { timeout: 100_000 },
       )
       const answer: string =
@@ -98,6 +99,7 @@ export const agentsApi = {
         scenarioType: typeof data?.scenarioType === 'string' ? data.scenarioType : undefined,
         sessionId: typeof data?.sessionId === 'string' ? data.sessionId : undefined,
         sessionType: typeof data?.sessionType === 'string' ? data.sessionType : undefined,
+        intent: typeof data?.intent === 'string' ? data.intent : undefined,
       }
     } catch (err: unknown) {
       const e = err as { response?: { status?: number }; code?: string }

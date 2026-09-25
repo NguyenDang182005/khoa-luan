@@ -1,12 +1,15 @@
 ---
 tags: [khoa-luan, product-orientation, web, mobile, killer-features, architecture]
 created: 2026-09-07
-status: approved
+status: "approved — cập nhật 25/09: web-only phase 1"
+updated: 2026-09-25
 ---
 
 # 🚀 Định Hướng Phát Triển Sản Phẩm (Web & Mobile) & 4 Tính Năng Đột Phá
 
 > **Tài liệu chiến lược:** Định hướng phân rã tính năng theo thiết bị (Form Factor), mô hình phân quyền RBAC và 4 tính năng "Killer Features" tạo điểm nhấn công nghệ cho Đồ án Khóa luận Tốt nghiệp.
+
+> **🔄 CẬP NHẬT 25/09/2026 — QUYẾT ĐỊNH WEB-ONLY PHASE 1:** Mobile App đã **cắt khỏi scope Phase 1**, chuyển thành **hướng phát triển** (xem [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]] | `docs/adr/0003-web-only-client-phase-1.md`). Các mục Mobile bên dưới giữ nguyên làm thiết kế tham chiếu Phase 2. Killer Feature #1 (GPS Geofencing) **đã chạy thật trên Web Portal ESS** (`employee-portal`: `navigator.geolocation` + Haversine + `OfficeGeofence` từ Trang Cài Đặt).
 
 ---
 
@@ -14,7 +17,7 @@ status: approved
 
 Hệ thống đi theo chuẩn thiết kế doanh nghiệp hiện đại:
 * **Web Portal (Desktop-first):** Giải quyết bài toán **Quản trị toàn diện & Bàn giấy** với không gian màn hình lớn. Dành cho cả **Sếp / HR Admin** và **Nhân viên (Employee Self-Service)** qua cơ chế phân quyền Role-Based Access Control (RBAC).
-* **Mobile App (On-the-go):** Giải quyết bài toán **Tức thời & Di động**. Tập trung vào trải nghiệm mang tính vật lý cá nhân của **Nhân viên**: Chấm công định vị và Luyện tập kỹ năng qua Chat mô phỏng.
+* **Mobile App (On-the-go):** Giải quyết bài toán **Tức thời & Di động**. Tập trung vào trải nghiệm mang tính vật lý cá nhân của **Nhân viên**: Chấm công định vị và Luyện tập kỹ năng qua Chat mô phỏng. *(25/09: chuyển thành hướng phát triển — Phase 1 web-only)*
 
 ---
 
@@ -40,6 +43,8 @@ Hệ thống đi theo chuẩn thiết kế doanh nghiệp hiện đại:
 
 ## 📱 3. Kiến Trúc Màn Hình Mobile App (React Native + Expo)
 
+> ⚠️ **Hướng phát triển (đã cắt khỏi scope 25/09)** — nội dung giữ nguyên làm thiết kế tham chiếu Phase 2.
+
 Giao diện dạng **Bottom Tab Bar 4 tabs** tinh gọn, thao tác tiện lợi bằng ngón tay cái:
 
 * **Tab 1 — 🏠 Trang Chủ & Chấm Công (Home & Attendance):**
@@ -63,8 +68,8 @@ Giao diện dạng **Bottom Tab Bar 4 tabs** tinh gọn, thao tác tiện lợi 
 
 ## 🌟 4. BỐN TÍNH NĂNG ĐỘT PHÁ ("KILLER FEATURES")
 
-### 📍 1. Chấm Công Thông Minh Geofencing GPS (Mobile)
-* **Cơ chế:** Mobile App tích hợp thư viện định vị (`expo-location`). Khi nhân viên bấm nút Chấm công, ứng dụng lấy toạ độ thực tế (Latitude, Longitude) và tính khoảng cách theo công thức Haversine tới tọa độ văn phòng công ty.
+### 📍 1. Chấm Công Thông Minh Geofencing GPS (Web ESS — đã triển khai)
+* **Cơ chế (đang chạy trên Web Portal ESS):** Khi nhân viên bấm nút Chấm công trên `employee-portal`, trình duyệt lấy toạ độ thực tế qua `navigator.geolocation.getCurrentPosition` và so khoảng cách **Haversine** tới văn phòng theo `OfficeGeofence` (HR_ADMIN cấu hình tại Trang Cài Đặt). Mobile client tương lai (Phase 2) tái sử dụng cùng API backend với `expo-location`.
 * **Quy tắc:** Chỉ cho phép Check-in nếu khoảng cách $\le 200\text{m}$. Nếu ở ngoài bán kính, hệ thống từ chối và cảnh báo *"Bạn đang ở ngoài khu vực văn phòng"*.
 * **Tùy chọn nâng cao:** Bật camera trước chụp nhanh 1 tấm ảnh selfie xác thực khuôn mặt (Face Evidence).
 * **Giá trị bảo vệ:** Thể hiện tính thực tiễn cao, giải quyết triệt để gian lận chấm công từ xa.
@@ -87,7 +92,7 @@ Giao diện dạng **Bottom Tab Bar 4 tabs** tinh gọn, thao tác tiện lợi 
     3. `problem_solving` (Năng lực đưa ra giải pháp thực tế)
     4. `clarity` (Độ rõ ràng, gãy gọn trong diễn đạt)
 * **Trực quan hóa:**
-  - **Trên Mobile App:** Kết thúc bài test, hiển thị ngay **Biểu đồ Radar (Spider Chart)** 4 cánh thể hiện điểm kỹ năng, kết hợp với điểm trắc nghiệm nội quy (chấm bởi NestJS) để ra điểm tổng kết.
+  - **Trên Mobile App (hướng phát triển — hiện kết quả hiển thị trên Web My Training):** Kết thúc bài test, hiển thị ngay **Biểu đồ Radar (Spider Chart)** 4 cánh thể hiện điểm kỹ năng, kết hợp với điểm trắc nghiệm nội quy (chấm bởi NestJS) để ra điểm tổng kết.
   - **Trên Web Admin:** HR xem được ma trận kỹ năng của toàn bộ nhân viên, phát hiện phòng ban nào còn yếu về "Thấu cảm" hoặc "Giải quyết vấn đề" để lên kế hoạch đào tạo.
 * **Giá trị bảo vệ:** Không lạm dụng AI cho câu hỏi trắc nghiệm kiến thức, chỉ dùng AI đúng sở trường đánh giá kỹ năng mềm tự luận, có số liệu định lượng khoa học.
 
@@ -150,3 +155,4 @@ Hệ thống đã được kiểm thử toàn diện qua script tự động [`s
 - [[04 - Mobile App (React Native)]]
 - [[06 - n8n Workflows & AI Agents]]
 - [[10 - Nhật Ký Tích Hợp n8n & NestJS (E2E Test)]]
+- [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]]

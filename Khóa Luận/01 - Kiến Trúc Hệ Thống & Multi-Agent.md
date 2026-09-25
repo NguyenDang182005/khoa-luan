@@ -1,7 +1,7 @@
 ---
 tags: [khoa-luan, architecture, multi-agent, ai, n8n]
 created: 2026-09-04
-updated: 2026-09-17
+updated: 2026-09-25
 ---
 
 # 🤖 Kiến Trúc Hệ Thống & Multi-Agent
@@ -11,7 +11,7 @@ updated: 2026-09-17
 Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý dưới dạng **Monorepo**.
 
 ```
-[Mobile App] ► [n8n Router Agent] ─► [HR Q&A Agent]
+[Client (Web Portal / Zalo)] ► [n8n Router Agent] ─► [HR Q&A Agent]
                          ├► [Training Agent]
                          └► [CSKH Zalo Agent] ► [Zalo OA]
                    │
@@ -31,7 +31,7 @@ Hệ thống theo mô hình **Client-Server** phân tách rõ ràng, quản lý 
 - **Vai trò:** "Tổng đài viên thông minh" — Webhook `POST /webhook/chat`
 - **Thiết kế:** Khung **PEAS** (Performance, Environment, Actuators, Sensors)
 - **Flow (refactor 17/09 — 0 LLM call):**
-  1. Nhận message từ Mobile App
+  1. Nhận message từ client (Web Portal / Zalo OA)
   2. **PII Masking** — che thông tin nhạy cảm (Regex)
   3. **Keyword Intent Classifier** — phân loại bằng JavaScript regex thuần túy (không gọi Gemini)
   4. Switch router → route tới đúng agent

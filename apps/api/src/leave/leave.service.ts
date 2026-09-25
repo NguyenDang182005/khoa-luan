@@ -4,6 +4,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ensureDefaultLeavePolicy } from '../settings/single-row.utils';
+import {
+  computeBalance,
+  countWorkdays,
+  LeavePolicyConfig,
+} from './leave-entitlement';
 
 @Injectable()
 export class LeaveService {
@@ -142,26 +148,57 @@ export class LeaveService {
     });
   }
 
+  /**
+   * Số dư phép năm — đọc chính sách từ bảng LeavePolicy (trang Cài Đặt > Phép Năm).
+   * Bao gồm: quota chuẩn + thâm niên + pro-rate năm đầu + carry-over từ năm trước.
+   * Ngày dùng được tính theo ngày CHỒNG LẤN với năm xét (sửa lỗi cũ: đơn vắt qua
+   * 2 năm trước đây bị loại toàn bộ khỏi tích).
+   */
   async getBalance(employeeId: string, year: number) {
-    const ANNUAL_DAYS = 12; // 12 ngày phép năm theo luật VN
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { joinDate: true },
+    });
+    if (!employee) throw new NotFoundException('Không tìm thấy nhân viên');
 
+    const policyRow = await ensureDefaultLeavePolicy(this.prisma);
+    const policy: LeavePolicyConfig = {
+      annualQuotaDays: policyRow.annualQuotaDays,
+      seniorityBonusEveryYears: policyRow.seniorityBonusEveryYears,
+      seniorityBonusDays: policyRow.seniorityBonusDays,
+      prorateByJoinMonth: policyRow.prorateByJoinMonth,
+      maxCarryOverDays: policyRow.maxCarryOverDays,
+    };
+
+    // Lấy các đơn ANNUAL đã duyệt có khả năng chồng lấn năm xét hoặc năm liền trước
     const approved = await this.prisma.leaveRequest.findMany({
       where: {
         employeeId,
         type: 'ANNUAL',
         status: 'APPROVED',
-        startDate: { gte: new Date(year, 0, 1) },
-        endDate: { lte: new Date(year, 11, 31) },
+        startDate: { lte: new Date(year, 11, 31) },
+        endDate: { gte: new Date(year - 1, 0, 1) },
       },
     });
 
-    const used = approved.reduce((sum, r) => sum + r.totalDays, 0);
-    return {
-      year,
-      total: ANNUAL_DAYS,
-      used,
-      remaining: Math.max(0, ANNUAL_DAYS - used),
+    const usedInYear = (y: number) => {
+      const jan1 = new Date(y, 0, 1);
+      const dec31 = new Date(y, 11, 31);
+      return approved.reduce((sum, r) => {
+        const from = r.startDate > jan1 ? r.startDate : jan1;
+        const to = r.endDate < dec31 ? r.endDate : dec31;
+        return sum + countWorkdays(from, to);
+      }, 0);
     };
+
+    const balance = computeBalance({
+      policy,
+      joinDate: employee.joinDate,
+      year,
+      usedThisYear: usedInYear(year),
+      usedPrevYear: usedInYear(year - 1),
+    });
+    return balance;
   }
 
   private calculateDays(start: Date, end: Date): number {

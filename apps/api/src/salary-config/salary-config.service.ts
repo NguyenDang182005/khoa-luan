@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsAuditService } from '../settings/settings-audit.service';
 
 @Injectable()
 export class SalaryConfigService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: SettingsAuditService,
+  ) {}
 
   findAll() {
     return this.prisma.salaryConfig.findMany({ orderBy: { year: 'desc' } });
@@ -35,21 +39,34 @@ export class SalaryConfigService {
     );
   }
 
-  upsert(dto: {
-    year: number;
-    bhxhRate?: number;
-    bhytRate?: number;
-    bhtnRate?: number;
-    pitFreeAmount?: number;
-    overtimeRate?: number;
-    otWeekendRate?: number;
-    otHolidayRate?: number;
-    standardWorkHours?: number;
-  }) {
-    return this.prisma.salaryConfig.upsert({
+  async upsert(
+    dto: {
+      year: number;
+      bhxhRate?: number;
+      bhytRate?: number;
+      bhtnRate?: number;
+      pitFreeAmount?: number;
+      overtimeRate?: number;
+      otWeekendRate?: number;
+      otHolidayRate?: number;
+      standardWorkHours?: number;
+    },
+    admin: { id?: string; email?: string },
+  ) {
+    const before = await this.prisma.salaryConfig.findUnique({ where: { year: dto.year } });
+    const after = await this.prisma.salaryConfig.upsert({
       where: { year: dto.year },
       create: dto,
       update: dto,
     });
+
+    // Nhật ký thay đổi — so sánh trên các field đã gửi
+    await this.audit.logChanges({
+      section: 'salary_config',
+      admin,
+      before: (before ?? {}) as unknown as Record<string, unknown>,
+      after: after as unknown as Record<string, unknown>,
+    });
+    return after;
   }
 }

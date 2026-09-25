@@ -59,9 +59,14 @@ export function TrainingAnalyticsView() {
   const passRate = totalSessions > 0 ? ((completedSessions / totalSessions) * 100).toFixed(1) : "0.0"
 
   let avgAiScore = 0
-  if (totalSessions > 0) {
-    const totalAiScore = sessions.reduce((sum, s) => sum + ((s.totalScore ?? 0) - (s.quizScore ?? 0)), 0)
-    avgAiScore = totalAiScore / totalSessions
+  const gradedSessions = sessions.filter((s) => (s.status === 'GRADED' || s.status === 'COMPLETED') && s.totalScore !== null && s.totalScore !== undefined)
+  if (gradedSessions.length > 0) {
+    const totalAiScore = gradedSessions.reduce((sum, s) => {
+      const quizPart = (s.quizScore ?? 0) * 0.5
+      const aiPart = Math.max(0, (s.totalScore ?? 0) - quizPart)
+      return sum + aiPart
+    }, 0)
+    avgAiScore = totalAiScore / gradedSessions.length
   }
 
   // Đề xuất đào tạo: tiêu chí có khoảng cách so với chuẩn lớn nhất (từ dữ liệu thật)
@@ -79,7 +84,7 @@ export function TrainingAnalyticsView() {
           <Badge variant="amber">Mô Hình Hybrid Assessment</Badge>
         </div>
         <p className="text-xs text-muted-foreground sm:text-sm">
-          Đánh giá kết hợp: 5 câu trắc nghiệm nội quy (NestJS chấm) + 2 câu tự luận tình huống (Gemini 2.5 chấm)
+          Đánh giá kết hợp: 5 câu trắc nghiệm nội quy (NestJS chấm) + 2 câu tự luận tình huống (Gemini 3.1 Flash Lite chấm)
         </p>
       </div>
 
@@ -157,7 +162,7 @@ export function TrainingAnalyticsView() {
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{avgAiScore.toFixed(1)} / 50</div>
               <p className="text-xs text-muted-foreground mt-1">
-                AI Gemini 2.5 chấm điểm qua WF03: Chuyên nghiệp, Thấu cảm, Giải pháp, Rõ ràng
+                AI Gemini 3.1 Flash Lite chấm điểm qua WF03: Chuyên nghiệp, Thấu cảm, Giải pháp, Rõ ràng
               </p>
             </CardContent>
           </Card>
@@ -214,7 +219,8 @@ export function TrainingAnalyticsView() {
               </TableRow>
             ) : (
               sessions.map((item) => {
-                const aiScoreVal = (item.totalScore ?? 0) - (item.quizScore ?? 0);
+                const quizPart = Math.round(((item.quizScore ?? 0) * 0.5) * 10) / 10;
+                const aiScoreVal = Math.max(0, Math.round(((item.totalScore ?? 0) - quizPart) * 10) / 10);
                 return (
                   <TableRow key={item.id}>
                     <TableCell>
@@ -222,15 +228,15 @@ export function TrainingAnalyticsView() {
                         <Avatar initials={(item.employee?.fullName ?? 'HV').split(' ').map((w) => w[0]).slice(-2).join('').toUpperCase()} className="bg-primary/20 text-primary border border-primary/30" />
                         <div>
                           <span className="font-semibold text-xs text-foreground">{item.employee?.fullName || 'Học viên'}</span>
-                          <p className="text-[10px] text-muted-foreground">{item.employee?.employeeCode} • {item.employee?.department.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{item.employee?.employeeCode} • {item.employee?.department?.name ?? '—'}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{item.status}</TableCell>
-                    <TableCell className="text-center font-mono text-xs text-emerald-400">{item.quizScore}/50</TableCell>
+                    <TableCell className="text-center font-mono text-xs text-emerald-400">{quizPart}/50</TableCell>
                     <TableCell className="text-center font-mono text-xs text-agent-amber">{aiScoreVal}/50</TableCell>
                     <TableCell className="text-center font-mono text-xs font-bold text-primary">
-                      {item.totalScore} / 100
+                      {item.totalScore ?? 0} / 100
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
                       {item.aiFeedback ? `"${item.aiFeedback}"` : "--"}

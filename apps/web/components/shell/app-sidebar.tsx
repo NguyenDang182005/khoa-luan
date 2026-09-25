@@ -44,7 +44,7 @@ export function AppSidebar({ navItems, activeTab, onTabChange, onLogout, userIni
       <div className="mt-auto flex flex-col items-center gap-3">
         <button
           onClick={onLogout}
-          title="Dang xuat he thong"
+          title="Đăng xuất hệ thống"
           className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           <LogOut className="size-4" />

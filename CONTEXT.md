@@ -8,7 +8,7 @@
 
 **HR QA Agent** — Workflow n8n (WF02) xử lý câu hỏi nội bộ về nhân sự: lương, phép, hợp đồng, luật lao động. Dùng Gemini + tool `GetEmployeeContext` + `GetPayrollContext` + `SearchHRPolicy`. Chỉ nhân viên nội bộ dùng.
 
-**Training Agent** — Workflow n8n (WF03) mô phỏng kịch bản giao tiếp thực chiến (role-play). AI đóng vai nhân vật, đồng thời chấm điểm 4 tiêu chí: `professional`, `empathy`, `problem_solving`, `clarity`. Điểm được lưu vào `AiChatMessage.metadata`.
+**Training Agent** — Workflow n8n (WF03) mô phỏng kịch bản giao tiếp thực chiến (role-play). AI đóng vai nhân vật, đồng thời chấm điểm 4 tiêu chí: `professional`, `empathy`, `problem_solving`, `clarity`. Điểm được lưu vào `AiChatMessage.metadata`. Luồng Hybrid Assessment quiz (`POST /training/submit`) cũng chấm 4 tiêu chí này (từ 25/09): mỗi essay trả `criteria` 0–10, NestJS trung bình theo tiêu chí và lưu `TrainingSession.aiScore` (fallback `essay_avg` cho cả 4 trục khi LLM không trả criteria — xem [[24 - Audit Cơ Chế Chấm Điểm AI]]).
 
 **CSKH Agent** — Workflow n8n (WF04) xử lý tin nhắn khách hàng qua kênh Zalo OA. AI trả lời câu hỏi đơn giản. Khi gặp vấn đề phức tạp, phát tín hiệu Escalation để nhân viên thật vào xử lý trực tiếp với khách hàng. Trong demo, transport của kênh là Slack DM (xem **Slack Transport**); kiến trúc và đặt tên vẫn là "Zalo".
 
@@ -40,7 +40,7 @@
 
 **RAG (Retrieval-Augmented Generation)** — Kỹ thuật bổ sung context từ knowledge base vào prompt LLM. *(Đã triển khai 14/09)*: HR QA Agent dùng tool `SearchPolicyKnowledge` → gọi NestJS `GET|POST /n8n/knowledge-search?query=&topK=` → embedding query bằng Gemini `gemini-embedding-001` (768 dims) → similarity search trên bảng `policy_chunks` (dual-mode: pgvector ANN `<=>` khi có extension, fallback cosine in-app trên JSONB) → trả về top-k chunks chính sách (lương/OT, BHXH, thuế TNCN, phép, escalation, PII…) để AI trích dẫn khi trả lời. Seed: `packages/database/scripts/seed-knowledge.cjs`.
 
-**Scenario** — Kịch bản role-play trong Training Agent. 6 loại: `customer_complaint`, `colleague_conflict`, `manager_feedback`, `new_employee_onboarding`, `performance_review`, `general_communication`. Do Mobile App truyền trực tiếp qua `body.scenarioType`, không cần AI detect.
+**Scenario** — Kịch bản role-play trong Training Agent. 6 loại: `customer_complaint`, `colleague_conflict`, `manager_feedback`, `new_employee_onboarding`, `performance_review`, `general_communication`. Do client truyền trực tiếp qua `body.scenarioType` (Web Portal — view My Training; Mobile client là hướng phát triển), không cần AI detect.
 
 **Tool** — Trong ngữ cảnh AI Agent n8n: một HTTP Request node được kết nối vào AI Agent qua cổng `ai_tool`. Agent tự quyết định khi nào gọi tool và với tham số gì (dùng `$fromAI()`). WF02 có 3 tools: `GetEmployeeContext`, `GetPayrollContext`, `SearchPolicyKnowledge` (RAG — 14/09).
 
