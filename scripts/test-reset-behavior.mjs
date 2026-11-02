@@ -2,7 +2,11 @@ import { PrismaClient } from '../packages/database/node_modules/@prisma/client/d
 
 const prisma = new PrismaClient();
 const API_URL = 'http://127.0.0.1:3001/api/v1/n8n';
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k';
+const API_KEY = process.env.HR_API_KEY;
+if (!API_KEY) {
+  console.error('Thiếu HR_API_KEY. Set trước khi chạy.');
+  process.exit(1);
+}
 
 const headers = {
   'Content-Type': 'application/json',

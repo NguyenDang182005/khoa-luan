@@ -1,0 +1,17 @@
+sequenceDiagram
+  autonumber
+  actor E as Nhân viên
+  actor AD as ADMIN
+  participant L as LeaveService
+  participant DB as PostgreSQL
+  E->>L: POST /leave với loại phép, ngày, lý do
+  L->>L: countWorkdays bỏ thứ Bảy, Chủ nhật, ngày lễ
+  L->>DB: Kiểm tra trùng đơn PENDING hoặc APPROVED
+  L->>L: Phép năm: số dư = quota pro-rate trừ số ngày đã dùng
+  L->>DB: Lưu đơn PENDING
+  AD->>L: PATCH /leave/:id/approve
+  L->>DB: BEGIN transaction
+  L->>DB: Kiểm tra lại số dư phép năm
+  L->>DB: Upsert attendance ON_LEAVE cho từng ngày làm việc
+  L->>DB: Cập nhật APPROVED, approvedBy, approvedAt
+  L->>DB: COMMIT

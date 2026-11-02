@@ -39,6 +39,10 @@ enum LeaveType {
   PATERNITY
   UNPAID
   EMERGENCY
+  OT
+  LATE_PERMISSION
+  BUSINESS_TRIP
+  OTHER
 }
 
 enum LeaveStatus {
@@ -218,6 +222,8 @@ model Employee {
   departmentId String
   positionId   String
   managerId    String?
+  /// Số người phụ thuộc đã đăng ký — dùng cho giảm trừ gia cảnh khi tính thuế TNCN
+  dependents   Int              @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -248,6 +254,7 @@ model Attendance {
   checkOut   DateTime?
   status     AttendanceStatus @default(PRESENT)
   workHours  Float?
+  workDays   Float?
   overtime   Float?
   note       String?
   location   String?
@@ -269,6 +276,8 @@ model LeaveRequest {
   startDate       DateTime    @db.Date
   endDate         DateTime    @db.Date
   totalDays       Float
+  overtimeHours   Float?
+  overtimeDate    DateTime?   @db.Date
   reason          String
   status          LeaveStatus @default(PENDING)
   approvedById    String?
@@ -313,11 +322,19 @@ model Payroll {
   baseSalary        Float
   allowances        Float         @default(0)
   bonus             Float         @default(0)
+  /// Tạm ứng đã trừ trong kỳ (nhập tay)
+  advance           Float         @default(0)
+  /// Tổng khấu trừ của NLĐ = BHXH + BHYT + BHTN (KHÔNG gồm thuế TNCN)
   deductions        Float         @default(0)
+  bhxh              Float         @default(0)
+  bhyt              Float         @default(0)
+  bhtn              Float         @default(0)
+  /// Trợ cấp BHXH (ốm đau/thai sản) — do cơ quan BHXH chi trả, không phải lương công ty
+  bhxhBenefit       Float         @default(0)
   tax               Float         @default(0)
   netSalary         Float
   workingDays       Int
-  actualWorkingDays Int
+  actualWorkingDays Float
   overtimeHours     Float         @default(0)
   overtimePay       Float         @default(0)
   status            PayrollStatus @default(DRAFT)
@@ -339,7 +356,8 @@ model SalaryConfig {
   bhxhRate      Float    @default(0.08)   // 8% BHXH nhân viên
   bhytRate      Float    @default(0.015)  // 1.5% BHYT nhân viên
   bhtnRate      Float    @default(0.01)   // 1% BHTN nhân viên
-  pitFreeAmount Float    @default(11000000) // Mức giảm trừ gia cảnh (11tr)
+  pitFreeAmount Float    @default(15500000) // Giảm trừ gia cảnh bản thân (15,5tr/tháng)
+  pitDependentDeduction Float @default(6200000) // Giảm trừ mỗi người phụ thuộc (6,2tr/tháng)
   overtimeRate  Float    @default(1.5)    // Hệ số OT ngày thường
   otWeekendRate Float    @default(2.0)    // Hệ số OT cuối tuần
   otHolidayRate Float    @default(3.0)    // Hệ số OT ngày lễ
@@ -462,6 +480,9 @@ model AiChatSession {
   channel    String          @default("web") // "web" | "mobile" | "zalo"
   externalId String?         // Zalo userId hoặc mobile deviceId
   isActive   Boolean         @default(true)
+  /// Thời điểm escalate lên người thật (null = chưa từng escalate).
+  /// Dùng cột này thay vì suy ra từ isActive=false (phiên đóng do qua ngày cũng isActive=false).
+  escalatedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -512,8 +533,8 @@ model LeavePolicy {
   id String @id @default("default")
 
   annualQuotaDays          Float   @default(12)   // Số ngày phép chuẩn/năm
-  seniorityBonusEveryYears Int     @default(5)    // Cộng thêm mỗi N năm thâm niên (0 = tắt)
-  seniorityBonusDays       Float   @default(1)    // Số ngày cộng tại mỗi mốc thâm niên
+  seniorityBonusEveryYears Int     @default(0)    // Tắt cộng phép theo mốc thâm niên (0 = tắt)
+  seniorityBonusDays       Float   @default(0)    // Số ngày cộng tại mỗi mốc thâm niên (0 = tắt)
   prorateByJoinMonth       Boolean @default(true) // Tính tỷ lệ theo tháng vào làm năm đầu
   maxCarryOverDays         Float   @default(0)    // Chuyển tối đa X ngày chưa dùng sang năm sau (0 = không)
   note                     String?
@@ -557,6 +578,17 @@ model AiAgentConfig {
   updatedAt DateTime @updatedAt
 
   @@map("ai_agent_configs")
+}
+
+/// Ngày lễ quốc gia (nghỉ có lương) — dùng cho tính công, phép năm và hệ số OT.
+/// Thiếu bảng này thì mọi ngày lễ bị tính là ngày vắng và tăng ca lễ bị trả 1,5x.
+model Holiday {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  @@map("holidays")
 }
 
 /// Lịch sử đăng nhập (cả thành công lẫn thất bại) — xem từ trang Cài Đặt > Bảo Mật

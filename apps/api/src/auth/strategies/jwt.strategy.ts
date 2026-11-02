@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload } from '@repo/shared-types';
+import { requireSecret } from '../require-secret';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -14,7 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'hr-system-secret-key'),
+      secretOrKey: requireSecret(configService, 'JWT_SECRET'),
     });
   }
 
@@ -40,10 +41,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { isActive: true },
+      select: { isActive: true, role: true },
     });
     if (!user?.isActive) throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
 
-    return payload;
+    // Trả role hiện tại trong DB (không tin role trong token): hạ quyền ADMIN có hiệu lực
+    // ngay ở request kế tiếp thay vì chờ token hết hạn (tới 30 ngày).
+    return { ...payload, role: user.role };
   }
 }

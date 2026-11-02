@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PayrollMeQueryDto } from './dto/payroll-me-query.dto';
+import { vnMonth } from '../common/vn-date';
 
 @ApiTags('Payroll')
 @ApiBearerAuth()
@@ -21,10 +22,10 @@ export class PayrollController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    const now = new Date();
+    const now = vnMonth();
     return this.payrollService.findAll(
-      Number(month) || now.getMonth() + 1,
-      Number(year) || now.getFullYear(),
+      Number(month) || now.month,
+      Number(year) || now.year,
     );
   }
 
@@ -59,11 +60,11 @@ export class PayrollController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    const now = new Date();
+    const now = vnMonth();
     return this.payrollService.calculatePayroll(
       employeeId,
-      Number(month) || now.getMonth() + 1,
-      Number(year) || now.getFullYear(),
+      Number(month) || now.month,
+      Number(year) || now.year,
     );
   }
 
@@ -100,6 +101,17 @@ export class PayrollController {
   @Post('paid-bulk')
   markPaidBulk(@Body() dto: { month?: number; year?: number; ids?: string[] }) {
     return this.payrollService.markPaidBulk(dto);
+  }
+
+  @ApiOperation({ summary: 'Chỉnh thưởng / tạm ứng / ghi chú bảng lương nháp (chỉ ADMIN)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @Patch(':id/adjust')
+  adjust(
+    @Param('id') id: string,
+    @Body() dto: { bonus?: number; advance?: number; note?: string },
+  ) {
+    return this.payrollService.adjust(id, dto);
   }
 
   @ApiOperation({ summary: 'Phê duyệt bảng lương (chỉ ADMIN)' })

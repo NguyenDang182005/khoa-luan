@@ -181,7 +181,9 @@ export function LoginView() {
               )}
             </Button>
 
-            {/* Quick Fill Demo Credentials */}
+            {/* Quick Fill Demo Credentials — chỉ hiện khi NEXT_PUBLIC_SHOW_DEMO_LOGIN !== 'false'
+                (môi trường production nên đặt 'false' để không lộ tài khoản mẫu). */}
+            {process.env.NEXT_PUBLIC_SHOW_DEMO_LOGIN !== 'false' && (
             <div className="pt-3 border-t border-[#dadce0] flex flex-col gap-2">
               <span className="text-[11px] font-medium text-[#5f6368] uppercase tracking-wider text-center">
                 Tài khoản mẫu để thử nghiệm
@@ -211,6 +213,7 @@ export function LoginView() {
                 </button>
               </div>
             </div>
+            )}
           </form>
         </div>
 

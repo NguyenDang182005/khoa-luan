@@ -69,7 +69,7 @@ const main = async () => {
   try {
     const res = await fetch(N8N_CSKH, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Connection: 'close' },
+      headers: { 'Content-Type': 'application/json', Connection: 'close', 'x-api-key': process.env.N8N_API_KEY ?? '' },
       body: JSON.stringify({ userId: 'diag-pii-test-user', message: wf04Msg, originalMessage: wf04Msg, channel: 'zalo', externalId: 'diag-pii-test-user', slackChannel: process.env.DIAG_SLACK_CHANNEL ?? null, threadTs: null }),
       signal: AbortSignal.timeout(90_000),
     })

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { randomUUID, randomInt } from 'crypto';
 import * as bcrypt from 'bcryptjs';
@@ -29,7 +30,9 @@ export class EmployeesService {
     status?: string;
   }) {
     const { page = 1, limit = 10, search, departmentId, status } = params;
-    const skip = (page - 1) * limit;
+    // Chặn client xin cả bảng (limit=100000) làm nghẽn DB
+    const take = Math.min(Math.max(limit, 1), 100);
+    const skip = (Math.max(page, 1) - 1) * take;
     const where: any = {};
 
     if (search) {
@@ -46,7 +49,7 @@ export class EmployeesService {
       this.prisma.employee.findMany({
         where,
         skip,
-        take: limit,
+        take,
         include: {
           department: { select: { id: true, name: true, code: true } },
           position: { select: { id: true, title: true, code: true } },
@@ -62,7 +65,7 @@ export class EmployeesService {
     return {
       success: true,
       data,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: { total, page, limit: take, totalPages: Math.ceil(total / take) },
     };
   }
 
@@ -79,25 +82,40 @@ export class EmployeesService {
     return employee;
   }
 
-  async findOne(id: string) {
-    return this.prisma.employee.findUniqueOrThrow({
+  /**
+   * Chi tiết nhân viên. includePrivate = ADMIN mới được thấy hợp đồng (lương).
+   * Nhân viên chỉ xem được hồ sơ của chính mình (CCCD/địa chỉ/ngày sinh là dữ liệu cá nhân).
+   */
+  async findOne(id: string, includePrivate = false, viewerUserId?: string | null) {
+    const employee = await this.prisma.employee.findUniqueOrThrow({
       where: { id },
       include: {
         department: true,
         position: true,
         manager: { select: { id: true, fullName: true, employeeCode: true } },
         user: { select: { email: true, role: true, isActive: true, googleId: true, facebookId: true } },
-        contracts: {
-          where: { isActive: true },
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-        },
+        ...(includePrivate
+          ? {
+              contracts: {
+                where: { isActive: true },
+                take: 1,
+                orderBy: { createdAt: 'desc' },
+              },
+            }
+          : {}),
         onboardingProgress: {
           include: { task: true },
           orderBy: { task: { order: 'asc' } },
         },
       },
     });
+
+    if (!includePrivate && viewerUserId && employee.userId !== viewerUserId) {
+      throw new ForbiddenException(
+        'Chỉ xem được hồ sơ của chính mình',
+      );
+    }
+    return employee;
   }
 
   async create(dto: {
@@ -115,15 +133,26 @@ export class EmployeesService {
     managerId?: string;
     employeeCode?: string;
     role?: string;
+    /** Lương cơ bản — nếu truyền, hệ thống tạo luôn hợp đồng thử việc để chạy được bảng lương */
+    baseSalary?: number;
+    allowances?: number;
   }) {
-    // Auto-generate employee code if not provided
-    const code = dto.employeeCode ?? (await this.generateCode());
+    const explicitCode = dto.employeeCode;
+    let code = explicitCode ?? (await this.generateCode());
 
     const existing = await this.prisma.employee.findFirst({
-      where: { OR: [{ email: dto.email }, { employeeCode: code }] },
+      where: {
+        OR: [
+          { email: dto.email },
+          ...(explicitCode ? [{ employeeCode: explicitCode }] : []),
+        ],
+      },
     });
     if (existing) {
       throw new ConflictException('Email hoặc mã nhân viên đã tồn tại');
+    }
+    if (dto.baseSalary !== undefined && !(dto.baseSalary > 0)) {
+      throw new BadRequestException('Lương cơ bản phải lớn hơn 0');
     }
 
     // Nếu truyền role → tạo user active thật sự (email này là whitelist OAuth)
@@ -132,22 +161,73 @@ export class EmployeesService {
     if (dto.userId) {
       resolvedUserId = dto.userId;
     } else if (dto.role) {
+      const emailTaken = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+        select: { id: true },
+      });
+      if (emailTaken) {
+        throw new ConflictException('Email đã có tài khoản đăng nhập');
+      }
       resolvedUserId = await this.createActiveUser(dto.email, dto.role);
     } else {
       resolvedUserId = await this.createPlaceholderUser(dto.email);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { role: _role, ...employeeData } = dto;
-    const employee = await this.prisma.employee.create({
-      data: {
-        ...employeeData,
-        userId: resolvedUserId,
-        employeeCode: code,
-        gender: employeeData.gender as any,
-        status: 'PROBATION',
-      },
-    });
+    const { role: _role, baseSalary, allowances, ...employeeData } = dto;
+
+    const createEmployee = (employeeCode: string) =>
+      this.prisma.$transaction(async (tx) => {
+        const created = await tx.employee.create({
+          data: {
+            ...employeeData,
+            userId: resolvedUserId,
+            employeeCode,
+            gender: employeeData.gender as any,
+            status: 'PROBATION',
+          },
+        });
+
+        // Tạo hợp đồng thử việc ngay khi tuyển dụng: nếu không có hợp đồng thì
+        // calculatePayroll ném "chưa có hợp đồng active" và HR phải nhập tay ở màn khác.
+        if (baseSalary && baseSalary > 0) {
+          await tx.contract.create({
+            data: {
+              employeeId: created.id,
+              contractNumber: `CTR-${employeeCode}-${Date.now().toString(36)}`,
+              type: 'PROBATION',
+              startDate: created.joinDate,
+              baseSalary,
+              allowances: allowances ?? 0,
+              signedDate: created.joinDate,
+              isActive: true,
+            },
+          });
+        }
+        return created;
+      });
+
+    let employee: Awaited<ReturnType<typeof createEmployee>> | undefined;
+    for (let attempt = 0; attempt < 3 && !employee; attempt++) {
+      try {
+        employee = await createEmployee(code);
+      } catch (err: any) {
+        const target = err?.meta?.target;
+        const codeConflict =
+          err?.code === 'P2002' &&
+          (!Array.isArray(target) || target.includes('employeeCode'));
+        if (!explicitCode && codeConflict) {
+          // Hai người tạo song song cùng mã → sinh lại mã mới rồi thử tiếp
+          code = await this.generateCode();
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (!employee) {
+      throw new ConflictException(
+        'Không sinh được mã nhân viên (đang có người tạo cùng lúc). Vui lòng thử lại.',
+      );
+    }
 
     // Auto-assign onboarding tasks
     await this.assignOnboardingTasks(employee.id);
@@ -195,6 +275,12 @@ export class EmployeesService {
       where: { id: employee.userId },
       data: updates,
       select: { id: true, email: true, role: true, isActive: true, googleId: true, facebookId: true },
+    });
+
+    // Đổi email/role phải thu hồi phiên cũ: JWT cũ vẫn mang role/email trước đó
+    // (nếu chỉ hạ quyền mà không thu hồi, token ADMIN còn hiệu lực tới 30 ngày).
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: employee.userId },
     });
 
     return updatedUser;
@@ -390,49 +476,52 @@ export class EmployeesService {
       throw new BadRequestException('Không có trường nào để cập nhật');
     }
 
-    return this.prisma.employee.update({
-      where: { id },
-      data: { ...data, status: data.status as any, gender: data.gender as any },
-    });
-  }
+    return this.prisma.$transaction(async (tx) => {
+      const employee = await tx.employee.update({
+        where: { id },
+        data: { ...data, status: data.status as any, gender: data.gender as any },
+      });
 
-  async softDelete(id: string) {
-    return this.prisma.employee.update({
-      where: { id },
-      data: { status: 'TERMINATED' },
-    });
-  }
-
-  async getOrgChart() {
-    const employees = await this.prisma.employee.findMany({
-      where: { status: { not: 'TERMINATED' } },
-      select: {
-        id: true,
-        fullName: true,
-        employeeCode: true,
-        avatarUrl: true,
-        managerId: true,
-        department: { select: { name: true } },
-        position: { select: { title: true } },
-      },
-    });
-
-    // Build tree structure
-    const map = new Map(employees.map((e) => [e.id, { ...e, children: [] as any[] }]));
-    const roots: any[] = [];
-    for (const emp of map.values()) {
-      if (emp.managerId && map.has(emp.managerId)) {
-        map.get(emp.managerId)!.children.push(emp);
-      } else {
-        roots.push(emp);
+      // Nghỉ việc phải cắt quyền truy cập ngay: tắt tài khoản, thu hồi phiên,
+      // đóng hợp đồng. Trước đây chỉ đổi status nên nhân viên đã nghỉ vẫn đăng nhập được.
+      if (data.status === 'TERMINATED') {
+        await tx.user.update({
+          where: { id: employee.userId },
+          data: { isActive: false },
+        });
+        await tx.refreshToken.deleteMany({ where: { userId: employee.userId } });
+        await tx.contract.updateMany({
+          where: { employeeId: id, isActive: true },
+          data: { isActive: false, endDate: new Date() },
+        });
+      } else if (
+        data.status === 'ACTIVE' ||
+        data.status === 'PROBATION' ||
+        data.status === 'ON_LEAVE'
+      ) {
+        // Quay lại làm việc → mở lại tài khoản (nếu trước đó bị tắt do nghỉ việc)
+        await tx.user.update({
+          where: { id: employee.userId },
+          data: { isActive: true },
+        });
       }
-    }
-    return roots;
+
+      return employee;
+    });
   }
 
   private async generateCode(): Promise<string> {
-    const count = await this.prisma.employee.count();
-    return `EMP${String(count + 1).padStart(4, '0')}`;
+    // Lấy mã lớn nhất thay vì count()+1: xóa 1 nhân viên không làm tái sử dụng mã cũ,
+    // và không đụng unique constraint khi có khoảng trống.
+    const last = await this.prisma.employee.findFirst({
+      where: { employeeCode: { startsWith: 'EMP' } },
+      orderBy: { employeeCode: 'desc' },
+      select: { employeeCode: true },
+    });
+    const lastNumber = last
+      ? Number(last.employeeCode.replace(/[^0-9]/g, '')) || 0
+      : 0;
+    return `EMP${String(lastNumber + 1).padStart(4, '0')}`;
   }
 
   /** User placeholder inactive cho nhân viên mới chưa có tài khoản

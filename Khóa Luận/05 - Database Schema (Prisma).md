@@ -1,6 +1,7 @@
 ---
 tags: [khoa-luan, database, prisma, postgresql, schema]
 created: 2026-09-04
+updated: 2026-10-16
 ---
 
 # 🗄️ Database Schema (Prisma + PostgreSQL)
@@ -15,11 +16,12 @@ created: 2026-09-04
 | **Port DB** | 5432 |
 | **pgAdmin** | http://localhost:5050 |
 
-## Enums
+## Enums (14 enums)
 
 | Enum | Values |
 |------|--------|
-| `UserRole` | ADMIN, HR_MANAGER, MANAGER, EMPLOYEE |
+| `UserRole` | **ADMIN**, **EMPLOYEE** |
+| `Gender` | MALE, FEMALE, OTHER |
 | `EmploymentStatus` | ACTIVE, ON_LEAVE, TERMINATED, PROBATION |
 | `LeaveType` | ANNUAL, SICK, MATERNITY, PATERNITY, UNPAID, EMERGENCY |
 | `LeaveStatus` | PENDING, APPROVED, REJECTED, CANCELLED |
@@ -29,16 +31,27 @@ created: 2026-09-04
 | `ChatSessionType` | **HR_QA**, **CSKH**, **TRAINING** |
 | `NotificationType` | PAYROLL, LEAVE, ATTENDANCE, ONBOARDING, SYSTEM |
 | `OnboardingTaskStatus` | PENDING, IN_PROGRESS, COMPLETED, SKIPPED |
+| `AttendanceDayType` | NORMAL, WEEKEND, HOLIDAY |
+| `TrainingScenario` | CUSTOMER_COMPLAINT, COLLEAGUE_CONFLICT, MANAGER_FEEDBACK, NEW_EMPLOYEE_ONBOARDING, PERFORMANCE_REVIEW, GENERAL_COMMUNICATION |
+| `TrainingAttemptStatus` | IN_PROGRESS, COMPLETED, GRADED |
 
-## Models
+## Models (22 models)
 
 ### Core (Auth & Users)
 
 ```
 User ──► Employee (1:1)
-     └─► RefreshToken (1:N)
+     └─► RefreshToken (1:N) — kèm IP/UserAgent
      └─► Notification (1:N)
+     └─► LoginHistory (1:N)
+     └─► SettingsAuditLog (1:N)
 ```
+
+| Model | Mục đích | Trường đáng chú ý |
+|-------|----------|---------|
+| `User` | Tài khoản đăng nhập | firebaseUid, googleId, facebookId, avatarUrl, displayName, failedLoginAttempts, lockedUntil, passwordChangedAt |
+| `RefreshToken` | Phiên đăng nhập | ip, userAgent |
+| `LoginHistory` | Lịch sử đăng nhập | email, success, reason, ip, userAgent |
 
 ### HR Domain
 
@@ -47,39 +60,51 @@ Department ──► Position ──► Employee
                               ├─► Attendance (1:N)
                               ├─► LeaveRequest (1:N)
                               ├─► Contract (1:N)
-                              └─► Payroll (1:N)
+                              ├─► Payroll (1:N)
+                              ├─► OnboardingProgress (1:N)
+                              ├─► AiChatSession (1:N)
+                              └─► TrainingSession (1:N)
 ```
 
-| Model | Mục đích |
-|-------|----------|
-| `User` | Tài khoản đăng nhập (auth) |
-| `Employee` | Thông tin nhân viên |
-| `Department` | Phòng ban (phân cấp tự tham chiếu) |
-| `Position` | Vị trí / chức danh |
-| `Attendance` | Bản ghi chấm công (unique: employee + date) |
-| `LeaveRequest` | Đơn xin nghỉ |
-| `Contract` | Hợp đồng lao động |
-| `Payroll` | Phiếu lương (unique: employee + month + year) |
-| `SalaryConfig` | Cấu hình hệ số theo năm |
+| Model | Mục đích | Unique constraint |
+|-------|----------|---------|
+| `Employee` | Thông tin nhân viên | employeeCode, userId, email |
+| `Department` | Phòng ban (phân cấp tự tham chiếu) | code |
+| `Position` | Vị trí/chức danh | code |
+| `Attendance` | Bản ghi chấm công | `@@unique([employeeId, date])` |
+| `LeaveRequest` | Đơn xin nghỉ | — |
+| `Contract` | Hợp đồng lao động | contractNumber |
+| `Payroll` | Phiếu lương | `@@unique([employeeId, month, year])` |
+| `SalaryConfig` | Cấu hình hệ số theo năm | year |
 
 ### AI & Training Domain
 
 | Model | Mục đích |
 |-------|----------|
+| `AiChatSession` | Phiên chat AI (HR_QA/CSKH/TRAINING, channel web/zalo) |
+| `AiChatMessage` | Từng tin nhắn (role: user/assistant, metadata JSON) |
 | `OnboardingTask` | Danh mục task onboarding |
-| `OnboardingProgress` | Tiến độ từng nhân viên |
-| `AiChatSession` | Phiên chat (HR_QA / CSKH / TRAINING) |
-| `AiChatMessage` | Từng tin nhắn trong phiên (role: user/assistant) |
+| `OnboardingProgress` | Tiến độ từng nhân viên — `@@unique([employeeId, taskId])` |
+| `TrainingQuestion` | Câu hỏi đào tạo (quiz/scenario, 6 scenarios) |
+| `TrainingSession` | Phiên đào tạo (kèm quizScore, aiScore JSON 4 tiêu chí, totalScore) |
+| `TrainingAttempt` | Bài làm từng câu (isCorrect, aiEvaluation JSON) |
 | `Notification` | Thông báo real-time |
+
+### Settings Domain (bản ghi đơn, id = `"default"`)
+
+| Model | Mục đích | Trường chính |
+|-------|----------|--------|
+| `OfficeGeofence` | Vùng địa lý chấm công GPS | lat, lng, radiusM |
+| `LeavePolicy` | Chính sách phép năm | annualQuotaDays (12), prorateByJoinMonth, seniorityBonusEveryYears (0=tắt), maxCarryOverDays |
+| `SecurityPolicy` | Chính sách bảo mật | passwordMinLength (8), maxFailedAttempts (5), lockoutMinutes (15), accessTokenTtlHours (720) |
+| `AiAgentConfig` | Cấu hình AI Agent | enabled, webhookUrl, apiKey (write-only), timeoutMs (90000) |
+| `SettingsAuditLog` | Nhật ký thay đổi cài đặt | section, field, oldValue, newValue |
 
 ### Raw-SQL Tables (ngoài Prisma schema)
 
-Tạo bằng `$executeRawUnsafe` vì sandbox chặn `prisma db push` / vì kiểu dữ liệu đặc thù:
-
 | Bảng | Mục đích | Ghi chú |
 |-------|----------|---------|
-| `office_geofences` | Geofence chấm công GPS (id `default`, lat/lng/radiusM) | Model `OfficeGeofence` |
-| `policy_chunks` *(14/09 — RAG)* | Kho tri thức chính sách: `doc_title`, `chunk_index`, `content`, `source`, `embedding_json` JSONB, `embedding vector(768)` (chỉ khi có pgvector) | Unique `(doc_title, chunk_index)`; index HNSW `vector_cosine_ops` khi pgvector ON. Seed: `packages/database/scripts/seed-knowledge.cjs` — 10 tài liệu chính sách, embedding Gemini `gemini-embedding-001` |
+| `policy_chunks` *(RAG)* | Kho tri thức chính sách | `doc_title`, `chunk_index`, `content`, `embedding vector(768)`, `embedding_json JSONB`. Unique `(doc_title, chunk_index)`. Seed: `packages/database/scripts/seed-knowledge.cjs` — 10 tài liệu, Gemini `gemini-embedding-001` |
 
 ## SalaryConfig Mặc Định
 
@@ -96,4 +121,4 @@ Tạo bằng `$executeRawUnsafe` vì sandbox chặn `prisma db push` / vì kiể
 
 ---
 
-*Liên kết:* [[02 - Backend NestJS (API)]] | [[08 - Infrastructure & DevOps]]
+*Liên kết:* [[02 - Backend NestJS (API)]] | [[08 - Infrastructure & DevOps]] | [[09 - Task Checklist]]

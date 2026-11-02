@@ -155,6 +155,42 @@ export class SettingsController {
     return this.service.testAiConnection(req.user?.sub);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({ summary: 'Danh sách ngày lễ quốc gia của một năm (Admin)' })
+  @Get('holidays')
+  getHolidays(@Query('year') year?: string) {
+    return this.service.getHolidays(year ? Number(year) : undefined);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({ summary: 'Thêm ngày lễ quốc gia — ảnh hưởng tính công/phép/OT (Admin)' })
+  @Post('holidays')
+  createHoliday(
+    @Request() req: { user: { sub: string; email: string } },
+    @Body() dto: { date: string; name: string },
+  ) {
+    return this.service.createHoliday(dto, {
+      id: req.user?.sub,
+      email: req.user?.email,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({ summary: 'Xóa ngày lễ (Admin)' })
+  @Delete('holidays/:id')
+  deleteHoliday(
+    @Param('id') id: string,
+    @Request() req: { user: { sub: string; email: string } },
+  ) {
+    return this.service.deleteHoliday(id, {
+      id: req.user?.sub,
+      email: req.user?.email,
+    });
+  }
+
   // ── Nhật ký thay đổi cài đặt ──
 
   @UseGuards(JwtAuthGuard, RolesGuard)

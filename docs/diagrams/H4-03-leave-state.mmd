@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> PENDING: POST /leave
+  PENDING --> APPROVED: ADMIN duyệt
+  PENDING --> REJECTED: ADMIN từ chối kèm lý do
+  PENDING --> CANCELLED: Người tạo đơn hủy
+  APPROVED --> [*]
+  REJECTED --> [*]
+  CANCELLED --> [*]
+  note right of APPROVED
+    Trong một transaction: kiểm tra lại số dư phép năm
+    và ghi các ngày làm việc của đơn là ON_LEAVE
+  end note

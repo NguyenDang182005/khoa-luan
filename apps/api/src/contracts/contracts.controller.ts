@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Patch,
-  Delete,
   Param,
   Body,
   Query,
@@ -12,10 +11,15 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ContractsService } from './contracts.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Contracts')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+// Hợp đồng = mức lương → chỉ ADMIN. Trước đây chỉ JwtAuthGuard nên mọi token
+// EMPLOYEE đọc được baseSalary của toàn công ty.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN_GROUP')
 @Controller('contracts')
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}

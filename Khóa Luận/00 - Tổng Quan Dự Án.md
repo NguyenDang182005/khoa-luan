@@ -1,7 +1,7 @@
 ---
 tags: [khoa-luan, overview, multi-agent, nestjs, nextjs]
 created: 2026-09-04
-updated: 2026-09-25
+updated: 2026-10-16
 ---
 
 # 🎓 Khóa Luận Tốt Nghiệp — Hệ Thống Quản Trị Doanh Nghiệp Đa Tác Tử AI
@@ -43,35 +43,55 @@ updated: 2026-09-25
 
 ---
 
-## 🗂️ Cấu Trúc Repo
+## 📂 Cấu Trúc Repo
 
 ```
 khoa-luan/ (Turborepo Monorepo)
 ├── apps/
-│   ├── api/          # NestJS Backend (port 3001)
-│   ├── web/          # Next.js Web Portal Admin (port 3000)
-│   └── docs/         # Tài liệu Next.js
+│   ├── api/          # NestJS Backend (port 3001) — 18 modules
+│   └── web/          # Next.js Web Portal (port 3000) — 10 views
 ├── packages/
-│   ├── database/     # Prisma schema + migrations (PostgreSQL)
-│   ├── shared-types/ # Types dùng chung FE ↔ BE
-│   ├── ui/           # Shared React component library
+│   ├── database/     # Prisma schema + migrations (PostgreSQL) — 22 models, 14 enums
+│   ├── shared-types/ # Types dùng chung FE ↔ BE (build tsc → dist/)
 │   ├── eslint-config/
 │   └── typescript-config/
-├── n8n-workflows/    # 4 workflow JSON cho n8n
+├── n8n-workflows/    # 5 workflow JSON cho n8n (WF01-04 + Slack verify)
+├── scripts/          # 50+ tool vận hành: audit, debug n8n, e2e test, fix data
+├── docs/adr/          # 3 Architecture Decision Records
 └── docker-compose.yml
 ```
+
+> **Cập nhật 14/10:** xoá `apps/docs` + `packages/ui` (dead workspace); `shared-types` build ra `dist/` (Node 24 không load raw .ts qua ESM). Chi tiết: [[26 - Nhật Ký Ngày 14-10-2026 (Audit 20 Lỗi & Debug n8n Live)]].
 
 ---
 
 ## 🔗 Liên Kết Nội Bộ
 
+### Tài liệu Kiến Trúc
 - [[01 - Kiến Trúc Hệ Thống & Multi-Agent]]
 - [[02 - Backend NestJS (API)]]
 - [[03 - Web Portal (Next.js)]]
-- [[04 - Mobile App (React Native)]] *(đã cắt khỏi scope 25/09 — hướng phát triển)*
+- [[04 - Mobile App (React Native)]] *(hướng phát triển)*
 - [[05 - Database Schema (Prisma)]]
 - [[06 - n8n Workflows & AI Agents]]
 - [[07 - Kế Hoạch Thực Hiện 15 Tuần]]
 - [[08 - Infrastructure & DevOps]]
+
+### Quản lý & Kế hoạch
+- [[09 - Task Checklist]]
 - [[11 - Định Hướng Phát Triển Sản Phẩm (Web & Mobile)]]
 - [[23 - Quyết Định Web-Only Phase 1 (Cắt Mobile App)]]
+
+### Audit & Cơ chế
+- [[24 - Audit Cơ Chế Chấm Điểm AI]]
+- [[25 - Cơ Chế OAuth Whitelist & Liên Kết Hồ Sơ Nhân Viên]]
+
+### Nhật Ký Ngày 14/10/2026
+- [[26 - Nhật Ký Ngày 14-10-2026 (Audit 20 Lỗi & Debug n8n Live)]]
+- [[27 - Nhật Ký Ngày 14-10-2026 (Tối Ưu UI-UX, Bỏ Phép Thâm Niên & Chuẩn Hóa Context WF01-WF04)]]
+- [[28 - Nhật Ký Ngày 14-10-2026 (Xóa Toàn Bộ Cơ Chế Cộng Thêm Ngày Phép & Đồng Bộ Context WF02-WF03)]]
+
+
+### Logic Verified (17/10/2026)
+- [[29 - Snapshot Toàn Hệ Thống 16-10-2026]]
+- [[30 - Business Logic & ADR Alignment (Verified 17-10-2026)]]

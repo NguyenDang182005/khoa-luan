@@ -138,11 +138,12 @@ export function MonthlyTimesheetStrip({
     let credits = 0, late = 0, absent = 0, workdays = 0
     for (let d = 1; d <= daysInMonth; d++) {
       const dow = new Date(year, month - 1, d).getDay()
+      // #18: cuối tuần không phải ngày làm việc — không tính vắng khi không có bản ghi.
       if (dow !== 0 && dow !== 6) workdays++
       const ds = `${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`
       if (ds > today) continue
       const r = recordMap.get(ds)
-      if (!r) { absent++; continue }
+      if (!r) { if (dow !== 0 && dow !== 6) absent++; continue }
       if (["PRESENT","REMOTE","LATE","ON_LEAVE"].includes(r.status)) credits += 1
       else if (r.status === "HALF_DAY") credits += 0.5
       if (r.status === "LATE") late++

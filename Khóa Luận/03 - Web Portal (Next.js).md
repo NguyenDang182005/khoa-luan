@@ -117,3 +117,39 @@ status: completed
 - Flex row 3 ô: Calendar (400px `shrink-0`) + grid-cols-2 (Đơn nghỉ + Hội nhập)
 - `items-stretch` + `h-full` — 3 ô cao bằng nhau
 - Build ✅ 0 errors
+
+
+## Cập Nhật Logic Portal (17/10/2026 - Verified từ Source)
+
+### Chat AI Portal (agents.service.ts + portal.controller.ts)
+
+- **Endpoint:** `POST /agents/chat` (JWT) → NestJS gọi n8n WF01 server-side
+- **Session ownership (Q18):** Backend sở hữu phiên chat, verify `employeeId` khớp
+- **Day-based rollover (Q7):** Phiên chỉ tái sử dụng cùng ngày VN, qua đêm → phiên mới
+- **Rehydrate:** `GET /agents/portal/latest-session` chỉ trả phiên nếu cùng ngày + active
+- **Renew:** `POST /agents/portal/renew-session` đóng phiên cũ + mở mới
+- **AI Agent toggle:** Từ trang Cài Đặt (`AiAgentConfig.enabled`) — tắt → trả lời thân thiện, không gọi n8n
+- **429 quota handling:** Gemini quá tải → trả friendly message (không throw 502)
+
+### Settings View (settings-view.tsx)
+
+7 mục sidebar:
+1. **Salary Section** — Cấu hình quy chế lương (SalaryConfig)
+2. **Leave Policy** — Chính sách nghỉ phép (mặc định 12 ngày, không thâm niên)
+3. **Geofence** — Vành đai địa lý check-in
+4. **Security** — Chính sách bảo mật (lockout, mật khẩu, JWT TTL)
+5. **AI Agent** — Bật/tắt bot, webhook URL, API key, timeout
+6. **Integrations** — Kết nối Slack/Firebase
+7. **Audit Log** — Lịch sử thay đổi cài đặt (`SettingsAuditLog`)
+
+### View Thiếu Trong Danh Sách Cũ
+
+| View | File | Mô tả |
+|---|---|---|
+| `my-training-view.tsx` | ESS Training | Nhân viên làm bài quiz + xem kết quả cá nhân |
+| `training-analytics-view.tsx` | Admin Training Analytics | Radar chart, bảng xếp hạng, thống kê theo phòng ban |
+| `settings-view.tsx` | 7 mục sidebar | Xem chi tiết trên |
+
+### Liên kết bổ sung
+
+*Xem thêm:* [[30 - Business Logic & ADR Alignment (Verified 17-10-2026)]] | [[06 - n8n Workflows & AI Agents]]

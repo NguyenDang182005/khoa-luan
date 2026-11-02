@@ -1,0 +1,29 @@
+sequenceDiagram
+  autonumber
+  actor U as Người dùng
+  participant W as Web Portal
+  participant F as Firebase Auth
+  participant A as NestJS AuthService
+  participant DB as PostgreSQL
+  alt Đăng nhập email và mật khẩu
+    U->>W: Nhập email, mật khẩu
+    W->>A: POST /auth/login
+    A->>DB: Tìm User, kiểm tra isActive, lockedUntil
+    A->>A: bcrypt.compare
+    opt Sai mật khẩu
+      A->>DB: Tăng failedLoginAttempts, khóa 15 phút khi đủ 5 lần
+      A-->>W: 401
+    end
+  else Đăng nhập Google hoặc Facebook
+    U->>W: Chọn nhà cung cấp OAuth
+    W->>F: signInWithPopup
+    F-->>W: idToken
+    W->>A: POST /auth/firebase
+    A->>F: verifyIdToken
+    A->>DB: Email phải có sẵn trong whitelist
+  end
+  A->>DB: Tạo RefreshToken 30 ngày, ghi LoginHistory
+  A-->>W: accessToken chứa sid và refreshToken
+  W->>A: Gọi API kèm Bearer token
+  A->>DB: JwtStrategy kiểm tra sid còn hiệu lực, đọc lại role
+  A-->>W: Dữ liệu theo quyền ADMIN hoặc EMPLOYEE

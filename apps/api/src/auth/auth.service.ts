@@ -7,6 +7,7 @@ import { LoginRequest, JwtPayload } from "@repo/shared-types";
 import { FirebaseAdminService } from "../firebase/firebase-admin.service";
 import { ensureDefaultSecurityPolicy } from "../settings/single-row.utils";
 import { validatePasswordPolicy } from "./password-policy";
+import { requireSecret } from "./require-secret";
 
 // Re-export giữ tương thích với chỗ import cũ
 export { validatePasswordPolicy } from "./password-policy";
@@ -62,7 +63,7 @@ export class AuthService {
     const policy = await ensureDefaultSecurityPolicy(this.prisma);
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>("JWT_REFRESH_SECRET", "hr-refresh-secret"),
+      secret: requireSecret(this.configService, 'JWT_REFRESH_SECRET'),
       expiresIn: "30d",
     });
     const session = await this.prisma.refreshToken.create({

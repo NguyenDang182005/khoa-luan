@@ -11,10 +11,15 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OnboardingService } from './onboarding.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Onboarding')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+// Toàn bộ controller là nghiệp vụ HR: sửa/xóa task, gán và cập nhật tiến độ.
+// Trước đây chỉ cần đăng nhập là nhân viên nào cũng xóa được template onboarding.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN_GROUP')
 @Controller('onboarding')
 export class OnboardingController {
   constructor(private readonly service: OnboardingService) {}

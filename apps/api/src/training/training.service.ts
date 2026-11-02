@@ -1,6 +1,7 @@
-import { BadGatewayException, Injectable, NotFoundException, Request } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { vnDateUtc, vnMonth, vnMonthRange } from '../common/vn-date';
 
 type TrainingScenario =
   | 'CUSTOMER_COMPLAINT'
@@ -20,6 +21,9 @@ const SCENARIO_MAP: Record<string, TrainingScenario> = {
 };
 
 const N8N_QUIZ_TIMEOUT_MS = 60_000;
+
+/** Mỗi nhân viên tối đa 5 lượt làm bài / kịch bản / ngày (chống thi lại vô hạn để lấy điểm cao) */
+const MAX_QUIZ_ATTEMPTS_PER_DAY = 5;
 
 @Injectable()
 export class TrainingService {
@@ -41,6 +45,32 @@ export class TrainingService {
     return emp;
   }
 
+  /**
+   * #7: đọc đáp án đúng của bài quiz do WF03 sinh (server đã stash khi gọi chat).
+   * Trả về Map questionId -> đáp án đúng.
+   */
+  private async loadServerQuizAnswers(
+    employee: { id: string },
+    scenario: string,
+  ): Promise<Map<number, string | undefined>> {
+    const map = new Map<number, string | undefined>();
+    const msg = await this.prisma.aiChatMessage.findFirst({
+      where: {
+        role: 'assistant',
+        metadata: { path: ['scenarioType'], equals: scenario },
+        session: { employeeId: employee.id, type: 'TRAINING' },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+    const quiz = (msg?.metadata as any)?.quiz;
+    if (!Array.isArray(quiz)) return map;
+    for (const q of quiz) {
+      if (q?.correct) map.set(Number(q.id), String(q.correct));
+    }
+    return map;
+  }
+
   // ── Questions (legacy hardcode) ──────────────────────────────────────────────
 
   async getQuestions(scenario?: TrainingScenario) {
@@ -52,21 +82,39 @@ export class TrainingService {
 
   // ── Sessions ─────────────────────────────────────────────────────────────────
 
-  async getMySessions(employeeId: string) {
+  async getMySessions(userId: string) {
+    const employee = await this.resolveEmployeeByUserId(userId);
     return this.prisma.trainingSession.findMany({
-      where: { employeeId },
+      where: { employeeId: employee.id },
       include: { attempts: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async startSession(employeeId: string, scenario: TrainingScenario) {
+  async startSession(userId: string, scenario: TrainingScenario) {
+    const employee = await this.resolveEmployeeByUserId(userId);
     return this.prisma.trainingSession.create({
-      data: { employeeId, scenario, status: 'IN_PROGRESS' },
+      data: { employeeId: employee.id, scenario, status: 'IN_PROGRESS' },
     });
   }
 
-  async submitAttempt(sessionId: string, questionId: string, answer: string) {
+  async submitAttempt(
+    sessionId: string,
+    questionId: string,
+    answer: string,
+    userId?: string,
+  ) {
+    const session = await this.prisma.trainingSession.findUnique({
+      where: { id: sessionId },
+      select: { employeeId: true },
+    });
+    if (!session) throw new NotFoundException('Session not found');
+    if (userId) {
+      const employee = await this.resolveEmployeeByUserId(userId);
+      if (session.employeeId !== employee.id) {
+        throw new ForbiddenException('Không có quyền nộp bài cho phiên của người khác');
+      }
+    }
     const question = await this.prisma.trainingQuestion.findUnique({ where: { id: questionId } });
     if (!question) throw new NotFoundException('Question not found');
     const isCorrect =
@@ -75,31 +123,6 @@ export class TrainingService {
         : null;
     return this.prisma.trainingAttempt.create({
       data: { sessionId, questionId, answer, isCorrect },
-    });
-  }
-
-  async gradeSession(sessionId: string, aiScore: Record<string, number>, aiFeedback: string) {
-    const session = await this.prisma.trainingSession.findUnique({ where: { id: sessionId } });
-    if (!session) throw new NotFoundException('Session not found');
-    const attempts = await this.prisma.trainingAttempt.findMany({ where: { sessionId } });
-    const quizAttempts = attempts.filter((a) => a.isCorrect !== null);
-    const quizScore =
-      quizAttempts.length > 0
-        ? (quizAttempts.filter((a) => a.isCorrect).length / quizAttempts.length) * 100
-        : 0;
-    const aiValues = Object.values(aiScore);
-    const aiAvg = aiValues.length > 0 ? aiValues.reduce((a, b) => a + b, 0) / aiValues.length : 0;
-    const totalScore = quizScore * 0.5 + aiAvg * 10 * 0.5;
-    return this.prisma.trainingSession.update({
-      where: { id: sessionId },
-      data: {
-        status: 'GRADED',
-        quizScore,
-        aiScore,
-        totalScore: Math.round(totalScore * 10) / 10,
-        aiFeedback,
-        completedAt: new Date(),
-      },
     });
   }
 
@@ -116,6 +139,19 @@ export class TrainingService {
   ) {
     const employee = await this.resolveEmployeeByUserId(userId);
     const scenario = this.normalizeScenario(scenarioRaw);
+
+    const attemptsToday = await this.prisma.trainingSession.count({
+      where: {
+        employeeId: employee.id,
+        scenario,
+        createdAt: { gte: vnDateUtc() },
+      },
+    });
+    if (attemptsToday >= MAX_QUIZ_ATTEMPTS_PER_DAY) {
+      throw new BadRequestException(
+        `Đã hết ${MAX_QUIZ_ATTEMPTS_PER_DAY} lượt làm bài cho kịch bản này hôm nay. Vui lòng thử lại vào ngày mai.`,
+      );
+    }
 
     const n8nBase = this.config.get<string>('N8N_WEBHOOK_URL') ?? 'http://localhost:5678/webhook';
     const webhookUrl = n8nBase.replace(/\/webhook\/chat$/, '/webhook') + '/training-quiz';
@@ -159,24 +195,27 @@ export class TrainingService {
     const mcqResults = rawResults.filter((r: any) => r.type === 'mcq');
     const essayResults = rawResults.filter((r: any) => r.type === 'essay');
 
+    // #7: KHÔNG tin correctAnswer do client gửi (nếu tin, người học tự gửi
+    // đáp án đúng và luôn 100%). Đáp án đúng lấy từ bản WF03 đã stash server-side
+    // khi sinh bài (metadata.quiz của message assistant gần nhất).
+    const correctById = await this.loadServerQuizAnswers(employee, scenario);
+
     // ── Chấm MCQ deterministic phía server ──────────────────────────────────────
-    // Đáp án + đáp án đúng đã có sẵn trong payload. KHÔNG tin counter aggregate
-    // (correct_count/total_mcq) do LLM tự đếm — nó thường xuyên lệch với chính
-    // results[] từng câu (bug: attempts ghi 2/5 đúng nhưng quizScore lưu 20%).
-    /** Đúng/sai 1 câu MCQ: so sánh trực tiếp answer vs correctAnswer; fallback results[] của WF03 */
-    const mcqIsCorrect = (ans: { type: string; answer: string; correctAnswer?: string; questionId: number }): boolean | null => {
+    // Đáp án đúng đọc từ DB; nếu câu không có trong DB thì fallback results[] của WF03.
+    const mcqIsCorrect = (ans: { type: string; answer: string; questionId: number }): boolean | null => {
       if (ans.type !== 'mcq') return null;
-      if (ans.correctAnswer && ans.answer) {
-        return ans.answer.trim().toUpperCase() === ans.correctAnswer.trim().toUpperCase();
+      const expected = correctById.get(ans.questionId);
+      if (expected && ans.answer) {
+        return ans.answer.trim().toUpperCase() === expected.trim().toUpperCase();
       }
       const r = rawResults.find((item: any) => item.id === ans.questionId);
       return typeof r?.correct === 'boolean' ? r.correct : null;
     };
 
     const mcqAnswers = answers.filter((a) => a.type === 'mcq');
-    const clientGradable = mcqAnswers.filter((a) => a.correctAnswer && a.answer);
+    const gradable = mcqAnswers.filter((a) => correctById.has(a.questionId));
     const correctCount =
-      clientGradable.length > 0
+      gradable.length > 0
         ? mcqAnswers.filter((a) => mcqIsCorrect(a) === true).length
         : mcqResults.filter((r: any) => r.correct === true).length > 0
           ? mcqResults.filter((r: any) => r.correct === true).length
@@ -242,13 +281,7 @@ export class TrainingService {
         scenario,
         status: 'GRADED',
         quizScore: Math.round(quizScore * 10) / 10,
-        aiScore: {
-          professional: Math.round(essayAvg * 10) / 10,
-          empathy: Math.round(essayAvg * 10) / 10,
-          problemSolving: Math.round(essayAvg * 10) / 10,
-          clarity: Math.round(essayAvg * 10) / 10,
-          essay_avg: Math.round(essayAvg * 10) / 10,
-        },
+        aiScore: criteriaScore, // 4 tiêu chí thật của WF03 + essay_avg (fallback: cả 4 = essay_avg)
         totalScore,
         aiFeedback: overallFeedback,
         completedAt: new Date(),
@@ -411,7 +444,7 @@ export class TrainingService {
       employeeCount: v.employeeCount,
       sessionCount: v.sessionCount,
       avgScore: v.sessionCount > 0 ? Math.round((v.totalScore / v.sessionCount) * 10) / 10 : null,
-      completionRate: Math.round((v.sessionCount / (v.employeeCount * 6)) * 100), // 6 scenarios
+      completionRate: Math.min(100, Math.round((v.sessionCount / (v.employeeCount * 6)) * 100)), // 6 scenarios
     }));
 
     const totalSessions = employees.reduce((s, e) => s + e.trainingSessions.length, 0);
@@ -437,13 +470,14 @@ export class TrainingService {
 
   async getAnalytics(month?: number, year?: number) {
     const now = new Date();
-    const filterMonth = month ?? now.getMonth() + 1;
-    const filterYear = year ?? now.getFullYear();
-    const start = new Date(filterYear, filterMonth - 1, 1);
-    const end = new Date(filterYear, filterMonth, 0);
+    const { month: curMonth, year: curYear } = vnMonth(now);
+    const filterMonth = month ?? curMonth;
+    const filterYear = year ?? curYear;
+    // #2: dùng ranh giới ngày VN (UTC) — new Date(y,m,0) trước đây trả ngày cuối tháng TRƯỚC → filter rỗng.
+    const { gte: start, lt: end } = vnMonthRange(filterYear, filterMonth);
 
     const sessions = await this.prisma.trainingSession.findMany({
-      where: { status: 'GRADED', completedAt: { gte: start, lte: end } },
+      where: { status: 'GRADED', completedAt: { gte: start, lt: end } },
       include: {
         employee: {
           select: {

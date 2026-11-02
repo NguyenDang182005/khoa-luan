@@ -2,10 +2,15 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { vnMonth } from '../common/vn-date';
 
 @ApiTags('Dashboard')
 @Controller('dashboard')
-@UseGuards(JwtAuthGuard)
+// Dashboard chỉ dành cho HR/ADMIN — trước đây chỉ JwtAuthGuard.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN_GROUP')
 @ApiBearerAuth()
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
@@ -22,10 +27,10 @@ export class DashboardController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    const now = new Date();
+    const { year: y, month: m } = vnMonth();
     return this.dashboardService.getAttendanceChart(
-      month ? parseInt(month) : now.getMonth() + 1,
-      year ? parseInt(year) : now.getFullYear(),
+      month ? parseInt(month) : m,
+      year ? parseInt(year) : y,
     );
   }
 

@@ -10,7 +10,7 @@ const startTime = Date.now();
 try {
   const res = await fetch('http://127.0.0.1:5678/webhook/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY ?? '' },
     body: JSON.stringify(payload)
   });
 

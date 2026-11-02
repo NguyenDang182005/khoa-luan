@@ -1,0 +1,17 @@
+sequenceDiagram
+  autonumber
+  participant H as WF02 HR Agent
+  participant K as NestJS KnowledgeService
+  participant G as Gemini Embedding API
+  participant DB as Bảng policy_chunks
+  H->>K: GET /n8n/knowledge-search?query=...&topK=3
+  K->>G: embedContent gemini-embedding-001, 768 chiều
+  G-->>K: Vector câu hỏi
+  alt Đã cài pgvector
+    K->>DB: Sắp xếp theo khoảng cách cosine, chỉ mục HNSW, LIMIT k
+  else Chưa cài pgvector
+    K->>DB: Đọc embedding_json
+    K->>K: Tính cosine similarity trong Node.js
+  end
+  K-->>H: top-k đoạn chính sách kèm docTitle, score
+  H->>H: Đưa ngữ cảnh vào prompt, trả lời có trích nguồn

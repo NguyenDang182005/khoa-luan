@@ -32,11 +32,11 @@ Công ty kê khai và nộp thuế TNCN thay nhân viên hàng tháng; cuối n�
   {
     title: "Chế độ nghỉ phép và ngày nghỉ",
     source: "QUY CHE LD 2024 - MUC 4",
-    body: `Phép năm cơ bản 12 ngay lam viec cho nhân viên làm đủ 12 tháng. Làm đủ từ 5 năm trở lên tăng thêm 1 ngày mỗi 5 năm thâm niên.
-Phép năm tính theo thâm niên làm việc tại mọi doanh nghiệp, không chỉ tại công ty hiện tại.
-Nghỉ lễ tết: 11 ngày lễ trong năm theo Luat Lao dong; nếu ngày lễ trùng cuối tuần được nghỉ bù ngày kế tiếp.
+    body: `Phép năm cơ bản là 12 ngày làm việc mỗi năm dương lịch (01/01 - 31/12) cho nhân viên làm đủ 12 tháng.
+Nhân viên mới vào làm trong năm được tính phép theo tỷ lệ số tháng làm việc thực tế (pro-rate: 12 x số tháng làm việc / 12, tháng vào làm tính trọn 1 tháng). Công ty áp dụng mức chuẩn 12 ngày/năm cố định, không áp dụng bất kỳ cơ chế cộng thêm ngày phép nào khác (không cộng thêm ngày phép theo mốc 5 năm thâm niên cống hiến, không chuyển phép dư năm trước sang năm sau).
+Nghỉ lễ tết: 11 ngày lễ trong năm theo Luật Lao động; nếu ngày lễ trùng cuối tuần được nghỉ bù ngày kế tiếp.
 Phép ốm ngắn ngày (1-2 ngày) cần giấy khám bệnh hoặc xác nhận của phòng khám; ngày ốm không trừ vào phép năm.
-Nhân viên được chuyển 50% số phép năm chưa dùng sang năm sau (không quá 6 ngày). Xin nghỉ phép gửi trên hệ thống ít nhất 3 ngày làm việc trước, trừ trường hợp khẩn cấp.`,
+Phép năm chưa sử dụng hết trong năm sẽ hết hiệu lực vào cuối ngày 31/12 (không chuyển sang năm sau). Xin nghỉ phép gửi trên hệ thống ít nhất 3 ngày làm việc trước, trừ trường hợp khẩn cấp.`,
   },
   {
     title: "Quy trình chăm sóc khách hàng và leo thang khiếu nại",

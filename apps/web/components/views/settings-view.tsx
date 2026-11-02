@@ -1,16 +1,7 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import {
-  Banknote,
-  MapPin,
-  PlugZap,
-  CalendarDays,
-  ShieldCheck,
-  Bot,
-  History,
-  AlertTriangle,
-} from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
@@ -25,14 +16,14 @@ import { AuditLogSection } from "@/components/views/settings/audit-log-section"
 
 type SettingsTab = "salary" | "geofence" | "integrations" | "leave" | "security" | "ai" | "audit"
 
-const NAV_ITEMS: Array<{ id: SettingsTab; label: string; icon: typeof Banknote; hint: string }> = [
-  { id: "salary", label: "Lương & Thuế", icon: Banknote, hint: "BHXH, thuế, hệ số OT theo năm" },
-  { id: "geofence", label: "Vùng Chấm Công", icon: MapPin, hint: "Tọa độ + bán kính check-in GPS" },
-  { id: "integrations", label: "Tích Hợp", icon: PlugZap, hint: "Trạng thái DB / n8n / Slack / Gemini" },
-  { id: "leave", label: "Phép Năm", icon: CalendarDays, hint: "Quota, thâm niên, carry-over" },
-  { id: "security", label: "Bảo Mật & Phiên", icon: ShieldCheck, hint: "Mật khẩu, khóa tài khoản, phiên đăng nhập" },
-  { id: "ai", label: "AI Agent", icon: Bot, hint: "Bật/tắt agent, kết nối n8n" },
-  { id: "audit", label: "Nhật Ký Thay Đổi", icon: History, hint: "Ai sửa gì, lúc nào" },
+const NAV_ITEMS: Array<{ id: SettingsTab; label: string; hint: string }> = [
+  { id: "salary", label: "Lương & Thuế", hint: "BHXH, thuế, hệ số OT theo năm" },
+  { id: "geofence", label: "Vùng Chấm Công", hint: "Tọa độ + bán kính check-in GPS" },
+  { id: "integrations", label: "Tích Hợp", hint: "Trạng thái DB / n8n / Slack / Gemini" },
+  { id: "leave", label: "Phép Năm", hint: "Quota chuẩn, pro-rate năm đầu" },
+  { id: "security", label: "Bảo Mật & Phiên", hint: "Mật khẩu, khóa tài khoản, phiên đăng nhập" },
+  { id: "ai", label: "AI Agent", hint: "Bật/tắt agent, kết nối n8n" },
+  { id: "audit", label: "Nhật Ký Thay Đổi", hint: "Ai sửa gì, lúc nào" },
 ]
 
 /**
@@ -83,7 +74,7 @@ export function SettingsView() {
         {/* Sidebar trái */}
         <nav className="lg:w-56 shrink-0" aria-label="Nhóm cài đặt">
           <ul className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-            {NAV_ITEMS.map(({ id, label, icon: Icon, hint }) => {
+            {NAV_ITEMS.map(({ id, label, hint }) => {
               const isActive = id === active
               const isDirty = Boolean(dirtyMap[id])
               return (
@@ -101,7 +92,6 @@ export function SettingsView() {
                         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                     )}
                   >
-                    <Icon className={cn("size-4 shrink-0", isActive ? "text-agent-teal" : "")} />
                     <span className="whitespace-nowrap lg:whitespace-normal">{label}</span>
                     {isDirty && (
                       <span className="ml-auto size-1.5 shrink-0 rounded-full bg-agent-amber" title="Có thay đổi chưa lưu" />

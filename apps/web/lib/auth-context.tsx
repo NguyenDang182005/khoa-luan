@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { signInWithGoogle, signInWithFacebook, firebaseSignOut } from "@/lib/firebase"
+import { clearAllChats } from "@/lib/chat/chat-store"
 import { isAdminRole } from "@repo/shared-types"
 
 export type UserRole = "ADMIN" | "EMPLOYEE"
@@ -85,6 +86,7 @@ async function fetchProfile(token: string): Promise<Partial<AuthUser>> {
 
 interface AuthResponseData {
   accessToken: string
+  refreshToken?: string
   user: {
     id: string
     email: string
@@ -95,22 +97,26 @@ interface AuthResponseData {
   }
 }
 
-function saveSession(user: AuthUser, token: string, rememberMe: boolean) {
+function saveSession(user: AuthUser, token: string, refreshToken: string, rememberMe: boolean) {
   if (rememberMe) {
     localStorage.setItem("hr_auth_user", JSON.stringify(user))
     localStorage.setItem("hr_auth_token", token)
+    localStorage.setItem("hr_auth_refresh", refreshToken)
   } else {
     // Không "nhớ đăng nhập" → chỉ giữ phiên trong tab hiện tại
     sessionStorage.setItem("hr_auth_user", JSON.stringify(user))
     sessionStorage.setItem("hr_auth_token", token)
+    sessionStorage.setItem("hr_auth_refresh", refreshToken)
   }
 }
 
 function clearSession() {
   localStorage.removeItem("hr_auth_user")
   localStorage.removeItem("hr_auth_token")
+  localStorage.removeItem("hr_auth_refresh")
   sessionStorage.removeItem("hr_auth_user")
   sessionStorage.removeItem("hr_auth_token")
+  sessionStorage.removeItem("hr_auth_refresh")
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -146,9 +152,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const extra = await fetchProfile(authToken)
     authUser = { ...authUser, ...extra }
+    clearAllChats()
     setUser(authUser)
     setToken(authToken)
-    saveSession(authUser, authToken, rememberMe)
+    saveSession(authUser, authToken, data.refreshToken ?? "", rememberMe)
     setIsLoading(false)
     return { success: true as const }
   }
@@ -223,11 +230,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    // #15: thu hồi phiên phía server (xóa refresh token) trước khi clear local
+    const token = localStorage.getItem("hr_auth_token") ?? sessionStorage.getItem("hr_auth_token")
+    const refreshToken =
+      localStorage.getItem("hr_auth_refresh") ?? sessionStorage.getItem("hr_auth_refresh")
+    if (token && refreshToken) {
+      try {
+        await fetch(`${API_BASE}/auth/logout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ refreshToken }),
+        })
+      } catch {
+        // Mất kết nối vẫn cho logout local
+      }
+    }
     firebaseSignOut().catch(() => {})
     setUser(null)
     setToken(null)
     clearSession()
+    clearAllChats()
   }
 
   const isAdmin = user ? isAdminRole(user.role) : false

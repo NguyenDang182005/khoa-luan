@@ -6,7 +6,8 @@
         "httpMethod": "POST",
         "path": "zalo-webhook",
         "responseMode": "onReceived",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "zalo-webhook",
       "name": "Zalo OA Webhook",
@@ -16,7 +17,13 @@
         240,
         300
       ],
-      "webhookId": "zalo-cskh-webhook"
+      "webhookId": "zalo-cskh-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {},
@@ -76,7 +83,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -102,7 +109,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -124,7 +131,10 @@
       "position": [
         1120,
         300
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -144,10 +154,13 @@
       ],
       "credentials": {
         "googlePalmApi": {
-          "id": "gemini-api-key",
-          "name": "Gemini API Key"
+          "id": "GijeOpAk3nuWoDHZ",
+          "name": "Gemini 2025"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -165,7 +178,7 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "postgres-db",
+          "id": "DImvfbYdTqnryV2B",
           "name": "HR System PostgreSQL"
         }
       }
@@ -204,7 +217,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -233,7 +246,7 @@
       "continueOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -292,7 +305,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -342,6 +355,32 @@
         1760,
         160
       ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.id, role: \"user\", content: $(\"PII Masking\").first().json.originalMessage, metadata: { channel: \"zalo\", botMuted: true, maskedMessage: $(\"PII Masking\").first().json.message, userId: $(\"PII Masking\").first().json.userId, slackChannel: $(\"PII Masking\").first().json.slackChannel, threadTs: $(\"PII Masking\").first().json.threadTs } }) }}",
+        "options": {}
+      },
+      "id": "save-muted-msg",
+      "name": "Save Message (Bot Muted)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        480
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -406,6 +445,13 @@
         [
           {
             "node": "Save User Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Message (Bot Muted)",
             "type": "main",
             "index": 0
           }

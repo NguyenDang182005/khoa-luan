@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const LeaveTypeEnum = z.enum(['ANNUAL', 'SICK', 'MATERNITY', 'PATERNITY', 'UNPAID', 'EMERGENCY'])
+export const LeaveTypeEnum = z.enum(['ANNUAL', 'SICK', 'MATERNITY', 'PATERNITY', 'UNPAID', 'EMERGENCY', 'OT', 'LATE_PERMISSION', 'BUSINESS_TRIP', 'OTHER'])
 export const LeaveStatusEnum = z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'])
 
 export const LeaveRequestSchema = z.object({
@@ -56,6 +56,8 @@ export const LeaveCreateSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày không hợp lệ'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày không hợp lệ'),
   reason: z.string().min(10, 'Lý do tối thiểu 10 ký tự').max(500, 'Lý do tối đa 500 ký tự'),
+  overtimeHours: z.number().min(0).optional(),
+  overtimeDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày không hợp lệ').optional(),
 })
 
 export type LeaveRequest = z.infer<typeof LeaveRequestSchema>

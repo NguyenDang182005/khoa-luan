@@ -14,24 +14,25 @@ export const leaveApi = {
     const { data } = await apiClient.post('/leave', input)
     return data
   },
-  approve: async (id: string, approverId: string) => {
-    const { data } = await apiClient.patch(`/leave/${id}/approve`, { approverId })
+  // approverId do server lấy từ JWT — web không gửi (tránh tự duyệt đơn của mình).
+  approve: async (id: string) => {
+    const { data } = await apiClient.patch(`/leave/${id}/approve`, {})
     return data
   },
-  reject: async (id: string, approverId: string, reason: string) => {
-    const { data } = await apiClient.patch(`/leave/${id}/reject`, { approverId, rejectionReason: reason })
+  reject: async (id: string, reason: string) => {
+    const { data } = await apiClient.patch(`/leave/${id}/reject`, { rejectionReason: reason })
     return data
   },
-  approveBulk: async (ids: string[], approverId: string) => {
-    return Promise.all(ids.map((id) => apiClient.patch(`/leave/${id}/approve`, { approverId })))
+  approveBulk: async (ids: string[]) => {
+    return Promise.all(ids.map((id) => apiClient.patch(`/leave/${id}/approve`, {})))
   },
-  rejectBulk: async (ids: string[], approverId: string, reason: string) => {
+  rejectBulk: async (ids: string[], reason: string) => {
     return Promise.all(
-      ids.map((id) => apiClient.patch(`/leave/${id}/reject`, { approverId, rejectionReason: reason }))
+      ids.map((id) => apiClient.patch(`/leave/${id}/reject`, { rejectionReason: reason }))
     )
   },
-  cancel: async (id: string, employeeId: string) => {
-    const { data } = await apiClient.patch(`/leave/${id}/cancel`, { employeeId })
+  cancel: async (id: string) => {
+    const { data } = await apiClient.patch(`/leave/${id}/cancel`, {})
     return data
   },
 }

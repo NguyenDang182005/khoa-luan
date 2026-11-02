@@ -48,7 +48,7 @@ export function employeeStatusLabel(status: string): string {
   }
 }
 
-/** Nhãn loại đơn nghỉ phép sang tiếng Việt */
+/** Nhãn loại đơn nghỉ phép / đơn làm thêm sang tiếng Việt */
 export function leaveTypeLabel(type: string): string {
   switch (type) {
     case "ANNUAL": return "Phép năm"
@@ -57,6 +57,10 @@ export function leaveTypeLabel(type: string): string {
     case "PATERNITY": return "Chồng sinh"
     case "UNPAID": return "Không lương"
     case "EMERGENCY": return "Việc khẩn"
+    case "OT": return "Làm thêm (OT)"
+    case "LATE_PERMISSION": return "Đến muộn / Về sớm"
+    case "BUSINESS_TRIP": return "Công tác"
+    case "OTHER": return "Khác"
     default: return type
   }
 }
@@ -77,4 +81,12 @@ export function scenarioLabel(scenario: string): string {
 /** Định dạng tiền VNĐ */
 export function vnd(amount: number): string {
   return `₫${Math.round(amount).toLocaleString("vi-VN")}`
+}
+
+/** Ngày kiểu ISO ("2026-09-11T00:00:00.000Z") → dd/MM/yyyy theo giờ VN */
+export function fmtVNDate(iso: string | null | undefined): string {
+  if (!iso) return "--"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "--"
+  return d.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
 }

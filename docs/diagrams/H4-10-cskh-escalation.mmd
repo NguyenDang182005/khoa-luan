@@ -1,0 +1,25 @@
+sequenceDiagram
+  autonumber
+  actor K as Khách hàng
+  participant S as Slack
+  participant N as NestJS SlackService
+  participant C as n8n WF04
+  participant G as Gemini
+  participant A as NestJS AiContextService
+  participant P as Admin Portal
+  K->>S: Nhắn tin
+  S->>N: Sự kiện message qua Socket Mode
+  N->>C: POST /webhook/zalo-webhook
+  C->>C: Che PII, lấy phiên CSKH
+  C->>G: Câu hỏi và lịch sử hội thoại
+  G-->>C: Trả lời, có thể kèm thẻ CAN_ESCALATE
+  C->>A: POST /n8n/outbound-reply
+  A->>S: chat.postMessage vào thread
+  opt Cần leo thang
+    C->>A: POST /n8n/escalate
+    A->>A: isActive = false, escalatedAt = now
+    A->>P: WebSocket notification:new tới phòng admin
+    P->>A: POST /agents/chat-session/:id/reply
+    A->>S: Nhân viên trả lời khách trong thread
+  end
+  Note over A: Cron 00:00 giờ Việt Nam bật lại bot cho các phiên CSKH đã leo thang

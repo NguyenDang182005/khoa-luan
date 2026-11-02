@@ -36,7 +36,6 @@ export class SlackService
 
     // Nhận message từ channel (không phải DM, không phải bot)
     this.boltApp.event('message', async ({ event }) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const msg = event as any;
 
       // Log tất cả events để debug
@@ -77,11 +76,16 @@ export class SlackService
         'http://localhost:5678/webhook/zalo-webhook';
 
       this.logger.log(`[Slack] → Forwarding tới n8n: ${n8nUrl}`);
+      const apiKey = this.config.get<string>('N8N_API_KEY');
 
       try {
         const res = await fetch(n8nUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          // WF04 webhook bật headerAuth — thiếu key n8n trả 403.
+          headers: {
+            'Content-Type': 'application/json',
+            ...(apiKey ? { 'x-api-key': apiKey } : {}),
+          },
           body: JSON.stringify(payload),
           signal: AbortSignal.timeout(90_000),
         });

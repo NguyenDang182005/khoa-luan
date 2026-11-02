@@ -4,18 +4,11 @@ import * as React from "react"
 import {
   Users,
   CheckCircle2,
-  Clock,
-  Plus,
-  Pencil,
-  Trash2,
-  AlertCircle,
   FileText,
   Laptop,
   GraduationCap,
   Sparkles,
   Loader2,
-  ChevronRight,
-  ShieldCheck,
   UserCheck,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -34,7 +27,8 @@ import {
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { onboardingApi } from "@/lib/api/onboarding.api"
 import { employeesApi } from "@/lib/api/employees.api"
-import type { OnboardingTask } from "@/lib/schemas/onboarding.schema"
+import type { OnboardingTask, OnboardingProgressItem } from "@/lib/schemas/onboarding.schema"
+import type { Employee } from "@/lib/schemas/employee.schema"
 
 interface EmployeeProgressGroup {
   employeeId: string
@@ -45,12 +39,12 @@ interface EmployeeProgressGroup {
   total: number
   completed: number
   percentage: number
-  items: any[]
+  items: OnboardingProgressItem[]
 }
 
 const DEFAULT_CATEGORY = { label: "Hồ sơ & Giấy tờ", icon: FileText, color: "text-blue-400 bg-blue-500/10 border-blue-500/30" }
 
-const CATEGORY_MAP: Record<string, { label: string; icon: any; color: string }> = {
+const CATEGORY_MAP: Record<string, { label: string; icon: typeof FileText; color: string }> = {
   paperwork: DEFAULT_CATEGORY,
   equipment: { label: "Thiết bị & Tài khoản", icon: Laptop, color: "text-purple-400 bg-purple-500/10 border-purple-500/30" },
   training: { label: "Đào tạo & Quy định", icon: GraduationCap, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" },
@@ -59,8 +53,8 @@ const CATEGORY_MAP: Record<string, { label: string; icon: any; color: string }> 
 
 export function OnboardingManagementTab() {
   const [tasks, setTasks] = React.useState<OnboardingTask[]>([])
-  const [progressList, setProgressList] = React.useState<any[]>([])
-  const [allEmployees, setAllEmployees] = React.useState<any[]>([])
+  const [progressList, setProgressList] = React.useState<OnboardingProgressItem[]>([])
+  const [allEmployees, setAllEmployees] = React.useState<Employee[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null)
@@ -185,7 +179,7 @@ export function OnboardingManagementTab() {
   // Cập nhật trạng thái task trong modal chi tiết
   const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
     if (!selectedEmpProgress) return
-    const newStatus = currentStatus === "COMPLETED" ? "PENDING" : "COMPLETED"
+    const newStatus: OnboardingProgressItem["status"] = currentStatus === "COMPLETED" ? "PENDING" : "COMPLETED"
     setUpdatingTaskId(taskId)
     try {
       await onboardingApi.updateProgress(selectedEmpProgress.employeeId, taskId, { status: newStatus })
@@ -283,32 +277,36 @@ export function OnboardingManagementTab() {
         <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-0.5">
           <button
             onClick={() => setActiveSubTab("progress")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
               activeSubTab === "progress"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <UserCheck className="size-3.5 text-emerald-400" /> Tiến Độ Nhân Viên Mới ({employeeGroups.length})
+            Tiến Độ Nhân Viên Mới ({employeeGroups.length})
           </button>
           <button
             onClick={() => setActiveSubTab("tasks")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
               activeSubTab === "tasks"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <FileText className="size-3.5 text-primary" /> Danh Mục Đầu Việc Mẫu ({tasks.length})
+            Danh Mục Đầu Việc Mẫu ({tasks.length})
           </button>
         </div>
 
         {activeSubTab === "tasks" && (
-          <Button size="sm" className="text-xs gap-1 bg-primary text-primary-foreground" onClick={handleOpenCreateTask}>
-            <Plus className="size-3.5" /> Thêm Nhiệm Vụ Mẫu
+          <Button size="sm" className="text-xs bg-primary text-primary-foreground" onClick={handleOpenCreateTask}>
+            Thêm Nhiệm Vụ Mẫu
           </Button>
         )}
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-agent-coral/30 bg-agent-coral/10 px-4 py-2.5 text-xs text-agent-coral">{error}</div>
+      )}
 
       {successMsg && (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-400 flex items-center justify-between animate-in fade-in">
@@ -446,10 +444,10 @@ export function OnboardingManagementTab() {
                               <Button
                                 size="xs"
                                 variant="outline"
-                                className="text-xs gap-1"
+                                className="text-xs"
                                 onClick={() => setSelectedEmpProgress(group)}
                               >
-                                Xem Chi Tiết <ChevronRight className="size-3" />
+                                Xem Chi Tiết
                               </Button>
                             ) : (
                               <Button
@@ -458,10 +456,8 @@ export function OnboardingManagementTab() {
                                 onClick={() => handleAssignTasks(group.employeeId)}
                                 disabled={assigningId === group.employeeId}
                               >
-                                {assigningId === group.employeeId ? (
+                                {assigningId === group.employeeId && (
                                   <Loader2 className="size-3 animate-spin" />
-                                ) : (
-                                  <Plus className="size-3" />
                                 )}
                                 Gán Lộ Trình Mẫu
                               </Button>
@@ -555,21 +551,20 @@ export function OnboardingManagementTab() {
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <Button
-                                size="icon-xs"
+                                size="xs"
                                 variant="ghost"
+                                className="text-xs"
                                 onClick={() => handleOpenEditTask(task)}
-                                title="Chỉnh sửa nhiệm vụ"
                               >
-                                <Pencil className="size-3.5" />
+                                Sửa
                               </Button>
                               <Button
-                                size="icon-xs"
+                                size="xs"
                                 variant="ghost"
-                                className="text-destructive hover:bg-destructive/10"
+                                className="text-xs text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDeleteTask(task.id, task.title)}
-                                title="Xóa nhiệm vụ"
                               >
-                                <Trash2 className="size-3.5" />
+                                Xóa
                               </Button>
                             </div>
                           </TableCell>
@@ -585,209 +580,191 @@ export function OnboardingManagementTab() {
       )}
 
       {/* MODAL 1: CHI TIẾT TIẾN ĐỘ NHÂN VIÊN */}
-      {selectedEmpProgress && (
-        <Dialog open={true} onOpenChange={(open) => !open && setSelectedEmpProgress(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setSelectedEmpProgress(null)}
-            />
-            <div className="relative z-50 w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col">
-              <DialogHeader>
-                <DialogTitle className="text-base font-bold flex items-center justify-between">
-                  <span>Tiến Độ: {selectedEmpProgress.fullName}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {selectedEmpProgress.completed}/{selectedEmpProgress.total} hoàn thành ({selectedEmpProgress.percentage}%)
-                  </Badge>
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Mã NV: {selectedEmpProgress.employeeCode} • Phòng ban: {selectedEmpProgress.departmentName || "—"}
-                </DialogDescription>
-              </DialogHeader>
+      <Dialog
+        open={selectedEmpProgress !== null}
+        onOpenChange={(open) => !open && setSelectedEmpProgress(null)}
+        className="max-w-xl max-h-[85vh] flex flex-col"
+      >
+        {selectedEmpProgress && (
+          <>
+            <DialogHeader className="pr-6">
+              <DialogTitle className="text-base font-bold flex items-center justify-between">
+                <span>Tiến Độ: {selectedEmpProgress.fullName}</span>
+                <Badge variant="outline" className="text-xs">
+                  {selectedEmpProgress.completed}/{selectedEmpProgress.total} hoàn thành ({selectedEmpProgress.percentage}%)
+                </Badge>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Mã NV: {selectedEmpProgress.employeeCode} • Phòng ban: {selectedEmpProgress.departmentName || "—"}
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="mt-4 flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 text-xs">
-                {selectedEmpProgress.items.map((item) => {
-                  const isDone = item.status === "COMPLETED"
-                  const t = item.task
-                  const cat = (t?.category ? CATEGORY_MAP[t.category] : undefined) ?? DEFAULT_CATEGORY
+            <div className="mt-4 flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 text-xs">
+              {selectedEmpProgress.items.map((item) => {
+                const isDone = item.status === "COMPLETED"
+                const t = item.task
+                const cat = (t?.category ? CATEGORY_MAP[t.category] : undefined) ?? DEFAULT_CATEGORY
 
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-start justify-between rounded-xl border p-3 transition-colors ${
-                        isDone ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-muted/10"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <button
-                          onClick={() => handleToggleTaskStatus(item.taskId, item.status)}
-                          disabled={updatingTaskId === item.taskId}
-                          className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-all ${
-                            isDone
-                              ? "border-emerald-500 bg-emerald-500 text-white"
-                              : "border-border hover:border-primary text-transparent"
-                          }`}
-                        >
-                          <CheckCircle2 className="size-3.5" />
-                        </button>
-                        <div>
-                          <p className={`font-semibold ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                            {t?.title || "Nhiệm vụ"}
-                          </p>
-                          {t?.description && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{t.description}</p>
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-start justify-between rounded-xl border p-3 transition-colors ${
+                      isDone ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-muted/10"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      {isDone ? (
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                      ) : (
+                        <span className="mt-1 size-3.5 shrink-0 rounded-full border-2 border-muted-foreground/40" />
+                      )}
+                      <div>
+                        <p className={`font-semibold ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                          {t?.title || "Nhiệm vụ"}
+                        </p>
+                        {t?.description && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{t.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                            {cat.label}
+                          </Badge>
+                          {isDone && item.completedAt && (
+                            <span className="text-[10px] text-emerald-400">
+                              Xong lúc: {new Date(item.completedAt).toLocaleDateString("vi-VN")}
+                            </span>
                           )}
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                              {cat.label}
-                            </Badge>
-                            {isDone && item.completedAt && (
-                              <span className="text-[10px] text-emerald-400">
-                                Xong lúc: {new Date(item.completedAt).toLocaleDateString("vi-VN")}
-                              </span>
-                            )}
-                          </div>
                         </div>
                       </div>
-
-                      <Button
-                        size="xs"
-                        variant={isDone ? "outline" : "default"}
-                        className={`text-[11px] h-7 ${isDone ? "text-muted-foreground" : "bg-primary text-primary-foreground"}`}
-                        onClick={() => handleToggleTaskStatus(item.taskId, item.status)}
-                        disabled={updatingTaskId === item.taskId}
-                      >
-                        {updatingTaskId === item.taskId ? (
-                          <Loader2 className="size-3 animate-spin" />
-                        ) : isDone ? (
-                          "Đánh dấu chưa xong"
-                        ) : (
-                          "Hoàn thành"
-                        )}
-                      </Button>
                     </div>
-                  )
-                })}
-              </div>
 
-              <DialogFooter className="mt-4 pt-3 border-t border-border">
-                <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setSelectedEmpProgress(null)}>
-                  Đóng
-                </Button>
-              </DialogFooter>
+                    <Button
+                      size="xs"
+                      variant={isDone ? "outline" : "default"}
+                      className={`text-[11px] h-7 shrink-0 ${isDone ? "text-muted-foreground" : "bg-primary text-primary-foreground"}`}
+                      onClick={() => handleToggleTaskStatus(item.taskId, item.status)}
+                      disabled={updatingTaskId === item.taskId}
+                    >
+                      {updatingTaskId === item.taskId ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : isDone ? (
+                        "Đánh dấu chưa xong"
+                      ) : (
+                        "Hoàn thành"
+                      )}
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
-          </div>
-        </Dialog>
-      )}
+
+            <DialogFooter className="mt-4 pt-3 border-t border-border">
+              <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setSelectedEmpProgress(null)}>
+                Đóng
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </Dialog>
 
       {/* MODAL 2: TẠO / SỬA NHIỆM VỤ MẪU */}
-      {taskModalOpen && (
-        <Dialog open={true} onOpenChange={(open) => !open && setTaskModalOpen(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setTaskModalOpen(false)}
+      <Dialog open={taskModalOpen} onOpenChange={setTaskModalOpen}>
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold">
+            {editingTask ? "Chỉnh Sửa Nhiệm Vụ Mẫu" : "Thêm Nhiệm Vụ Mẫu Mới"}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Nhiệm vụ chuẩn hóa để gán vào quy trình hội nhập cho nhân viên mới
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4 flex flex-col gap-3 text-xs">
+          <div>
+            <label className="font-semibold text-foreground">
+              Tiêu đề nhiệm vụ <span className="text-destructive">*</span>
+            </label>
+            <Input
+              value={taskForm.title}
+              onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+              placeholder="VD: Nộp sơ yếu lý lịch & bằng cấp công chứng"
+              className="mt-1 text-xs"
             />
-            <div className="relative z-50 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95">
-              <DialogHeader>
-                <DialogTitle className="text-base font-bold">
-                  {editingTask ? "Chỉnh Sửa Nhiệm Vụ Mẫu" : "Thêm Nhiệm Vụ Mẫu Mới"}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Nhiệm vụ chuẩn hóa để gán vào quy trình hội nhập cho nhân viên mới
-                </DialogDescription>
-              </DialogHeader>
+          </div>
 
-              <div className="mt-4 flex flex-col gap-3 text-xs">
-                <div>
-                  <label className="font-semibold text-foreground">
-                    Tiêu đề nhiệm vụ <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    value={taskForm.title}
-                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                    placeholder="VD: Nộp sơ yếu lý lịch & bằng cấp công chứng"
-                    className="mt-1 text-xs"
-                  />
-                </div>
+          <div>
+            <label className="font-semibold text-foreground">Mô tả chi tiết</label>
+            <textarea
+              rows={2}
+              value={taskForm.description}
+              onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+              placeholder="Hướng dẫn cách thực hiện hoặc nộp cho ai..."
+              className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
 
-                <div>
-                  <label className="font-semibold text-foreground">Mô tả chi tiết</label>
-                  <textarea
-                    rows={2}
-                    value={taskForm.description}
-                    onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                    placeholder="Hướng dẫn cách thực hiện hoặc nộp cho ai..."
-                    className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-semibold text-foreground">Phân loại</label>
+              <select
+                value={taskForm.category}
+                onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="paperwork">Hồ sơ & Giấy tờ</option>
+                <option value="equipment">Thiết bị & Tài khoản</option>
+                <option value="training">Đào tạo & Quy định</option>
+                <option value="introduction">Hội nhập & Làm quen</option>
+              </select>
+            </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-foreground">Phân loại</label>
-                    <select
-                      value={taskForm.category}
-                      onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="paperwork">Hồ sơ & Giấy tờ</option>
-                      <option value="equipment">Thiết bị & Tài khoản</option>
-                      <option value="training">Đào tạo & Quy định</option>
-                      <option value="introduction">Hội nhập & Làm quen</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-foreground">Thời hạn (ngày)</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={90}
-                      value={taskForm.dueAfterDays}
-                      onChange={(e) => setTaskForm({ ...taskForm, dueAfterDays: Number(e.target.value) || 7 })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="checkbox"
-                    id="isRequired"
-                    checked={taskForm.isRequired}
-                    onChange={(e) => setTaskForm({ ...taskForm, isRequired: e.target.checked })}
-                    className="size-4 rounded border-border"
-                  />
-                  <label htmlFor="isRequired" className="font-semibold text-foreground cursor-pointer">
-                    Nhiệm vụ bắt buộc hoàn thành
-                  </label>
-                </div>
-              </div>
-
-              <DialogFooter className="mt-6 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs flex-1"
-                  onClick={() => setTaskModalOpen(false)}
-                  disabled={taskBusy}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  size="sm"
-                  className="text-xs flex-1 bg-primary text-primary-foreground gap-1"
-                  onClick={handleSaveTask}
-                  disabled={taskBusy || !taskForm.title.trim()}
-                >
-                  {taskBusy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                  {editingTask ? "Cập Nhật" : "Tạo Mới"}
-                </Button>
-              </DialogFooter>
+            <div>
+              <label className="font-semibold text-foreground">Thời hạn (ngày)</label>
+              <Input
+                type="number"
+                min={1}
+                max={90}
+                value={taskForm.dueAfterDays}
+                onChange={(e) => setTaskForm({ ...taskForm, dueAfterDays: Number(e.target.value) || 7 })}
+                className="mt-1 text-xs"
+              />
             </div>
           </div>
-        </Dialog>
-      )}
+
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="isRequired"
+              checked={taskForm.isRequired}
+              onChange={(e) => setTaskForm({ ...taskForm, isRequired: e.target.checked })}
+              className="size-4 rounded border-border"
+            />
+            <label htmlFor="isRequired" className="font-semibold text-foreground cursor-pointer">
+              Nhiệm vụ bắt buộc hoàn thành
+            </label>
+          </div>
+        </div>
+
+        <DialogFooter className="mt-6 flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs flex-1"
+            onClick={() => setTaskModalOpen(false)}
+            disabled={taskBusy}
+          >
+            Hủy
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs flex-1 bg-primary text-primary-foreground gap-1.5"
+            onClick={handleSaveTask}
+            disabled={taskBusy || !taskForm.title.trim()}
+          >
+            {taskBusy && <Loader2 className="size-3.5 animate-spin" />}
+            {editingTask ? "Cập Nhật" : "Tạo Mới"}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   )
 }

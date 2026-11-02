@@ -13,6 +13,7 @@ export type AuditSection =
   | 'ai_agent'
   | 'salary_config'
   | 'geofence'
+  | 'holiday'
   | 'account';
 
 function formatValue(v: unknown): string | null {

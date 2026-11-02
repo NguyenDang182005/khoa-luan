@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { PlugZap, Loader2, RefreshCw, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react"
+import { PlugZap, Loader2, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -52,7 +52,7 @@ export function IntegrationsSection() {
             </CardDescription>
           </div>
           <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={load} disabled={pinging}>
-            {pinging ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Kiểm Tra Lại
+            {pinging && <Loader2 className="size-3.5 animate-spin" />} Kiểm Tra Lại
           </Button>
         </div>
       </CardHeader>

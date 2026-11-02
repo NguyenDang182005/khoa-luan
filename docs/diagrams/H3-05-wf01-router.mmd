@@ -1,0 +1,19 @@
+flowchart TD
+  A["Webhook POST /chat<br/>header x-api-key"] --> B["PII Masking<br/>CMND, CCCD → [MASKED_ID]<br/>SĐT → [MASKED_PHONE]<br/>Email → [MASKED_EMAIL]"]
+  B --> C["Parse Intent<br/>chữ thường, bỏ dấu, đ → d"]
+  C --> D{"Có action quiz, scenarioType<br/>hoặc sessionType TRAINING?"}
+  D -->|"có"| T["intent = TRAINING"]
+  D -->|"không"| E{"sessionType CSKH<br/>hoặc channel zalo?"}
+  E -->|"có"| CS["intent = CSKH"]
+  E -->|"không"| F{"Khớp từ khóa nhân sự?"}
+  F -->|"có"| H["intent = HR_QA"]
+  F -->|"không"| G{"Khớp từ khóa đào tạo?"}
+  G -->|"có"| T
+  G -->|"không"| K{"Khớp từ khóa CSKH?"}
+  K -->|"có"| CS
+  K -->|"không"| O["intent = OTHER<br/>hoặc giữ sessionType hiện tại"]
+  T --> X1["Execute WF03"]
+  H --> X2["Execute WF02"]
+  CS --> X3["Execute WF04"]
+  O --> X4["Respond OTHER Static"]
+  X1 & X2 & X3 & X4 --> R["Respond Chat Webhook"]

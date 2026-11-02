@@ -48,19 +48,22 @@ export class ContractsService {
     signedDate: Date;
     fileUrl?: string;
   }) {
-    // Deactivate existing active contracts
-    await this.prisma.contract.updateMany({
-      where: { employeeId: dto.employeeId, isActive: true },
-      data: { isActive: false },
-    });
+    // #16: deactivate + create trong 1 transaction — lỗi giữa chừng thì hợp đồng
+    // cũ không bị mất trạng thái ACTIVE giữa lúc.
+    return this.prisma.$transaction(async (tx) => {
+      await tx.contract.updateMany({
+        where: { employeeId: dto.employeeId, isActive: true },
+        data: { isActive: false },
+      });
 
-    return this.prisma.contract.create({
-      data: {
-        ...dto,
-        type: dto.type as any,
-        allowances: dto.allowances ?? 0,
-        isActive: true,
-      },
+      return tx.contract.create({
+        data: {
+          ...dto,
+          type: dto.type as any,
+          allowances: dto.allowances ?? 0,
+          isActive: true,
+        },
+      });
     });
   }
 

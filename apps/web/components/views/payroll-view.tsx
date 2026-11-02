@@ -3,13 +3,8 @@
 import * as React from "react"
 import {
   Coins,
-  Calculator,
-  Download,
-  Settings,
-  Check,
   CheckCheck,
   RefreshCw,
-  Banknote,
   AlertTriangle,
   Calendar,
   ChevronDown,
@@ -138,6 +133,8 @@ export function PayrollView() {
   // ── Duyệt / chi trả hàng loạt ───────────────────────────────────────────
   const draftCount = payrollData.filter((p) => p.status === "DRAFT").length
   const approvedCount = payrollData.filter((p) => p.status === "APPROVED").length
+  const selectedDraftCount = payrollData.filter((p) => selectedIds.includes(p.id) && p.status === "DRAFT").length
+  const selectedApprovedCount = payrollData.filter((p) => selectedIds.includes(p.id) && p.status === "APPROVED").length
   const selectableIds = payrollData
     .filter((p) => p.status === "DRAFT" || p.status === "APPROVED")
     .map((p) => p.id)
@@ -162,12 +159,12 @@ export function PayrollView() {
     },
     approveSelected: {
       title: "Duyệt các mục đã chọn?",
-      desc: `${selectedIds.length} bản ghi đã chọn sẽ được duyệt (APPROVED).`,
+      desc: `${selectedDraftCount} bản ghi chờ duyệt (DRAFT) trong số đã chọn sẽ được duyệt (APPROVED).`,
       confirm: "Duyệt mục đã chọn",
     },
     paidSelected: {
       title: "Chi trả các mục đã chọn?",
-      desc: `${selectedIds.length} bản ghi đã chọn sẽ chuyển sang PAID.`,
+      desc: `${selectedApprovedCount} bản ghi đã duyệt (APPROVED) trong số đã chọn sẽ chuyển sang PAID.`,
       confirm: "Chi trả mục đã chọn",
     },
   }
@@ -218,18 +215,18 @@ export function PayrollView() {
             variant="outline"
             size="sm"
             onClick={() => setShowConfig(true)}
-            className="h-9 gap-1.5 border-border bg-card/70 text-xs shadow-2xs hover:bg-accent"
+            className="h-9 border-border bg-card/70 text-xs shadow-2xs hover:bg-accent"
           >
-            <Settings className="size-3.5 text-muted-foreground" /> Cài Đặt Quy Chế
+            Cài Đặt Quy Chế
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-9 gap-1.5 border-border bg-card/70 text-xs shadow-2xs hover:bg-accent"
+            className="h-9 border-border bg-card/70 text-xs shadow-2xs hover:bg-accent"
             disabled={payrollData.length === 0}
             onClick={() => exportPayrollCsv(payrollData, month, year)}
           >
-            <Download className="size-3.5 text-muted-foreground" /> Xuất Excel (CSV)
+            Xuất Excel (CSV)
           </Button>
           <Button
             size="sm"
@@ -242,9 +239,7 @@ export function PayrollView() {
                 <RefreshCw className="size-3.5 animate-spin" /> Đang Chạy Engine...
               </>
             ) : (
-              <>
-                <Calculator className="size-3.5" /> Chạy Rule Engine Tính Lương
-              </>
+              "Chạy Rule Engine Tính Lương"
             )}
           </Button>
         </div>
@@ -336,20 +331,20 @@ export function PayrollView() {
                 <Button
                   size="xs"
                   variant="outline"
-                  className="gap-1 border-emerald-500/50 bg-emerald-500/10 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20"
-                  disabled={isBulkRunning}
+                  className="border-emerald-500/50 bg-emerald-500/10 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40"
+                  disabled={selectedDraftCount === 0 || isBulkRunning}
                   onClick={() => setBulkAction("approveSelected")}
                 >
-                  <Check className="size-3.5" /> Duyệt mục đã chọn ({selectedIds.length})
+                  Duyệt mục đã chọn ({selectedDraftCount})
                 </Button>
                 <Button
                   size="xs"
                   variant="outline"
-                  className="gap-1 border-agent-teal/50 bg-agent-teal/10 text-[11px] font-semibold text-agent-teal hover:bg-agent-teal/20"
-                  disabled={isBulkRunning}
+                  className="border-agent-teal/50 bg-agent-teal/10 text-[11px] font-semibold text-agent-teal hover:bg-agent-teal/20 disabled:opacity-40"
+                  disabled={selectedApprovedCount === 0 || isBulkRunning}
                   onClick={() => setBulkAction("paidSelected")}
                 >
-                  <Banknote className="size-3.5" /> Chi trả mục đã chọn ({selectedIds.length})
+                  Chi trả mục đã chọn ({selectedApprovedCount})
                 </Button>
                 <Button
                   size="xs"
@@ -365,20 +360,20 @@ export function PayrollView() {
                 <Button
                   size="xs"
                   variant="outline"
-                  className="gap-1 border-emerald-500/40 bg-emerald-500/5 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/15 disabled:opacity-40"
+                  className="border-emerald-500/40 bg-emerald-500/5 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/15 disabled:opacity-40"
                   disabled={draftCount === 0 || isBulkRunning}
                   onClick={() => setBulkAction("approveAll")}
                 >
-                  <CheckCheck className="size-3.5" /> Duyệt Tất Cả ({draftCount} chờ duyệt)
+                  Duyệt Tất Cả ({draftCount} chờ duyệt)
                 </Button>
                 <Button
                   size="xs"
                   variant="outline"
-                  className="gap-1 border-agent-teal/40 bg-agent-teal/5 text-[11px] font-medium text-agent-teal hover:bg-agent-teal/15 disabled:opacity-40"
+                  className="border-agent-teal/40 bg-agent-teal/5 text-[11px] font-medium text-agent-teal hover:bg-agent-teal/15 disabled:opacity-40"
                   disabled={approvedCount === 0 || isBulkRunning}
                   onClick={() => setBulkAction("paidAll")}
                 >
-                  <Banknote className="size-3.5" /> Chi Trả Tất Cả Đã Duyệt ({approvedCount})
+                  Chi Trả Tất Cả Đã Duyệt ({approvedCount})
                 </Button>
               </div>
             )}
@@ -418,7 +413,7 @@ export function PayrollView() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-              Khấu Trừ (BH + Thuế)
+              Bảo Hiểm (BHXH + BHYT + BHTN)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -437,7 +432,7 @@ export function PayrollView() {
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold font-mono text-agent-coral">{vnd(totalTax)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Biểu thuế 7 bậc lũy tiến</p>
+            <p className="text-xs text-muted-foreground mt-1">Biểu thuế 5 bậc (từ 01/7/2026)</p>
           </CardContent>
         </Card>
 
@@ -551,6 +546,9 @@ export function PayrollView() {
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-agent-amber">
                     -{vnd(item.deductions)}
+                    {(item.advance ?? 0) > 0 && (
+                      <p className="text-[10px] text-agent-coral">- ứng {vnd(item.advance!)}</p>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-agent-coral">
                     {item.tax > 0 ? `-${vnd(item.tax)}` : "0 ₫"}
@@ -569,9 +567,9 @@ export function PayrollView() {
                           variant="outline"
                           disabled={pendingAction === item.id}
                           onClick={() => handleApprove(item.id)}
-                          className="h-6 gap-1 border-emerald-500/40 text-[10px] text-emerald-400 hover:bg-emerald-500/10"
+                          className="h-6 border-emerald-500/40 text-[10px] text-emerald-400 hover:bg-emerald-500/10"
                         >
-                          <Check className="size-3" /> Duyệt
+                          Duyệt
                         </Button>
                       )}
                       {item.status === "APPROVED" && (
@@ -580,9 +578,9 @@ export function PayrollView() {
                           variant="outline"
                           disabled={pendingAction === item.id}
                           onClick={() => handleMarkPaid(item.id)}
-                          className="h-6 gap-1 border-agent-teal/40 text-[10px] text-agent-teal hover:bg-agent-teal/10"
+                          className="h-6 border-agent-teal/40 text-[10px] text-agent-teal hover:bg-agent-teal/10"
                         >
-                          <Banknote className="size-3" /> Đã chi trả
+                          Đã chi trả
                         </Button>
                       )}
                     </div>
@@ -664,7 +662,7 @@ export function PayrollView() {
             Hủy
           </Button>
           <Button disabled={isBulkRunning} onClick={confirmBulk} className="gap-1.5">
-            {isBulkRunning ? <RefreshCw className="size-4 animate-spin" /> : <CheckCheck className="size-4" />}
+            {isBulkRunning && <RefreshCw className="size-4 animate-spin" />}
             {bulkAction ? bulkMeta[bulkAction].confirm : "Xác nhận"}
           </Button>
         </DialogFooter>

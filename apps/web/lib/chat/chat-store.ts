@@ -44,6 +44,13 @@ export function subscribeChat(key: string, fn: Listener): () => void {
   }
 }
 
+/** Xóa toàn bộ chat store (dùng khi logout / đổi tài khoản) */
+export function clearAllChats(): void {
+  store.clear()
+  listeners.forEach((set) => set.forEach((fn) => fn()))
+  listeners.clear()
+}
+
 /** Ánh xạ message lịch sử từ DB → shape tin nhắn của view (dùng chung 2 view) */
 export function mapHistory<TMsg>(
   messages: ChatHistoryMessage[],

@@ -1,15 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
-  MessageBody,
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { requireSecret } from '../auth/require-secret';
+import { JwtPayload } from '@repo/shared-types';
+import { JwtStrategy } from '../auth/strategies/jwt.strategy';
 
 @Injectable()
 export class NotificationsService {
@@ -48,11 +53,16 @@ export class NotificationsService {
     });
   }
 
-  markAsRead(id: string) {
-    return this.prisma.notification.update({
-      where: { id },
+  /** Đánh dấu đã đọc — chỉ được đánh dấu thông báo của chính mình. */
+  async markAsRead(id: string, userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: { id, userId },
       data: { isRead: true, readAt: new Date() },
     });
+    if (result.count === 0) {
+      throw new NotFoundException('Không tìm thấy thông báo');
+    }
+    return { updated: result.count };
   }
 
   markAllRead(userId: string) {
@@ -63,8 +73,13 @@ export class NotificationsService {
   }
 }
 
+// Gateway nhận sự kiện qua WebSocket, không phải HTTP → bỏ qua ThrottlerGuard toàn cục
+@SkipThrottle()
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: {
+    origin: process.env.WEB_URL?.split(',').map((s) => s.trim()) ?? ['http://localhost:3000'],
+    credentials: true,
+  },
   namespace: '/notifications',
 })
 export class NotificationsGateway
@@ -73,8 +88,38 @@ export class NotificationsGateway
   @WebSocketServer()
   server!: Server;
 
-  handleConnection(client: Socket) {
-    console.log(`WS client connected: ${client.id}`);
+  constructor(
+    private readonly config: ConfigService,
+    private readonly jwt: JwtService,
+    private readonly jwtStrategy: JwtStrategy,
+  ) {}
+
+  /** Verify chữ ký JWT rồi kiểm tra như HTTP: phiên (sid) chưa bị thu hồi, user còn active,
+   *  role đọc lại từ DB — tránh admin đã bị thu hồi/hạ quyền vẫn nhận sự kiện. */
+  private async verifyToken(token?: string) {
+    if (!token) throw new UnauthorizedException('Thiếu token');
+    const payload = this.jwt.verify<JwtPayload>(token, {
+      secret: requireSecret(this.config, 'JWT_SECRET'),
+    });
+    return this.jwtStrategy.validate(payload);
+  }
+
+  /**
+   * #14: verify JWT ở handshake. Trước đây bất kỳ ai cũng mở được socket và join
+   * room 'admin' → xem được thống kê AI của công ty.
+   */
+  async handleConnection(client: Socket) {
+    try {
+      const token: string | undefined =
+        client.handshake.auth?.token ?? client.handshake.headers?.authorization?.replace(/^Bearer /, '');
+      const payload = await this.verifyToken(token);
+      client.data.user = { sub: payload.sub, role: payload.role };
+      client.join(`user:${payload.sub}`);
+      console.log(`WS client connected: ${client.id} (${payload.email})`);
+    } catch {
+      console.warn(`WS client rejected (token không hợp lệ): ${client.id}`);
+      client.disconnect(true);
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -84,6 +129,9 @@ export class NotificationsGateway
   /** Client (Admin/HR) joins the shared admin room after login */
   @SubscribeMessage('join-admin')
   handleJoinAdmin(@ConnectedSocket() client: Socket) {
+    if (client.data.user?.role !== 'ADMIN') {
+      return { status: 'forbidden' };
+    }
     client.join('admin');
     return { status: 'joined', room: 'admin' };
   }

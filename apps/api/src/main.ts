@@ -2,9 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // #20: P2025 (Prisma record not found) → 404 thay vì 500
+  app.useGlobalFilters(new PrismaExceptionFilter());
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
@@ -13,6 +17,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       process.env.WEB_URL ?? 'http://localhost:3000',
+      'http://127.0.0.1:3000',
       process.env.N8N_URL ?? 'http://localhost:5678',
       'http://localhost:19000', // Expo Go
       'http://localhost:19006', // Expo Web

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsAuditService } from '../settings/settings-audit.service';
+import { defaultSalaryConfigFor } from '../payroll/pit';
+import { vnDateFromParts, vnMonth } from '../common/vn-date';
 
 @Injectable()
 export class SalaryConfigService {
@@ -23,20 +25,9 @@ export class SalaryConfigService {
       where: { year: { lte: year } },
       orderBy: { year: 'desc' },
     });
-    // Return defaults if no config found
-    return (
-      config ?? {
-        year,
-        bhxhRate: 0.08,
-        bhytRate: 0.015,
-        bhtnRate: 0.01,
-        pitFreeAmount: 11_000_000,
-        overtimeRate: 1.5,
-        otWeekendRate: 2.0,
-        otHolidayRate: 3.0,
-        standardWorkHours: 8,
-      }
-    );
+    // Chưa có cấu hình: trả đúng mặc định mà Rule Engine sẽ dùng cho tháng hiện tại
+    const { year: y, month } = vnMonth();
+    return config ?? { year, ...defaultSalaryConfigFor(vnDateFromParts(y, month, 1)) };
   }
 
   async upsert(

@@ -1,0 +1,26 @@
+sequenceDiagram
+  autonumber
+  actor E as Nhân viên
+  participant W as employee-portal-view
+  participant A as AttendanceService
+  participant DB as PostgreSQL
+  W->>A: GET /settings/geofence
+  A-->>W: lat, lng, radiusM
+  E->>W: Bấm Check-in
+  W->>W: navigator.geolocation và công thức Haversine
+  alt Ngoài bán kính cho phép
+    W-->>E: Từ chối, hiển thị khoảng cách
+  else Trong bán kính
+    W->>A: POST /attendance/check-in kèm lat, lng
+    A->>DB: Đọc OfficeGeofence, tính lại Haversine
+    A-->>W: 403 nếu ngoài bán kính
+    A->>DB: Xác định dayType theo bảng holidays
+    A->>A: Ngày thường sau 08:30 là LATE, ngược lại PRESENT
+    A->>DB: INSERT attendance, unique employeeId và date
+    A-->>W: 201, hoặc 409 nếu đã check-in
+  end
+  E->>W: Bấm Check-out
+  W->>A: POST /attendance/check-out
+  A->>A: workDays theo khung 8-12 và 13-17, bước 0,25 ngày
+  A->>A: overtime = trước 08:00 + sau 17:00, đối chiếu đơn OT đã duyệt
+  A->>DB: UPDATE attendance

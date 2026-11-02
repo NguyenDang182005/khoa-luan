@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { History, Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
+import { History, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -129,7 +129,7 @@ export function AuditLogSection() {
               ))}
             </select>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => load(page, section)} disabled={busy}>
-              {busy ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Tải Lại
+              {busy && <Loader2 className="size-3.5 animate-spin" />} Tải Lại
             </Button>
           </div>
         </div>
@@ -187,7 +187,7 @@ export function AuditLogSection() {
                   disabled={page <= 1 || busy}
                   onClick={() => load(page - 1, section)}
                 >
-                  <ChevronLeft className="size-3.5" /> Trước
+                  Trước
                 </Button>
                 <Button
                   size="sm"
@@ -196,7 +196,7 @@ export function AuditLogSection() {
                   disabled={page >= pageCount || busy}
                   onClick={() => load(page + 1, section)}
                 >
-                  Sau <ChevronRight className="size-3.5" />
+                  Sau
                 </Button>
               </div>
             </div>

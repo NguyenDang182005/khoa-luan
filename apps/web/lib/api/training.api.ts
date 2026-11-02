@@ -18,10 +18,6 @@ export const trainingApi = {
     const { data } = await apiClient.post(`/training/sessions/${sessionId}/attempts`, { questionId, answer })
     return data
   },
-  gradeSession: async (sessionId: string, aiScore: Record<string, number>, aiFeedback: string) => {
-    const { data } = await apiClient.patch(`/training/sessions/${sessionId}/grade`, { aiScore, aiFeedback })
-    return data
-  },
   getAnalytics: async (month?: number, year?: number) => {
     const { data } = await apiClient.get('/training/analytics', { params: { month, year } })
     return TrainingAnalyticsSchema.parse(data)

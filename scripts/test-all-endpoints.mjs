@@ -70,7 +70,8 @@ async function n8n(path, body, { timeoutMs = TIMEOUT } = {}) {
   try {
     const res = await fetch(`${N8N_BASE}/webhook/${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Webhook n8n bật headerAuth — cần cùng khóa với NestJS (N8N_API_KEY).
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY ?? '' },
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
@@ -138,7 +139,8 @@ async function main() {
   // ═══ 3. PAYROLL ═══
   section('3. Payroll');
 
-  const payrolls = await api('GET', '/payroll', { token: AT });
+  // Kỳ 9/2026 có dữ liệu seed — kỳ hiện tại có thể chưa tính lương
+  const payrolls = await api('GET', '/payroll?month=9&year=2026', { token: AT });
   check('GET /payroll → 200', payrolls.status === 200);
   // /payroll trả thẳng array (không wrap {data:[]})
   check('Payroll là array có records', Array.isArray(payrolls.json) && payrolls.json.length > 0,
@@ -280,6 +282,16 @@ async function main() {
   // ═══ 11. n8n WORKFLOWS (Direct webhook) ═══
   section('11. n8n Workflows — Direct Webhook');
   console.log(`  ${C.gray}(timeout ${TIMEOUT/1000}s mỗi request — có thể chậm do Gemini free-tier)${C.reset}`);
+
+  // Webhook không kèm x-api-key phải bị từ chối (chống đọc lương nhân viên khác qua n8n)
+  for (const path of ['chat', 'zalo-webhook']) {
+    const noKey = await fetch(`${N8N_BASE}/webhook/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'luong thang 8', employeeId: 'EMP005' }),
+    }).catch(() => null);
+    check(`n8n /webhook/${path} thiếu x-api-key → 401/403`, noKey && [401, 403].includes(noKey.status), String(noKey?.status));
+  }
 
   // WF01 OTHER — nhanh nhất (không gọi LLM)
   const wf01Other = await n8n('chat', {

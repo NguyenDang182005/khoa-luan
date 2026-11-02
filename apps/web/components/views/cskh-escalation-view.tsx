@@ -3,9 +3,7 @@
 import * as React from "react"
 import {
   ShieldAlert,
-  Bot,
   UserCheck,
-  Send,
   Lock,
   CheckCircle2,
   Loader2,
@@ -19,6 +17,8 @@ import { Avatar } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { isAdminRole } from "@repo/shared-types"
 import {
   escalationApi,
   type EscalationCase,
@@ -66,6 +66,29 @@ function shortTime(iso: string | null): string {
 }
 
 export function CskhEscalationView() {
+  const { user } = useAuth()
+  const isAdmin = user ? isAdminRole(user.role) : false
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+        <ShieldAlert className="mb-3 size-12 text-agent-coral" />
+        <h2 className="text-lg font-semibold text-foreground">Bạn không có quyền xem trang này</h2>
+        <p className="mt-1 text-muted-foreground">
+          Trang &ldquo;Tiếp Quản CSKH &amp; PII&rdquo; chỉ dành cho Admin.
+        </p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Vui lòng dùng các trang trong mục Cổng Nhân Viên (ESS): Hồ sơ, Đào tạo, AI Multi-Agents Sandbox.
+        </p>
+      </div>
+    )
+  }
+
+  return <CskhEscalationPanel />
+}
+
+/** Tách khỏi phần kiểm tra quyền để hook luôn được gọi cùng thứ tự (rules-of-hooks). */
+function CskhEscalationPanel() {
   const [escalationQueue, setEscalationQueue] = useState<EscalationCase[]>([])
   const [queueError, setQueueError] = useState<string | null>(null)
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null)
@@ -340,11 +363,11 @@ export function CskhEscalationView() {
       {/* Tabs: Live Console vs PII Masking Audit Trail */}
       <Tabs defaultValue="console" className="w-full">
         <TabsList>
-          <TabsTrigger value="console" className="gap-1.5">
-            <UserCheck className="size-3.5" /> Hội thoại trực tiếp
+          <TabsTrigger value="console">
+            Hội thoại trực tiếp
           </TabsTrigger>
-          <TabsTrigger value="audit" className="gap-1.5">
-            <Lock className="size-3.5" /> Nhật ký PII Masking
+          <TabsTrigger value="audit">
+            Nhật ký PII Masking
           </TabsTrigger>
         </TabsList>
 
@@ -510,7 +533,7 @@ export function CskhEscalationView() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {botToggling && botPaused ? <Loader2 className="size-3 animate-spin" /> : <Bot className="size-3.5" />}
+                      {botToggling && botPaused && <Loader2 className="size-3 animate-spin" />}
                       Bot AI
                     </button>
                     <button
@@ -525,7 +548,7 @@ export function CskhEscalationView() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {botToggling && !botPaused ? <Loader2 className="size-3 animate-spin" /> : <UserCheck className="size-3.5" />}
+                      {botToggling && !botPaused && <Loader2 className="size-3 animate-spin" />}
                       Chuyên viên
                     </button>
                   </div>
@@ -611,8 +634,8 @@ export function CskhEscalationView() {
                     className="flex-1 rounded-lg border border-border bg-input/40 px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                     disabled={replyBusy}
                   />
-                  <Button size="sm" onClick={handleSendHuman} disabled={replyBusy || !humanReply.trim()} className="gap-1 bg-primary text-primary-foreground">
-                    {replyBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Gửi
+                  <Button size="sm" onClick={handleSendHuman} disabled={replyBusy || !humanReply.trim()} className="gap-1.5 bg-primary text-primary-foreground">
+                    {replyBusy && <Loader2 className="size-3.5 animate-spin" />} Gửi
                   </Button>
                 </div>
                 <p className="mt-1.5 text-[10px] text-muted-foreground">

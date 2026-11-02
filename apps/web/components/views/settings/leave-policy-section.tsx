@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { CalendarDays, Loader2, Save } from "lucide-react"
+import { CalendarDays, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,10 +52,10 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
     try {
       const savedNew = await settingsApi.updateLeavePolicy({
         annualQuotaDays: Number(policy.annualQuotaDays),
-        seniorityBonusEveryYears: Number(policy.seniorityBonusEveryYears),
-        seniorityBonusDays: Number(policy.seniorityBonusDays),
+        seniorityBonusEveryYears: 0,
+        seniorityBonusDays: 0,
         prorateByJoinMonth: policy.prorateByJoinMonth,
-        maxCarryOverDays: Number(policy.maxCarryOverDays),
+        maxCarryOverDays: 0,
         note: policy.note ?? "",
       })
       setPolicy(savedNew)
@@ -76,7 +76,7 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
           <CalendarDays className="size-4 text-agent-teal" /> Chính Sách Phép Năm
         </CardTitle>
         <CardDescription>
-          Chu kỳ theo năm dương lịch. Số dư phép = quota chuẩn + thâm niên + chuyển thừa năm trước − đã dùng.
+          Chu kỳ theo năm dương lịch (01/01 – 31/12). Số dư phép = ngày phép chuẩn/năm (tính tỷ lệ pro-rate nếu vào làm trong năm) − số ngày đã dùng.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -86,7 +86,7 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div title="Số ngày phép chuẩn mỗi năm (mặc định 12)">
                 <label className="text-[11px] font-semibold text-muted-foreground">Ngày phép chuẩn/năm</label>
                 <Input
@@ -98,37 +98,13 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
                   className="mt-1 h-8 text-xs font-mono"
                 />
               </div>
-              <div title="Cộng thêm X ngày tại mỗi mốc N năm công tác. Đặt 0 để tắt.">
-                <label className="text-[11px] font-semibold text-muted-foreground">Mỗi N năm thâm niên</label>
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground">Ghi chú chính sách</label>
                 <Input
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={String(policy.seniorityBonusEveryYears)}
-                  onChange={(e) => setPolicy({ ...policy, seniorityBonusEveryYears: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
-                />
-              </div>
-              <div title="Số ngày cộng tại mỗi mốc thâm niên (VD: +1 ngày mỗi 5 năm)">
-                <label className="text-[11px] font-semibold text-muted-foreground">Cộng thêm (ngày)</label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={30}
-                  value={String(policy.seniorityBonusDays)}
-                  onChange={(e) => setPolicy({ ...policy, seniorityBonusDays: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
-                />
-              </div>
-              <div title="Phép chưa dùng của năm trước chuyển sang năm sau, tối đa X ngày. 0 = hết hạn cuối năm.">
-                <label className="text-[11px] font-semibold text-muted-foreground">Chuyển thừa tối đa (ngày)</label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={365}
-                  value={String(policy.maxCarryOverDays)}
-                  onChange={(e) => setPolicy({ ...policy, maxCarryOverDays: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
+                  value={policy.note ?? ""}
+                  placeholder="VD: Áp dụng theo Bộ luật Lao động 2019"
+                  onChange={(e) => setPolicy({ ...policy, note: e.target.value })}
+                  className="mt-1 h-8 text-xs"
                 />
               </div>
               <div className="md:col-span-2 flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3">
@@ -143,21 +119,12 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
                   </p>
                 </div>
               </div>
-              <div className="md:col-span-2">
-                <label className="text-[11px] font-semibold text-muted-foreground">Ghi chú chính sách</label>
-                <Input
-                  value={policy.note ?? ""}
-                  placeholder="VD: Áp dụng theo Bộ luật Lao động 2019"
-                  onChange={(e) => setPolicy({ ...policy, note: e.target.value })}
-                  className="mt-1 h-8 text-xs"
-                />
-              </div>
             </div>
             {msg && <p className="mt-3 text-[11px] text-emerald-400">{msg}</p>}
             {error && <p className="mt-3 text-[11px] text-agent-coral">{error}</p>}
             <div className="mt-3 flex items-center gap-3">
               <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Lưu Chính Sách Phép
+                {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Chính Sách Phép
               </Button>
               {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
             </div>

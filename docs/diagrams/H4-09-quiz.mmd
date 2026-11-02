@@ -1,0 +1,25 @@
+sequenceDiagram
+  autonumber
+  actor E as Nhân viên
+  participant W as my-training-view
+  participant A as NestJS
+  participant T as n8n WF03
+  participant G as Gemini
+  E->>W: Chọn kịch bản, bắt đầu bài test
+  W->>A: POST /agents/chat, action generate_quiz
+  A->>T: Chuyển qua WF01
+  T->>G: Sinh 5 MCQ và 2 câu tự luận dạng JSON
+  G-->>T: questions
+  T-->>A: questions kèm đáp án đúng
+  A->>A: Lưu đáp án vào metadata.quiz, gỡ correctAnswer
+  A-->>W: Câu hỏi không kèm đáp án
+  E->>W: Nộp bài
+  W->>A: POST /training/submit
+  A->>A: Tối đa 5 lần mỗi kịch bản mỗi ngày
+  A->>T: POST /webhook/training-quiz, submit_quiz, timeout 60 giây
+  T->>G: Chấm tự luận theo 4 tiêu chí
+  G-->>T: results, criteria
+  T-->>A: Kết quả chấm
+  A->>A: Chấm MCQ phía server theo đáp án đã lưu
+  A->>A: Tổng điểm = 0,5 × điểm MCQ + 0,5 × điểm tự luận × 10
+  A-->>W: TrainingSession GRADED, radar 4 tiêu chí

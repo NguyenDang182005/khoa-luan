@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 import { RolesGuard } from './guards/roles.guard';
+import { requireSecret } from './require-secret';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { RolesGuard } from './guards/roles.guard';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'hr-system-secret-key'),
+        secret: requireSecret(configService, 'JWT_SECRET'),
         signOptions: {
           expiresIn: configService.get('JWT_EXPIRES_IN', '30d') as unknown as number,
         },
@@ -23,7 +24,7 @@ import { RolesGuard } from './guards/roles.guard';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, FirebaseAdminService, RolesGuard],
-  exports: [AuthService, JwtModule, RolesGuard],
+  exports: [AuthService, JwtModule, RolesGuard, JwtStrategy],
 })
 export class AuthModule {}
 

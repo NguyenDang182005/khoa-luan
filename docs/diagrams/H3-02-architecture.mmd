@@ -1,0 +1,28 @@
+flowchart TB
+  subgraph P["Tầng trình bày"]
+    WEB["Next.js 16 Web Portal :3000<br/>React 19, Tailwind CSS, shadcn/ui"]
+    SL["Slack DM<br/>mô phỏng kênh Zalo OA"]
+  end
+  subgraph A["Tầng ứng dụng"]
+    API["NestJS 11 REST API :3001<br/>/api/v1, JWT, RBAC, Throttler"]
+    WS["Socket.IO Gateway<br/>namespace /notifications"]
+  end
+  subgraph O["Tầng điều phối AI"]
+    N8N["n8n :5678<br/>WF01 đến WF05"]
+  end
+  subgraph D["Tầng dữ liệu"]
+    PG[("PostgreSQL 16 + pgvector :5432")]
+  end
+  EXT["Google Gemini 3.1 Flash Lite<br/>gemini-embedding-001"]
+  FB["Firebase Authentication"]
+  WEB -->|"REST + Bearer JWT"| API
+  WEB <-->|"WebSocket"| WS
+  WEB -->|"OAuth popup"| FB
+  API -->|"verifyIdToken"| FB
+  SL <-->|"Bolt Socket Mode, Web API"| API
+  API -->|"webhook + x-api-key"| N8N
+  N8N -->|"HTTP tools + x-api-key"| API
+  API -->|"Prisma ORM"| PG
+  N8N -->|"Postgres Chat Memory"| PG
+  N8N -->|"sinh văn bản"| EXT
+  API -->|"embedContent"| EXT

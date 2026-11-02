@@ -71,6 +71,10 @@ export enum LeaveType {
   PATERNITY = 'PATERNITY',
   UNPAID = 'UNPAID',
   EMERGENCY = 'EMERGENCY',
+  OT = 'OT',
+  LATE_PERMISSION = 'LATE_PERMISSION',
+  BUSINESS_TRIP = 'BUSINESS_TRIP',
+  OTHER = 'OTHER',
 }
 
 export enum LeaveStatus {

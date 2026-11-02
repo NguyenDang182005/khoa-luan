@@ -6,7 +6,8 @@
         "httpMethod": "POST",
         "path": "hr-qa",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "hr-input",
       "name": "Webhook HR QA",
@@ -16,7 +17,13 @@
         240,
         300
       ],
-      "webhookId": "hr-qa-webhook"
+      "webhookId": "hr-qa-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {},
@@ -31,7 +38,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body=$input.first().json.body||$input.first().json;return[{json:{originalMessage:body.message||body.originalMessage||'',maskedMessage:body.message||body.maskedMessage||'',channel:body.channel||'web',employeeId:body.employeeId||null,sessionId:body.sessionId||null}}];"
+        "jsCode": "const body=$input.first().json.body||$input.first().json;\n// #12: mask PII (CCCD/SĐT/email) — LLM chỉ thấy bản masked, bản gốc giữ để audit.\nconst maskPii=(s)=>String(s||'').replace(/\\b(\\d{9}|\\d{12})\\b/g,'[MASKED_ID]').replace(/\\b(0[35789]\\d{8})\\b/g,'[MASKED_PHONE]').replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g,'[MASKED_EMAIL]');\nreturn[{json:{originalMessage:body.message||body.originalMessage||'',maskedMessage:maskPii(body.maskedMessage||body.message||''),channel:body.channel||'web',employeeId:body.employeeId||null,sessionId:body.sessionId||null}}];"
       },
       "id": "normalize-input",
       "name": "Normalize Input",
@@ -46,15 +53,8 @@
       "parameters": {
         "url": "http://host.docker.internal:3001/api/v1/n8n/chat/session",
         "method": "POST",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId || null, employeeId: $json.employeeId || null, type: \"HR_QA\", channel: $json.channel || \"web\", externalId: $json.employeeId || null }) }}",
@@ -69,21 +69,20 @@
       "position": [
         680,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
         "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
         "method": "POST",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"user\", content: $(\"Normalize Input\").first().json.originalMessage, metadata: { intent: \"HR_QA\" } }) }}",
@@ -96,16 +95,22 @@
       "position": [
         900,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ ($(\"Normalize Input\").first().json.employeeId ? \"[Thong tin nguoi dung - Ma nhan vien: \" + $(\"Normalize Input\").first().json.employeeId + \"]\\n\\n\" : \"\") + $(\"Normalize Input\").first().json.maskedMessage }}",
-        "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool SearchPolicyKnowledge de tra cuu kho tai lieu chinh sach cong ty truoc khi tra loi moi cau hoi ve quy dinh — truyen query la y chinh cua cau hoi va topK = 3, sau do tra loi dua tren noi dung tim duoc.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh. Neu tai lieu tra cuu co thong tin khac quy dinh trong prompt thi uu tien theo tai lieu moi nhat.",
+        "systemMessage": "Ban la HR Assistant chuyen nghiep cua cong ty. Tra loi cau hoi ve nhan su, luong thuong, nghi phep, cham cong, hop dong, BHXH va luat lao dong VN.\nQuy dinh cot loi:\n- Nghi phep nam: Chuan 12 ngay/nam duong lich (01/01 - 31/12) cho nhan vien lam du 12 thang; nhan vien moi vao lam trong nam tinh theo ty le so thang lam viec thuc te (pro-rate: 12 x so thang lam viec / 12, thang vao lam tinh tron 1 thang). KHONG ap dung bat ky co che cong them ngay phep nao khac (KHONG cong them ngay phep theo tham nien cong hien, KHONG chuyen phep du nam truoc sang nam sau).\n- Luong & OT: ngay cong chuan = so ngay thu 2 den thu 6 trong thang tru ngay le; OT ngay thuong x1.5, cuoi tuan x2.0, le tet x3.0 | BHXH 8% BHYT 1.5% BHTN 1% (tong 10.5% nguoi lao dong dong) | Thue TNCN luy tien: ky luong truoc 01/7/2026 dung bieu 7 bac, tu 01/7/2026 dung bieu 5 bac (5%, 10%, 20%, 30%, 35%); giam tru ban than 15.5tr/thang, nguoi phu thuoc 6.2tr/nguoi/thang (tu ky tinh thue 2026).\nHuong dan su dung Tool:\n- Dung tool SearchPolicyKnowledge de tra cuu kho tai lieu chinh sach cong ty truoc khi tra loi moi cau hoi ve quy dinh — truyen query la y chinh cua cau hoi, sau do tra loi dua tren noi dung tim duoc.\n- Dung tool GetEmployeeContext de lay thong tin ca nhan, hop dong va so ngay phep con lai. Truyen employee_id la ma nhan vien cua nguoi dang hoi (vi du EMP003).\n- Dung tool GetPayrollContext de lay bang luong chi tiet theo thang/nam. Truyen employee_id cua nguoi dang hoi, month, year. Chi tra loi bang luong va ho so cua chinh nguoi dang hoi; tu choi neu hoi luong hoac thong tin ca nhan cua nhan vien khac.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh. Neu tai lieu tra cuu co thong tin khac quy dinh trong prompt thi uu tien theo tai lieu moi nhat.",
         "options": {
           "maxIterations": 3,
-          "systemMessage": "Ban la HR Assistant chuyen nghiep. Tra loi cau hoi ve nhan su, luong, nghi phep, hop dong, luat lao dong VN.\nQuy dinh: OT x1.5/x2.0/x3.0 | BHXH 8% BHYT 1.5% BHTN 1% | Thue TNCN luy tien 7 bac giam tru 11tr/thang.\nDung tool GetEmployeeContext de lay thong tin ca nhan. Truyen employee_id la ma nhan vien (vi du EMP003).\nDung tool GetPayrollContext de lay bang luong theo thang. Truyen employee_id, month, year.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh."
+          "systemMessage": "Ban la HR Assistant chuyen nghiep cua cong ty. Tra loi cau hoi ve nhan su, luong thuong, nghi phep, cham cong, hop dong, BHXH va luat lao dong VN.\nQuy dinh cot loi:\n- Nghi phep nam: Chuan 12 ngay/nam duong lich (01/01 - 31/12) cho nhan vien lam du 12 thang; nhan vien moi vao lam trong nam tinh theo ty le so thang lam viec thuc te (pro-rate: 12 x so thang lam viec / 12, thang vao lam tinh tron 1 thang). KHONG ap dung bat ky co che cong them ngay phep nao khac (KHONG cong them ngay phep theo tham nien cong hien, KHONG chuyen phep du nam truoc sang nam sau).\n- Luong & OT: ngay cong chuan = so ngay thu 2 den thu 6 trong thang tru ngay le; OT ngay thuong x1.5, cuoi tuan x2.0, le tet x3.0 | BHXH 8% BHYT 1.5% BHTN 1% (tong 10.5% nguoi lao dong dong) | Thue TNCN luy tien: ky luong truoc 01/7/2026 dung bieu 7 bac, tu 01/7/2026 dung bieu 5 bac (5%, 10%, 20%, 30%, 35%); giam tru ban than 15.5tr/thang, nguoi phu thuoc 6.2tr/nguoi/thang (tu ky tinh thue 2026).\nHuong dan su dung Tool:\n- Dung tool SearchPolicyKnowledge de tra cuu kho tai lieu chinh sach cong ty truoc khi tra loi moi cau hoi ve quy dinh — truyen query la y chinh cua cau hoi, sau do tra loi dua tren noi dung tim duoc.\n- Dung tool GetEmployeeContext de lay thong tin ca nhan, hop dong va so ngay phep con lai. Truyen employee_id la ma nhan vien cua nguoi dang hoi (vi du EMP003).\n- Dung tool GetPayrollContext de lay bang luong chi tiet theo thang/nam. Truyen employee_id cua nguoi dang hoi, month, year. Chi tra loi bang luong va ho so cua chinh nguoi dang hoi; tu choi neu hoi luong hoac thong tin ca nhan cua nhan vien khac.\nTra loi bang tieng Viet, ngan gon, chinh xac. Lay so lieu tu tool, khong tu tinh. Neu tai lieu tra cuu co thong tin khac quy dinh trong prompt thi uu tien theo tai lieu moi nhat."
         }
       },
       "id": "hr-agent",
@@ -115,7 +120,10 @@
       "position": [
         1120,
         300
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -135,10 +143,13 @@
       ],
       "credentials": {
         "googlePalmApi": {
-          "id": "saU5RHwXIHvauhiS",
-          "name": "Google Gemini(PaLM) Api account"
+          "id": "GijeOpAk3nuWoDHZ",
+          "name": "Gemini 2025"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -187,20 +198,20 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
     },
     {
       "parameters": {
-        "toolDescription": "Lay bang luong chi tiet theo thang/nam: luong gop, khau tru BHXH BHYT BHTN thue TNCN, luong thuc lanh, OT. Dung khi hoi ve luong thang cu the.",
+        "toolDescription": "Lay bang luong chi tiet theo thang/nam: luong gop, khau tru BHXH BHYT BHTN thue TNCN, luong thuc lanh, OT. Chi tra loi ve bang luong cua chinh nguoi dang hoi.",
         "url": "http://host.docker.internal:3001/api/v1/n8n/payroll-context/{employee_id}",
         "placeholderDefinitions": {
           "values": [
             {
               "name": "employee_id",
-              "description": "Ma nhan vien vi du EMP003",
+              "description": "Ma nhan vien cua nguoi dang hoi vi du EMP003",
               "type": "string"
             }
           ]
@@ -232,7 +243,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -269,7 +280,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "__N8N_HEADER_AUTH_ID__",
+          "id": "WZBfvs5Ihd9XEGUN",
           "name": "NestJS API Key"
         }
       }
@@ -278,15 +289,8 @@
       "parameters": {
         "url": "http://host.docker.internal:3001/api/v1/n8n/chat/message",
         "method": "POST",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.output, metadata: { model: \"gemini-3.1-flash-lite\", intent: \"HR_QA\" } }) }}",
@@ -299,7 +303,13 @@
       "position": [
         1340,
         300
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {

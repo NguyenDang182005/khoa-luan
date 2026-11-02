@@ -2,48 +2,44 @@ import {
   computeBalance,
   computeBaseQuota,
   countWorkdays,
-  yearsOfServiceAtYearEnd,
   LeavePolicyConfig,
 } from './leave-entitlement';
+import { monthWorkdays } from '../common/workdays';
 
 const defaultPolicy: LeavePolicyConfig = {
   annualQuotaDays: 12,
-  seniorityBonusEveryYears: 5,
-  seniorityBonusDays: 1,
+  seniorityBonusEveryYears: 0,
+  seniorityBonusDays: 0,
   prorateByJoinMonth: true,
   maxCarryOverDays: 0,
 };
 
+/** Ngày lễ 2026 đủ bộ (theo migration + thông báo Bộ Nội vụ) */
+const HOLIDAYS_2026 = new Set([
+  '2026-01-01',
+  '2026-02-16',
+  '2026-02-17',
+  '2026-02-18',
+  '2026-02-19',
+  '2026-02-20',
+  '2026-04-26',
+  '2026-04-30',
+  '2026-05-01',
+  '2026-09-01',
+  '2026-09-02',
+]);
+
 // Lưu ý: tháng trong Date là 0-based — getMonth() 6 = tháng 7
-describe('yearsOfServiceAtYearEnd', () => {
-  it('đủ năm: join 2020-01-15 → cuối 2026 có 6 năm thâm niên', () => {
-    expect(yearsOfServiceAtYearEnd(new Date(2020, 0, 15), 2026)).toBe(6);
-  });
-
-  it('chưa tròn kỷ niệm ngày vào: join 2020-07-01 → cuối 2026 mới 6 năm', () => {
-    expect(yearsOfServiceAtYearEnd(new Date(2020, 6, 1), 2026)).toBe(6);
-  });
-
-  it('vào giữa năm 2026 → cuối 2026 là 0 năm', () => {
-    expect(yearsOfServiceAtYearEnd(new Date(2026, 6, 1), 2026)).toBe(0);
-  });
-});
-
 describe('computeBaseQuota', () => {
-  it('nhân viên cũ đủ 5 năm thâm niên: 12 + 1 = 13 ngày', () => {
+  it('nhân viên làm đủ năm (kể cả trên 5 năm): giữ nguyên 12 ngày, không cộng phép thâm niên', () => {
     const { quota, seniorityBonus, proratedMonths } = computeBaseQuota(
       defaultPolicy,
       new Date(2020, 3, 10),
       2025,
     );
-    expect(quota).toBe(13);
-    expect(seniorityBonus).toBe(1);
+    expect(quota).toBe(12);
+    expect(seniorityBonus).toBe(0);
     expect(proratedMonths).toBeNull();
-  });
-
-  it('đủ 10 năm: cộng 2 lần mốc = 14 ngày', () => {
-    const { quota } = computeBaseQuota(defaultPolicy, new Date(2015, 0, 1), 2025);
-    expect(quota).toBe(14);
   });
 
   it('năm đầu vào tháng 7: pro-rate 12 * 6/12 = 6 ngày', () => {
@@ -69,20 +65,10 @@ describe('computeBaseQuota', () => {
     );
     expect(quota).toBe(12);
   });
-
-  it('tắt thâm niên (everyYears = 0): không cộng thêm', () => {
-    const { quota, seniorityBonus } = computeBaseQuota(
-      { ...defaultPolicy, seniorityBonusEveryYears: 0 },
-      new Date(2010, 0, 1),
-      2025,
-    );
-    expect(quota).toBe(12);
-    expect(seniorityBonus).toBe(0);
-  });
 });
 
 describe('computeBalance', () => {
-  it('không carry-over: total = quota, trừ used', () => {
+  it('total = quota chuẩn (12 ngày), trừ used, không cộng thêm thâm niên hay chuyển thừa', () => {
     const b = computeBalance({
       policy: defaultPolicy,
       joinDate: new Date(2020, 0, 15),
@@ -90,35 +76,24 @@ describe('computeBalance', () => {
       usedThisYear: 4,
       usedPrevYear: 10,
     });
-    expect(b.quota).toBe(13);
+    expect(b.quota).toBe(12);
     expect(b.carryOver).toBe(0);
-    expect(b.total).toBe(13);
-    expect(b.remaining).toBe(9);
+    expect(b.seniorityBonus).toBe(0);
+    expect(b.total).toBe(12);
+    expect(b.remaining).toBe(8);
   });
 
-  it('carry-over: năm trước còn 2 → chuyển 2, total = 14', () => {
+  it('kể cả khi năm trước còn dư phép vẫn không cộng dồn sang năm sau (total = 12)', () => {
     const b = computeBalance({
-      policy: { ...defaultPolicy, maxCarryOverDays: 3 },
+      policy: { ...defaultPolicy, maxCarryOverDays: 5 },
       joinDate: new Date(2020, 0, 15),
       year: 2026,
-      usedThisYear: 5,
-      usedPrevYear: 10, // quota 2025 = 13 → còn 3
+      usedThisYear: 1,
+      usedPrevYear: 0,
     });
-    expect(b.carryOver).toBe(3);
-    expect(b.total).toBe(16);
+    expect(b.carryOver).toBe(0);
+    expect(b.total).toBe(12);
     expect(b.remaining).toBe(11);
-  });
-
-  it('carry-over bị chặn bởi maxCarryOverDays', () => {
-    const b = computeBalance({
-      policy: { ...defaultPolicy, maxCarryOverDays: 2 },
-      joinDate: new Date(2020, 0, 15),
-      year: 2026,
-      usedThisYear: 0,
-      usedPrevYear: 0, // còn 13 nhưng chỉ chuyển tối đa 2
-    });
-    expect(b.carryOver).toBe(2);
-    expect(b.total).toBe(15);
   });
 
   it('dùng vượt quota → remaining = 0 (không âm)', () => {
@@ -132,9 +107,9 @@ describe('computeBalance', () => {
     expect(b.remaining).toBe(0);
   });
 
-  it('nhân viên mới vào giữa năm: KHÔNG nhận carry-over từ năm trước khi chưa đi làm', () => {
+  it('nhân viên mới vào giữa năm: tính theo pro-rate số tháng làm việc thực tế', () => {
     const b = computeBalance({
-      policy: { ...defaultPolicy, maxCarryOverDays: 5 },
+      policy: defaultPolicy,
       joinDate: new Date(2026, 7, 24), // 24/08/2026
       year: 2026,
       usedThisYear: 0,
@@ -163,5 +138,34 @@ describe('countWorkdays', () => {
     // 30/12/2026 (Thứ 4) → 04/01/2027 (Thứ 2): năm 2026 chiếm 30+31/12 = 2 ngày làm
     expect(countWorkdays(new Date(2026, 11, 30), new Date(2026, 11, 31))).toBe(2);
     expect(countWorkdays(new Date(2027, 0, 1), new Date(2027, 0, 4))).toBe(2); // 01/01 T6 + 04/01 T2
+  });
+});
+
+describe('countWorkdays — trừ ngày lễ quốc gia', () => {
+  it('đơn 01–04/09/2026: 2 ngày lễ (1–2/9) chỉ còn 2 ngày công (3–4/9)', () => {
+    expect(
+      countWorkdays(new Date(2026, 8, 1), new Date(2026, 8, 4), HOLIDAYS_2026),
+    ).toBe(2);
+  });
+
+  it('trọn tuần Tết 16–20/02/2026 = 0 ngày công', () => {
+    expect(
+      countWorkdays(new Date(2026, 1, 16), new Date(2026, 1, 20), HOLIDAYS_2026),
+    ).toBe(0);
+  });
+
+  it('không truyền ngày lễ thì giữ hành vi cũ (chỉ bỏ T7/CN)', () => {
+    expect(countWorkdays(new Date(2026, 8, 1), new Date(2026, 8, 4))).toBe(4);
+  });
+});
+
+describe('monthWorkdays — số ngày công chuẩn của tháng', () => {
+  it('tháng 9/2026: 22 ngày T2–T6, trừ 1–2/9 còn 20', () => {
+    expect(monthWorkdays(2026, 9, HOLIDAYS_2026)).toBe(20);
+    expect(monthWorkdays(2026, 9)).toBe(22);
+  });
+
+  it('tháng 2/2026 có 5 ngày Tết: 20 ngày T2–T6 - 5 = 15', () => {
+    expect(monthWorkdays(2026, 2, HOLIDAYS_2026)).toBe(15);
   });
 });

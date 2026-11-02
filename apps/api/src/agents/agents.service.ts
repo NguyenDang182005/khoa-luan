@@ -26,13 +26,18 @@ export class AgentsService {
     // Map session type -> workflow ID
     const typeMap: Record<string, string> = { HR_QA: 'wf02', TRAINING: 'wf03', CSKH: 'wf04' };
 
-    const sessions = await this.prisma.aiChatSession.findMany({
-      include: {
-        messages: {
-          where: { role: 'assistant' },
-          select: { metadata: true, createdAt: true },
-        },
+    // Chỉ lấy 90 ngày gần nhất và tối đa 5000 tin: bản cũ nạp toàn bộ session + message
+    // vào RAM mỗi lần mở trang, số tin tăng là chậm dần.
+    const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const messages = await this.prisma.aiChatMessage.findMany({
+      where: {
+        role: 'assistant',
+        createdAt: { gte: since },
+        session: { type: { in: ['HR_QA', 'TRAINING', 'CSKH'] } },
       },
+      select: { metadata: true, createdAt: true, session: { select: { type: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 5000,
     });
 
     const stats: Record<
@@ -45,21 +50,17 @@ export class AgentsService {
       wf04: { latencies: [], callCount: 0, failures: 0, lastActivity: null },
     };
 
-    for (const session of sessions) {
-      const wfId = typeMap[session.type] ?? 'wf01';
+    for (const msg of messages) {
+      const wfId = typeMap[msg.session.type] ?? 'wf01';
       const stat = stats[wfId]!;
-      for (const msg of session.messages) {
-        const meta = msg.metadata as any;
-        if (meta?.latency_ms && typeof meta.latency_ms === 'number') {
-          stat.latencies.push(meta.latency_ms);
-        }
-        if (meta?.error === true) {
-          stat.failures++;
-        }
-        stat.callCount++;
-        if (!stat.lastActivity || msg.createdAt > stat.lastActivity) {
-          stat.lastActivity = msg.createdAt;
-        }
+      const meta = msg.metadata as any;
+      if (meta?.latency_ms && typeof meta.latency_ms === 'number') {
+        stat.latencies.push(meta.latency_ms);
+      }
+      if (meta?.error === true) stat.failures++;
+      stat.callCount++;
+      if (!stat.lastActivity || msg.createdAt > stat.lastActivity) {
+        stat.lastActivity = msg.createdAt;
       }
     }
 
@@ -68,7 +69,8 @@ export class AgentsService {
       const avg = stat.latencies.length > 0
         ? Math.round(stat.latencies.reduce((a, b) => a + b, 0) / stat.latencies.length)
         : null;
-      const last = stat.latencies.length > 0 ? stat.latencies[stat.latencies.length - 1] : null;
+      // messages sắp xếp mới nhất trước → latencies[0] là lần chạy gần nhất
+      const last = stat.latencies.length > 0 ? stat.latencies[0] : null;
       result[wfId] = {
         avgLatency: avg,
         lastLatency: last,
@@ -86,21 +88,25 @@ export class AgentsService {
   /** GET /agents/intent-stats — thống kê định tuyến của Router Agent (WF01):
    *  đếm metadata.intent trên các tin nhắn assistant đã lưu. */
   async getIntentStats() {
-    const messages = await this.prisma.aiChatMessage.findMany({
-      where: { role: 'assistant' },
-      select: { metadata: true },
-    });
+    // Đếm trong DB thay vì tải toàn bộ tin nhắn về Node (bảng chỉ lớn dần).
+    const rows = await this.prisma.$queryRaw<
+      Array<{ intent: string; count: bigint; escalations: bigint }>
+    >`
+      SELECT metadata->>'intent' AS intent,
+             COUNT(*) AS count,
+             COUNT(*) FILTER (WHERE metadata->>'escalated' = 'true') AS escalations
+      FROM ai_chat_messages
+      WHERE role = 'assistant' AND jsonb_typeof(metadata->'intent') = 'string'
+      GROUP BY 1`;
 
     const byIntent: Record<string, number> = { HR_QA: 0, CSKH: 0, TRAINING: 0, OTHER: 0 };
     let total = 0;
     let escalations = 0;
-    for (const m of messages) {
-      const meta = m.metadata as { intent?: unknown; escalated?: unknown } | null;
-      const intent = typeof meta?.intent === 'string' ? meta.intent : null;
-      if (!intent) continue;
-      total++;
-      if (intent in byIntent) byIntent[intent] = (byIntent[intent] ?? 0) + 1;
-      if (meta?.escalated === true) escalations++;
+    for (const r of rows) {
+      const n = Number(r.count);
+      total += n;
+      escalations += Number(r.escalations);
+      if (r.intent in byIntent) byIntent[r.intent] = n;
     }
 
     return { total, byIntent, escalations };
@@ -265,15 +271,47 @@ export class AgentsService {
     const responseScenarioType =
       typeof obj?.scenarioType === 'string' ? obj?.scenarioType : undefined;
 
+    // #7: lưu server-side bộ đáp án của bài quiz sinh ra (kèm đáp án đúng) vào
+    // metadata message của assistant. Nếu không, browser tự gửi correctAnswer và
+    // tự chấm 100% được. Lúc nộp bài (/training/submit) server đọc lại từ đây.
+    if (questions) {
+      await this.stashQuizAnswers(session.id, questions);
+    }
+
+    // Không gửi đáp án đúng xuống trình duyệt (DevTools là thấy). Server đã giữ bản
+    // stash để chấm; client chỉ cần đề bài + lựa chọn.
+    const publicQuestions = questions?.map((q) => {
+      const { correct: _correct, correctAnswer: _correctAnswer, ...rest } = q;
+      return rest;
+    });
+
     return {
       answer,
       latencyMs,
-      questions,
+      questions: publicQuestions,
       scenarioType: responseScenarioType,
       sessionId: session.id,
       sessionType: type,
       intent: typeof obj?.intent === 'string' ? obj.intent : undefined,
     };
+  }
+
+    /** Ghi đáp án đúng của bài quiz vào metadata message assistant (tránh client tự chấm). */
+  private async stashQuizAnswers(
+    sessionId: string,
+    questions: Array<Record<string, unknown>>,
+  ) {
+    const latest = await this.prisma.aiChatMessage.findFirst({
+      where: { sessionId, role: 'assistant' },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, metadata: true },
+    });
+    if (!latest) return;
+    const existing = (latest.metadata ?? {}) as Record<string, unknown>;
+    await this.prisma.aiChatMessage.update({
+      where: { id: latest.id },
+      data: { metadata: { ...existing, quiz: questions } as object },
+    });
   }
 
   /** POST /agents/chat-session/:id/reply — human reply lưu vào lịch sử session

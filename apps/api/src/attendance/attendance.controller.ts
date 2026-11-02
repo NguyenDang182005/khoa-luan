@@ -12,6 +12,9 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { vnMonth } from '../common/vn-date';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
@@ -20,61 +23,71 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  @ApiOperation({ summary: 'Danh sách chấm công theo tháng (HR)' })
+  @ApiOperation({ summary: 'Danh sách chấm công theo tháng (chỉ ADMIN)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @Get()
   findAll(@Query('month') month: string, @Query('year') year: string) {
-    const now = new Date();
-    return this.attendanceService.findAll(
-      Number(month) || now.getMonth() + 1,
-      Number(year) || now.getFullYear(),
-    );
+    const { year: y, month: m } = vnMonth();
+    return this.attendanceService.findAll(Number(month) || m, Number(year) || y);
   }
 
-  @ApiOperation({ summary: 'Chấm công theo tháng của nhân viên' })
+  @ApiOperation({
+    summary: 'Chấm công theo tháng (nhân viên chỉ xem được của chính mình)',
+  })
   @Get('employee/:employeeId')
   findByEmployee(
+    @Request() req: any,
     @Param('employeeId') employeeId: string,
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    const now = new Date();
-    return this.attendanceService.findByEmployee(
+    const { year: y, month: m } = vnMonth();
+    return this.attendanceService.findByEmployeeForViewer(
       employeeId,
-      Number(month) || now.getMonth() + 1,
-      Number(year) || now.getFullYear(),
+      Number(month) || m,
+      Number(year) || y,
+      req.user.sub,
     );
   }
 
-  @ApiOperation({ summary: 'Báo cáo tổng hợp chấm công tháng' })
+  @ApiOperation({ summary: 'Báo cáo tổng hợp chấm công tháng (chỉ ADMIN)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @Get('report/:employeeId')
   getMonthlyReport(
     @Param('employeeId') employeeId: string,
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    const now = new Date();
+    const { year: y, month: m } = vnMonth();
     return this.attendanceService.getMonthlyReport(
       employeeId,
-      Number(month) || now.getMonth() + 1,
-      Number(year) || now.getFullYear(),
+      Number(month) || m,
+      Number(year) || y,
     );
   }
 
-  @ApiOperation({ summary: 'Check-in' })
+  @ApiOperation({ summary: 'Check-in (chấm công cho chính mình)' })
   @Post('check-in')
-  checkIn(
-    @Body() dto: { employeeId: string; location?: string },
-  ) {
-    return this.attendanceService.checkIn(dto.employeeId, dto.location);
+  checkIn(@Request() req: any, @Body() dto: { lat?: number; lng?: number }) {
+    // employeeId lấy từ JWT — không nhận từ body để không chấm hộ người khác.
+    // Server tự tính khoảng cách tới geofence từ lat/lng.
+    return this.attendanceService.checkInForUser(req.user.sub, {
+      lat: Number(dto.lat),
+      lng: Number(dto.lng),
+    });
   }
 
-  @ApiOperation({ summary: 'Check-out' })
+  @ApiOperation({ summary: 'Check-out (chấm công cho chính mình)' })
   @Post('check-out')
-  checkOut(@Body() dto: { employeeId: string }) {
-    return this.attendanceService.checkOut(dto.employeeId);
+  checkOut(@Request() req: any) {
+    return this.attendanceService.checkOutForUser(req.user.sub);
   }
 
-  @ApiOperation({ summary: 'Cập nhật bản ghi chấm công thủ công (HR)' })
+  @ApiOperation({ summary: 'Cập nhật bản ghi chấm công thủ công (chỉ ADMIN)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @Patch('record')
   upsertRecord(
     @Body()

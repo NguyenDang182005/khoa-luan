@@ -1,0 +1,14 @@
+flowchart TD
+  S["calculatePayroll: nhân viên, tháng, năm"] --> C["Hợp đồng hiệu lực trong kỳ<br/>baseSalary, allowances"]
+  C --> W["Ngày công chuẩn = thứ Hai đến thứ Sáu trừ ngày lễ"]
+  W --> A["Ngày công thực tế = workDays ngày thường<br/>+ ngày phép năm đã duyệt"]
+  A --> OT["Giờ làm thêm theo dayType<br/>×1,5 ngày thường, ×2,0 cuối tuần, ×3,0 ngày lễ"]
+  OT --> G["Thu nhập gộp = lương theo ngày công<br/>+ phụ cấp + tiền OT + thưởng"]
+  G --> I{"Ngày công thực tế ≥ 14?"}
+  I -->|"có"| BH["BHXH 8%, BHYT 1,5%, BHTN 1%<br/>trên min(lương hợp đồng, trần 20 × lương cơ sở)"]
+  I -->|"không"| NB["Không trích bảo hiểm"]
+  BH & NB --> TX["Thu nhập tính thuế = gộp − bảo hiểm<br/>− 15,5 triệu − 6,2 triệu × số người phụ thuộc"]
+  TX --> R{"Kỳ lương trước 01/7/2026?"}
+  R -->|"có"| P7["Biểu lũy tiến 7 bậc"]
+  R -->|"không"| P5["Biểu lũy tiến 5 bậc"]
+  P7 & P5 --> N["Thực lĩnh = gộp − bảo hiểm − thuế − tạm ứng"]

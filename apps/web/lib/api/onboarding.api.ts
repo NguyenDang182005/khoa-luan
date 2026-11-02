@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import { MyOnboardingSchema, MyOnboardingItem } from '../schemas/onboarding.schema'
+import type { OnboardingTask, OnboardingTaskCreateInput, OnboardingProgressItem } from '../schemas/onboarding.schema'
 
 export type { MyOnboardingItem }
 
@@ -11,19 +12,19 @@ export const onboardingApi = {
   },
 
   /** Admin: Danh sách task template */
-  findAllTasks: async (): Promise<any[]> => {
+  findAllTasks: async (): Promise<OnboardingTask[]> => {
     const { data } = await apiClient.get('/onboarding/tasks')
     return data
   },
 
   /** Admin: Tạo task template */
-  createTask: async (dto: any) => {
+  createTask: async (dto: OnboardingTaskCreateInput) => {
     const { data } = await apiClient.post('/onboarding/tasks', dto)
     return data
   },
 
   /** Admin: Cập nhật task template */
-  updateTask: async (id: string, dto: any) => {
+  updateTask: async (id: string, dto: Partial<OnboardingTaskCreateInput>) => {
     const { data } = await apiClient.patch(`/onboarding/tasks/${id}`, dto)
     return data
   },
@@ -35,13 +36,13 @@ export const onboardingApi = {
   },
 
   /** Admin: Tổng hợp tiến độ onboarding tất cả nhân viên */
-  getAllProgress: async (): Promise<any[]> => {
+  getAllProgress: async (): Promise<OnboardingProgressItem[]> => {
     const { data } = await apiClient.get('/onboarding/progress')
     return data
   },
 
   /** Admin: Tiến độ onboarding của 1 nhân viên */
-  getEmployeeProgress: async (employeeId: string): Promise<any> => {
+  getEmployeeProgress: async (employeeId: string): Promise<OnboardingProgressItem[]> => {
     const { data } = await apiClient.get(`/onboarding/progress/${employeeId}`)
     return data
   },

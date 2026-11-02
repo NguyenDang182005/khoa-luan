@@ -8,7 +8,7 @@ async function test(label, body, timeoutMs = 30000) {
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     const r = await fetch(BASE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY ?? '' },
       body: JSON.stringify(body),
       signal: ctrl.signal
     });

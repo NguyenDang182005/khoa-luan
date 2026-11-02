@@ -20,14 +20,10 @@ import {
   Calendar,
   MapPin,
   CheckCircle2,
-  Send,
-  Plus,
   Bot,
   Sparkles,
   X,
   CreditCard,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   AlertTriangle,
 } from "lucide-react"
@@ -37,7 +33,6 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { todayVN, leaveTypeLabel, payrollStatusLabel, vnd } from "@/lib/utils"
 import { settingsApi } from "@/lib/api/settings.api"
-import type { Geofence } from "@/lib/schemas/settings.schema"
 import { MonthlyTimesheetStrip } from "@/components/portal/monthly-timesheet-strip"
 
 // Tọa độ văn phòng: ưu tiên cấu hình trong DB (Trang Cài Đặt → Geofence),
@@ -54,6 +49,10 @@ const LEAVE_TYPE_OPTIONS = [
   LeaveTypeEnum.enum.SICK,
   LeaveTypeEnum.enum.UNPAID,
   LeaveTypeEnum.enum.EMERGENCY,
+  LeaveTypeEnum.enum.OT,
+  LeaveTypeEnum.enum.LATE_PERMISSION,
+  LeaveTypeEnum.enum.BUSINESS_TRIP,
+  LeaveTypeEnum.enum.OTHER,
 ] as const
 
 interface ChatEntry {
@@ -179,6 +178,8 @@ export function EmployeePortalView() {
   const [leaveType, setLeaveType] = useState<string>(LeaveTypeEnum.enum.ANNUAL)
   const [startDate, setStartDate] = useState(todayVN())
   const [endDate, setEndDate] = useState(todayVN())
+  const [otHours, setOtHours] = useState<number | "">("")
+  const [otDate, setOtDate] = useState<string>(todayVN())
   const [reason, setReason] = useState("")
   const [leaveErrors, setLeaveErrors] = useState<Record<string, string>>({})
   const [leaveSubmitting, setLeaveSubmitting] = useState(false)
@@ -265,7 +266,7 @@ export function EmployeePortalView() {
         setGpsError(`Bạn đang cách ${office.name} khoảng ${distance}m (giới hạn ${office.radiusM}m). Vui lòng đến gần hơn để check-in.`)
         return
       }
-      await attendanceApi.checkIn(employeeId, `GPS ${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)} (${distance}m)`)
+      await attendanceApi.checkIn(pos.coords.latitude, pos.coords.longitude)
       setGpsMessage("Check-in thành công!")
       await loadAll()
     } catch (e: unknown) {
@@ -281,7 +282,7 @@ export function EmployeePortalView() {
     setGpsMessage(null)
     setGpsBusy(true)
     try {
-      await attendanceApi.checkOut(employeeId)
+      await attendanceApi.checkOut()
       setGpsMessage("Check-out thành công!")
       await loadAll()
     } catch (e: unknown) {
@@ -325,7 +326,16 @@ export function EmployeePortalView() {
     if (!employeeId) return
     setLeaveErrors({})
     setLeaveSuccess(null)
-    const parsed = LeaveCreateSchema.safeParse({ employeeId, type: leaveType, startDate, endDate, reason })
+    const isOT = leaveType === LeaveTypeEnum.enum.OT
+    const parsed = LeaveCreateSchema.safeParse({
+      employeeId,
+      type: leaveType,
+      startDate: isOT ? (otDate || today) : startDate,
+      endDate: isOT ? (otDate || today) : endDate,
+      reason,
+      overtimeHours: isOT && otHours !== "" ? Number(otHours) : undefined,
+      overtimeDate: isOT ? (otDate || today) : undefined,
+    })
     if (!parsed.success) {
       const errs: Record<string, string> = {}
       for (const issue of parsed.error.issues) {
@@ -407,12 +417,12 @@ export function EmployeePortalView() {
             </p>
             <div className="mt-3 flex flex-col gap-2">
               {!todayRecord?.checkIn ? (
-                <Button size="sm" className="w-full text-xs gap-1 bg-primary text-primary-foreground" onClick={handleCheckIn} disabled={gpsBusy || !employeeId}>
-                  {gpsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Clock className="size-3.5" />} Check-in (GPS)
+                <Button size="sm" className="w-full text-xs gap-1.5 bg-primary text-primary-foreground" onClick={handleCheckIn} disabled={gpsBusy || !employeeId}>
+                  {gpsBusy && <Loader2 className="size-3.5 animate-spin" />} Check-in (GPS)
                 </Button>
               ) : !todayRecord?.checkOut ? (
-                <Button size="sm" variant="outline" className="w-full text-xs gap-1 border-agent-amber/40 text-agent-amber hover:bg-agent-amber/10" onClick={handleCheckOut} disabled={gpsBusy}>
-                  {gpsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Clock className="size-3.5" />} Chấm Công Ra (Check-out)
+                <Button size="sm" variant="outline" className="w-full text-xs gap-1.5 border-agent-amber/40 text-agent-amber hover:bg-agent-amber/10" onClick={handleCheckOut} disabled={gpsBusy}>
+                  {gpsBusy && <Loader2 className="size-3.5 animate-spin" />} Chấm Công Ra (Check-out)
                 </Button>
               ) : (
                 <div className="rounded-lg bg-emerald-500/10 p-2 text-center text-xs font-semibold text-emerald-400">
@@ -454,10 +464,10 @@ export function EmployeePortalView() {
             <div className="mt-3">
               <Button
                 size="sm"
-                className="w-full text-xs gap-1 bg-primary text-primary-foreground"
+                className="w-full text-xs bg-primary text-primary-foreground"
                 onClick={() => { setShowLeaveModal(true); setLeaveErrors({}); setLeaveSuccess(null) }}
               >
-                <Plus className="size-3.5" /> Tạo Đơn Nghỉ Phép
+                Tạo Đơn Nghỉ Phép
               </Button>
             </div>
           </CardContent>
@@ -484,10 +494,9 @@ export function EmployeePortalView() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="w-full text-xs gap-1"
+                    className="w-full text-xs"
                     onClick={() => setShowPayslipDetails(!showPayslipDetails)}
                   >
-                    {showPayslipDetails ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                     {showPayslipDetails ? "Ẩn Chi Tiết" : "Xem Chi Tiết"}
                   </Button>
                 </div>
@@ -532,11 +541,19 @@ export function EmployeePortalView() {
               <div className="rounded-lg bg-muted/40 p-3">
                 <span className="text-muted-foreground">Tổng Gross</span>
                 <p className="font-mono font-bold text-foreground mt-1">{vnd(gross)}</p>
+                {(payslip.bhxhBenefit ?? 0) > 0 && (
+                  <p className="text-[10px] text-emerald-500">
+                    Trợ cấp BHXH (cơ quan BHXH trả): +{vnd(payslip.bhxhBenefit!)}
+                  </p>
+                )}
               </div>
               <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Khấu trừ (BH + Thuế TNCN)</span>
+                <span className="text-muted-foreground">Bảo hiểm (BHXH/BHYT/BHTN)</span>
                 <p className="font-mono font-bold text-agent-coral mt-1">-{vnd(payslip.deductions)}</p>
-                <p className="text-[10px] text-muted-foreground">Trong đó thuế: {vnd(payslip.tax)}</p>
+                <p className="text-[10px] text-muted-foreground">Thuế TNCN: {vnd(payslip.tax)}</p>
+                {(payslip.advance ?? 0) > 0 && (
+                  <p className="text-[10px] text-agent-coral">Tạm ứng: -{vnd(payslip.advance!)}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -563,7 +580,7 @@ export function EmployeePortalView() {
 
           {/* Đơn nghỉ phép của tôi */}
           <Card className="border-border h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardHeader className="pb-3">
               <div>
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Calendar className="size-4 text-agent-teal" />
@@ -571,18 +588,6 @@ export function EmployeePortalView() {
                 </CardTitle>
                 <CardDescription className="text-xs">Lịch sử các đơn đã gửi và trạng thái phê duyệt</CardDescription>
               </div>
-              <Button
-                size="xs"
-                variant="outline"
-                className="text-xs gap-1"
-                onClick={() => {
-                  setShowLeaveModal(true)
-                  setLeaveErrors({})
-                  setLeaveSuccess(null)
-                }}
-              >
-                <Plus className="size-3.5" /> Tạo Đơn Mới
-              </Button>
             </CardHeader>
             <CardContent>
               {leaveHistory.length === 0 ? (
@@ -713,6 +718,30 @@ export function EmployeePortalView() {
               ))}
             </select>
           </div>
+          {leaveType === LeaveTypeEnum.enum.OT ? (
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground">Ngày và số giờ tăng ca</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <input
+                  type="date"
+                  value={otDate}
+                  onChange={(e) => setOtDate(e.target.value)}
+                  className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+                />
+                <input
+                  type="number"
+                  min={0.5}
+                  max={24}
+                  step={0.5}
+                  value={otHours}
+                  placeholder="Số giờ"
+                  onChange={(e) => setOtHours(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+                />
+              </div>
+              {leaveErrors.overtimeHours && <p className="mt-1 text-agent-coral">{leaveErrors.overtimeHours}</p>}
+            </div>
+          ) : (
           <div>
             <label className="text-[11px] font-semibold text-muted-foreground">Thời gian nghỉ</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
@@ -734,6 +763,7 @@ export function EmployeePortalView() {
             {leaveErrors.startDate && <p className="mt-1 text-agent-coral">{leaveErrors.startDate}</p>}
             {leaveErrors.endDate && <p className="mt-1 text-agent-coral">{leaveErrors.endDate}</p>}
           </div>
+          )}
           <div>
             <label className="text-[11px] font-semibold text-muted-foreground">Lý do nghỉ phép (tối thiểu 10 ký tự)</label>
             <textarea
@@ -820,8 +850,8 @@ export function EmployeePortalView() {
                   className="flex-1 rounded-lg border border-border bg-input/40 px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                   disabled={isChatting}
                 />
-                <Button size="icon" className="size-7 bg-primary text-primary-foreground" onClick={handleSendChat} disabled={isChatting || !chatInput.trim()}>
-                  <Send className="size-3" />
+                <Button size="xs" className="h-7 px-2.5 text-xs bg-primary text-primary-foreground" onClick={handleSendChat} disabled={isChatting || !chatInput.trim()}>
+                  Gửi
                 </Button>
               </div>
             </div>

@@ -1,0 +1,9 @@
+flowchart TD
+  A1["Từ WF01"] --> N
+  A2["Webhook POST /training-quiz<br/>x-api-key"] --> N
+  N["Normalize Input + PII Masking"] --> L["Load Scenario<br/>6 kịch bản + chính sách công ty"]
+  L --> S["Lấy hoặc tạo phiên TRAINING"] --> U["Lưu tin nhắn đã che PII"] --> SW{"Action Switch"}
+  SW -->|"generate_quiz"| G1["Build Quiz Gen Prompt<br/>5 MCQ + 2 tự luận"] --> G2["Quiz Generator Agent<br/>maxIterations = 1"] --> G3["Parse JSON<br/>lỗi thì dùng bộ câu hỏi dự phòng"] --> G4["Lưu quiz vào metadata"]
+  SW -->|"submit_quiz"| Q1["Build Quiz Grade Prompt<br/>4 tiêu chí thang 0-10"] --> Q2["Quiz Grader Agent<br/>maxIterations = 1"] --> Q3["Parse JSON<br/>lỗi thì điểm mặc định 60%"] --> Q4["Lưu kết quả chấm"]
+  SW -->|"khác: role-play"| R1["Prepare Agent Input"] --> R2["Training Agent + Memory<br/>maxIterations = 3"] --> R3["Parse Result<br/>tách thẻ DANH GIA"] --> R4["Lưu điểm role-play"]
+  G4 & Q4 & R4 --> F["Format Training Output"]

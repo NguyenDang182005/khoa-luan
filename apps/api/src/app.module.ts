@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -58,6 +59,10 @@ import { SlackModule } from './slack/slack.module';
     SettingsModule,
     KnowledgeModule,
     SlackModule,
+  ],
+  providers: [
+    // Bật rate limit thật cho toàn bộ API (trước đây chỉ cấu hình mà không có guard).
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

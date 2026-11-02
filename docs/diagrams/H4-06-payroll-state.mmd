@@ -1,0 +1,6 @@
+stateDiagram-v2
+  [*] --> DRAFT: generate hoặc generate-bulk
+  DRAFT --> DRAFT: adjust thưởng, tạm ứng hoặc tính lại
+  DRAFT --> APPROVED: approve hoặc approve-bulk
+  APPROVED --> PAID: paid hoặc paid-bulk, ghi paidAt
+  PAID --> [*]

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { isAdminRole } from '@repo/shared-types';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
@@ -16,7 +17,9 @@ export class EmployeesController {
   constructor(private employeesService: EmployeesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Tạo nhân viên mới (tự sinh mã EMP####, gán onboarding tasks)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Tạo nhân viên mới (tự sinh mã EMP####, gán onboarding tasks) — chỉ ADMIN vì tạo Employee = tạo User whitelist OAuth' })
   create(@Body() dto: CreateEmployeeDto) {
     return this.employeesService.create({
       ...dto,
@@ -46,19 +49,28 @@ export class EmployeesController {
   }
 
   @Get('by-code/:code')
-  @ApiOperation({ summary: 'Lấy nhân viên theo employeeCode (EMP001...)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Lấy nhân viên theo employeeCode (chỉ ADMIN)' })
   findByCode(@Param('code') code: string) {
     return this.employeesService.findByCode(code);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiết nhân viên' })
-  findOne(@Param('id') id: string) {
-    return this.employeesService.findOne(id);
+  @ApiOperation({ summary: 'Chi tiết nhân viên (nhân viên chỉ xem hồ sơ của chính mình)' })
+  findOne(@Param('id') id: string, @Request() req: any) {
+    const isAdmin = isAdminRole(req.user?.role);
+    return this.employeesService.findOne(
+      id,
+      isAdmin,
+      isAdmin ? null : req.user?.sub,
+    );
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật hồ sơ nhân viên (không gồm hợp đồng/lương)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({ summary: 'Cập nhật hồ sơ nhân viên (không gồm hợp đồng/lương) — chỉ ADMIN' })
   update(
     @Param('id') id: string,
     @Body()
@@ -80,7 +92,9 @@ export class EmployeesController {
   }
 
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Đổi trạng thái làm việc (ACTIVE/PROBATION/ON_LEAVE/TERMINATED)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
+  @ApiOperation({ summary: 'Đổi trạng thái làm việc (ACTIVE/PROBATION/ON_LEAVE/TERMINATED) — chỉ ADMIN' })
   updateStatus(@Param('id') id: string, @Body() dto: { status: string }) {
     return this.employeesService.update(id, { status: dto.status });
   }

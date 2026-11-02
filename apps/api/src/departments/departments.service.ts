@@ -56,28 +56,4 @@ export class DepartmentsService {
   ) {
     return this.prisma.department.update({ where: { id }, data: dto });
   }
-
-  async getTree() {
-    const departments = await this.prisma.department.findMany({
-      include: {
-        manager: { select: { id: true, fullName: true } },
-        _count: { select: { employees: true } },
-      },
-      orderBy: { name: 'asc' },
-    });
-
-    const map = new Map(
-      departments.map((d) => [d.id, { ...d, children: [] as any[] }]),
-    );
-    const roots: any[] = [];
-
-    for (const dept of map.values()) {
-      if (dept.parentId && map.has(dept.parentId)) {
-        map.get(dept.parentId)!.children.push(dept);
-      } else {
-        roots.push(dept);
-      }
-    }
-    return roots;
-  }
 }

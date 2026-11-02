@@ -1,0 +1,13 @@
+flowchart LR
+  WP["Web Portal"] --> AS["NestJS AgentsService<br/>POST /agents/chat"]
+  SD["Slack DM"] --> SS["NestJS SlackService"]
+  AS -->|"POST /webhook/chat"| M
+  subgraph W1["WF01 Router Agent: 0 lần gọi LLM"]
+    M["PII Masking<br/>regex"] --> I["Parse Intent<br/>từ khóa"] --> SW{"Route by Intent"}
+  end
+  SW -->|"HR_QA"| W2["WF02 HR Q&A Agent<br/>Gemini, 3 tools, memory"]
+  SW -->|"TRAINING"| W3["WF03 Training Agent<br/>role-play, sinh quiz, chấm quiz"]
+  SW -->|"CSKH"| W4["WF04 CSKH Agent<br/>Gemini, leo thang"]
+  SW -->|"OTHER"| ST["Phản hồi tĩnh"]
+  SS -->|"POST /webhook/zalo-webhook"| W4
+  W2 & W3 & W4 & ST --> R["Respond to Webhook"] --> AS

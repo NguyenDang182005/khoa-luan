@@ -9,6 +9,7 @@ export const AttendanceRecordSchema = z.object({
   status: z.string(),
   dayType: z.string().optional(),
   workHours: z.number().nullable().optional(),
+  workDays: z.number().nullable().optional(),
   overtime: z.number().nullable().optional(),
   location: z.string().nullable().optional(),
   note: z.string().nullable().optional(),

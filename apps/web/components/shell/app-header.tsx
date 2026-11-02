@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, Sparkles, LogOut } from "lucide-react"
+import { Sparkles, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/ui/avatar"
 import type { AuthUser } from "@/lib/auth-context"
@@ -42,24 +42,23 @@ export function AppHeader({ user, onLogout, onOpenSearch }: AppHeaderProps) {
         </div>
       </div>
 
-      <div className="hidden items-center gap-3 md:flex">
-        <div className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
+      <div className="flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
           <span className="text-[11px] font-medium text-foreground">API :3001</span>
           <span className="text-muted-foreground/40">•</span>
           <span className="text-[11px] font-medium text-foreground">n8n :5678</span>
         </div>
 
         {user.role !== "EMPLOYEE" && (
-          <Button variant="outline" size="sm" className="h-8 gap-2 border-border bg-muted/40 text-xs text-muted-foreground" onClick={onOpenSearch}>
-            <Search className="size-3.5" />
+          <Button variant="outline" size="sm" className="hidden sm:inline-flex h-8 gap-2 border-border bg-muted/40 text-xs text-muted-foreground" onClick={onOpenSearch}>
             Tìm kiếm nhanh
-            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[9px] font-mono">C-k</kbd>
+            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[9px] font-mono">Ctrl+K</kbd>
           </Button>
         )}
 
         <div className="flex items-center gap-2 pl-2 border-l border-border">
           <Avatar initials={userInitials} className="size-8 bg-primary/20 text-primary border border-primary/30" />
-          <div className="flex flex-col text-left">
+          <div className="hidden sm:flex flex-col text-left">
             <span className="text-xs font-semibold text-foreground leading-tight">{user.employee?.fullName || user.email}</span>
             <span className={`text-[9px] font-mono px-1 py-0.5 rounded-sm border inline-block w-fit mt-0.5 ${roleBadgeColor}`}>{user.role}</span>
           </div>

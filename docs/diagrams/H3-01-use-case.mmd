@@ -1,0 +1,22 @@
+flowchart LR
+  A(["ADMIN"])
+  E(["EMPLOYEE"])
+  K(["Khách hàng qua Slack / Zalo OA"])
+  subgraph S["Hệ thống TechHRM"]
+    UC1["Đăng nhập email, Google, Facebook"]
+    UC2["Quản lý hồ sơ nhân sự, hợp đồng, onboarding"]
+    UC3["Duyệt đơn nghỉ phép, làm thêm giờ"]
+    UC4["Tính, duyệt, chi trả bảng lương"]
+    UC5["Cài đặt hệ thống, nhật ký thay đổi"]
+    UC6["Giám sát AI Agents, tiếp quản CSKH"]
+    UC7["Phân tích kết quả đào tạo"]
+    UC8["Chấm công GPS"]
+    UC9["Gửi đơn nghỉ phép, xem phiếu lương"]
+    UC10["Hỏi đáp nhân sự với trợ lý AI"]
+    UC11["Làm bài test, luyện role-play"]
+    UC12["Nhắn tin chăm sóc khách hàng"]
+  end
+  A --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7
+  A -.-> UC8
+  E --> UC1 & UC8 & UC9 & UC10 & UC11
+  K --> UC12

@@ -1,0 +1,9 @@
+flowchart TD
+  L["app/layout.tsx<br/>AuthProvider"] --> PG["app/page.tsx<br/>AppShell lọc menu theo role"]
+  PG -->|"chưa đăng nhập"| LG["login-view.tsx"]
+  PG -->|"ADMIN"| AD["dashboard, employees, payroll,<br/>ai-agents, cskh-escalation,<br/>training-analytics, employee-portal, settings"]
+  PG -->|"EMPLOYEE"| EM["employee-portal, my-training,<br/>ai-agents, cskh-escalation"]
+  AD & EM --> API["lib/api/*.api.ts<br/>axios + Bearer token"]
+  API --> Z["lib/schemas<br/>Zod kiểm tra dữ liệu trả về"]
+  AD --> SK["useAiSocket<br/>Socket.IO /notifications"]
+  EM --> CH["lib/chat/chat-store.ts"]

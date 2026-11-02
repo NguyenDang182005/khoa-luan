@@ -12,7 +12,7 @@
 
 **CSKH Agent** — Workflow n8n (WF04) xử lý tin nhắn khách hàng qua kênh Zalo OA. AI trả lời câu hỏi đơn giản. Khi gặp vấn đề phức tạp, phát tín hiệu Escalation để nhân viên thật vào xử lý trực tiếp với khách hàng. Trong demo, transport của kênh là Slack DM (xem **Slack Transport**); kiến trúc và đặt tên vẫn là "Zalo".
 
-**Slack Transport** — Cách demo kênh Zalo bằng Slack: khách DM bot Slack → Slack Events API `POST /webhook/zalo-webhook` → WF04 xử lý như tin Zalo (session channel vẫn là `zalo`, `externalId` = Slack user id `U…`). Câu trả lời AI được gửi qua `POST /n8n/outbound-reply` → NestJS gọi Slack Web API (`conversations.open` + `chat.postMessage`) với `SLACK_BOT_TOKEN` giữ server-side. Workflow `05-slack-verify` echo `challenge` khi đăng ký Event URL. Thiếu token → API trả `{ delivered: false, reason: 'SLACK_BOT_TOKEN_NOT_CONFIGURED' }` thay vì lỗi.
+**Slack Transport** — Cách demo kênh Zalo bằng Slack: khách DM bot Slack → NestJS `SlackService` (Bolt Socket Mode) → `POST /webhook/zalo-webhook` kèm `x-api-key` → WF04 xử lý như tin Zalo (session channel vẫn là `zalo`, `externalId` = Slack user id `U…`). Câu trả lời AI được gửi qua `POST /n8n/outbound-reply` → NestJS gọi Slack Web API (`conversations.open` + `chat.postMessage`) với `SLACK_BOT_TOKEN` giữ server-side. Socket Mode không cần Event URL công khai nên không còn workflow `05-slack-verify`. Thiếu token → API trả `{ delivered: false, reason: 'SLACK_BOT_TOKEN_NOT_CONFIGURED' }` thay vì lỗi.
 
 **Outbound Reply** — Endpoint nội bộ `POST /n8n/outbound-reply` (x-api-key): một cửa gửi tin ra kênh khách hàng. Cả AI (WF04) lẫn nhân viên tiếp quản (portal reply) đều đi qua `SlackService.sendSlackDm` — một nơi duy nhất quyết định cách gửi.
 
@@ -28,7 +28,7 @@
 
 **PII Masking** — Bước che thông tin nhạy cảm (CMND 9/12 số, SĐT, email) bằng regex trong WF01 trước khi gửi lên LLM. Thông tin thật được lấy lại qua tool từ DB khi cần, không cần de-anonymize output.
 
-**Rule Engine** — Mô-đun tính lương trong NestJS (`PayrollService.calculatePayroll()`). Dùng logic cứng (không dùng AI) cho: thuế TNCN 7 bậc lũy tiến, BHXH/BHYT/BHTN, OT x1.5/x2.0/x3.0. Đảm bảo chính xác tuyệt đối cho dữ liệu tài chính.
+**Rule Engine** — Mô-đun tính lương trong NestJS (`PayrollService.calculatePayroll()`). Dùng logic cứng (không dùng AI) cho: thuế TNCN lũy tiến theo **giai đoạn luật** (7 bậc trước 01/7/2026 → 5 bậc từ 01/7/2026; giảm trừ bản thân 15,5tr + 6,2tr/người phụ thuộc), BHXH/BHYT/BHTN (trần 20× lương cơ sở: 46,8tr → 50,6tr từ 01/7/2026), OT x1.5/x2.0/x3.0 theo `dayType`, và ngày lễ quốc gia (bảng `holidays`) là ngày nghỉ có lương. Đảm bảo chính xác tuyệt đối cho dữ liệu tài chính.
 
 **Bulk Approval** — Duyệt/thanh toán nhiều phiếu lương một lượt: `POST /payroll/approve-bulk` & `POST /payroll/paid-bulk` nhận `{ ids?, month?, year? }` (ids ưu tiên, không có ids → toàn bộ kỳ). Chỉ DRAFT→APPROVED (approve) và APPROVED→PAID (paid). UI: checkbox từng dòng + chọn tất cả trên Bảng Lương, dialog xác nhận đếm số phiếu.
 

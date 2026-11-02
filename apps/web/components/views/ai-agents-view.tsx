@@ -6,7 +6,6 @@ import {
   MessageSquare,
   Activity,
   ShieldAlert,
-  Send,
   Sparkles,
   Zap,
   Cpu,
@@ -14,15 +13,9 @@ import {
   Loader2,
   ListChecks,
   PenLine,
-  RotateCcw,
   ShieldCheck,
   Lock,
-  CheckCircle2,
-  ArrowRight,
-  ExternalLink,
   Play,
-  RefreshCw,
-  FileText,
   Headphones,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -476,7 +469,7 @@ function QuizCard({
             disabled={!allAnswered || submitting}
             className="gap-1.5 text-xs"
           >
-            {submitting ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+            {submitting && <Loader2 className="size-3.5 animate-spin" />}
             {submitting ? "Đang chấm điểm…" : "Nộp bài"}
           </Button>
           {!allAnswered && <span className="text-[11px] text-muted-foreground">Trả lời hết các câu để nộp bài</span>}
@@ -631,11 +624,15 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
       try {
         const perf = await agentsApi.getPerformance()
         setAgentPerf(perf)
-      } catch (e) { console.error(e) }
+      } catch (e) {
+        console.warn('[AiAgentsView] Failed to fetch agent performance:', e)
+      }
       try {
         const stats = await agentsApi.getIntentStats()
         setIntentStats(stats)
-      } catch (e) { console.error(e) }
+      } catch (e) {
+        console.warn('[AiAgentsView] Failed to fetch intent stats:', e)
+      }
     }
     fetchLive()
     const interval = setInterval(fetchLive, 30000)
@@ -652,7 +649,9 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
         if (!alive) return
         setCskhConversations(list)
         setCskhSelectedId((prev) => (prev && list.some((c) => c.id === prev) ? prev : list[0]?.id ?? null))
-      } catch (e) { console.error(e) }
+      } catch (e) {
+        console.warn('[AiAgentsView] Failed to fetch conversations:', e)
+      }
     }
     load()
     const iv = setInterval(load, 30000)
@@ -815,7 +814,7 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
             return (
               <button
                 key={agent.id}
-                onClick={() => setActiveAgentId(agent.id)}
+                onClick={() => { setActiveAgentId(agent.id); setLiveLatency(null) }}
                 className={`flex items-start gap-3 rounded-xl p-2.5 text-left transition-all ${
                   isSelected
                     ? "bg-sidebar-accent border border-primary/30 shadow-sm"
@@ -894,7 +893,7 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                 className="text-xs h-8 gap-1.5 border-border bg-card/60"
                 title="Gửi 1 lượt chat thật qua WF01 → Gemini và đo độ trễ end-to-end"
               >
-                <Zap className={`size-3.5 text-agent-teal ${isPinging ? "animate-spin" : ""}`} />
+                {isPinging && <Loader2 className="size-3.5 animate-spin text-agent-teal" />}
                 {isPinging ? "Đang gọi AI…" : `Ping AI (E2E) ${currentLastLatency !== '--' ? `• ${currentLastLatency}ms` : ""}`}
               </Button>
             </div>
@@ -1042,15 +1041,12 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
               <Tabs defaultValue="sandbox" className="w-full">
                 <TabsList className="bg-muted/50 p-1 rounded-lg w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
                   <TabsTrigger value="sandbox" className="text-xs gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-                    <Sparkles className="size-3.5 text-agent-teal" />
                     Trình Thử Nghiệm PII & Phân Luồng
                   </TabsTrigger>
                   <TabsTrigger value="specs" className="text-xs gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-                    <FileText className="size-3.5 text-agent-blue" />
                     Quy Chuẩn Bảo Mật & Pipeline
                   </TabsTrigger>
                   <TabsTrigger value="audit" className="text-xs gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
-                    <Activity className="size-3.5 text-agent-amber" />
                     Nhật Ký Audit Gần Nhất
                   </TabsTrigger>
                 </TabsList>
@@ -1111,17 +1107,8 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                         className="h-auto py-2.5 px-4 text-xs gap-1.5 bg-primary text-primary-foreground font-semibold shrink-0"
                         title="Gọi thực tế qua backend NestJS → WF01 Router"
                       >
-                        {sandboxE2ELoading ? (
-                          <>
-                            <Loader2 className="size-3.5 animate-spin" />
-                            Đang gọi AI…
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="size-3.5" />
-                            Thử Gọi E2E
-                          </>
-                        )}
+                        {sandboxE2ELoading && <Loader2 className="size-3.5 animate-spin" />}
+                        {sandboxE2ELoading ? "Đang gọi AI…" : "Thử Gọi E2E"}
                       </Button>
                     </div>
                   </div>
@@ -1329,7 +1316,7 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                       disabled={auditLoading}
                       className="text-xs h-7 gap-1.5"
                     >
-                      <RefreshCw className={`size-3 ${auditLoading ? "animate-spin" : ""}`} />
+                      {auditLoading && <Loader2 className="size-3 animate-spin" />}
                       Làm mới
                     </Button>
                   </div>
@@ -1420,7 +1407,6 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                 className="text-xs h-8 gap-1.5 border-border bg-card/60"
                 title="Mở trang Tiếp Quản CSKH & PII để xử lý khiếu nại"
               >
-                <ExternalLink className="size-3.5 text-agent-coral" />
                 Mở Tiếp Quản CSKH
               </Button>
             </div>
@@ -1428,24 +1414,14 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
 
           {/* Banner hướng dẫn WF04 */}
           <div className="p-5 pb-0">
-            <div className="rounded-xl border border-agent-coral/30 bg-agent-coral/5 p-3.5 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold text-foreground flex items-center gap-1.5">
-                  <ShieldAlert className="size-3.5 text-agent-coral" />
-                  Bảng thông báo chỉ đọc — Kênh CSKH ngoài (Slack Socket Mode)
-                </p>
-                <p className="mt-1 text-[11px]">
-                  Khách hàng nhắn tin qua Slack/Zalo. Quản trị viên theo dõi hội thoại tại đây; khi khách cần hỗ trợ đặc biệt (human takeover) hoặc bật lại bot, chuyển sang trang Cảnh Báo CSKH.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => onNavigate?.("cskh-escalation")}
-                className="h-8 text-xs gap-1.5 bg-agent-coral text-white shrink-0 font-medium"
-              >
-                <ArrowRight className="size-3.5" />
-                Đến Cảnh Báo CSKH
-              </Button>
+            <div className="rounded-xl border border-agent-coral/30 bg-agent-coral/5 p-3.5 text-xs text-muted-foreground">
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <ShieldAlert className="size-3.5 text-agent-coral" />
+                Bảng thông báo chỉ đọc — Kênh CSKH ngoài (Slack Socket Mode)
+              </p>
+              <p className="mt-1 text-[11px]">
+                Khách hàng nhắn tin qua Slack/Zalo. Quản trị viên theo dõi hội thoại tại đây; khi khách cần hỗ trợ đặc biệt (human takeover) hoặc bật lại bot, nhấn &quot;Mở Tiếp Quản CSKH&quot; ở góc phải phía trên.
+              </p>
             </div>
           </div>
 
@@ -1582,7 +1558,7 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                 className="gap-1.5 text-[11px]"
                 title="Đóng phiên hiện tại và bắt đầu phiên mới"
               >
-                {hydrating ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
+                {hydrating && <Loader2 className="size-3.5 animate-spin" />}
                 Phiên mới
               </Button>
             )}
@@ -1714,32 +1690,32 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       {
-                        label: "🎯 Xử lý khiếu nại",
+                        label: "Xử lý khiếu nại",
                         msg: "Tôi muốn làm bài thi kỹ năng xử lý tình huống khiếu nại",
                         scenarioType: "customer_complaint",
                       },
                       {
-                        label: "🤝 Giải quyết mâu thuẫn",
+                        label: "Giải quyết mâu thuẫn",
                         msg: "Tôi muốn làm bài test giải quyết mâu thuẫn đồng nghiệp",
                         scenarioType: "colleague_conflict",
                       },
                       {
-                        label: "📋 Tiếp nhận feedback",
+                        label: "Tiếp nhận feedback",
                         msg: "Tôi muốn làm bài kiểm tra kỹ năng tiếp nhận phản hồi từ quản lý",
                         scenarioType: "manager_feedback",
                       },
                       {
-                        label: "🌱 Onboarding",
+                        label: "Onboarding",
                         msg: "Tôi muốn làm bài thi kiến thức onboarding nhân viên mới",
                         scenarioType: "new_employee_onboarding",
                       },
                       {
-                        label: "📊 Đánh giá hiệu suất",
+                        label: "Đánh giá hiệu suất",
                         msg: "Tôi muốn làm bài thi kỹ năng đánh giá hiệu suất làm việc",
                         scenarioType: "performance_review",
                       },
                       {
-                        label: "💬 Role-play giao tiếp",
+                        label: "Role-play giao tiếp",
                         msg: "Luyện tập tình huống role-play kỹ năng giao tiếp chuyên nghiệp với tôi",
                         scenarioType: "general_communication",
                       },
@@ -1829,9 +1805,9 @@ export function AiAgentsView({ onNavigate }: AiAgentsViewProps = {}) {
                     type="submit"
                     size="sm"
                     disabled={!inputMessage.trim() || isProcessing}
-                    className="h-10 px-4 bg-primary text-primary-foreground font-semibold"
+                    className="h-10 px-4 bg-primary text-primary-foreground font-semibold text-xs"
                   >
-                    <Send className="size-3.5" />
+                    Gửi
                   </Button>
                 </form>
                 <p className="mt-2 text-[10px] text-muted-foreground text-center">

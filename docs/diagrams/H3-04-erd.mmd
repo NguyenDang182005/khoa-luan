@@ -1,0 +1,86 @@
+erDiagram
+  USER ||--o| EMPLOYEE : "liên kết"
+  USER ||--o{ REFRESH_TOKEN : "phiên"
+  USER ||--o{ NOTIFICATION : "nhận"
+  USER ||--o{ LOGIN_HISTORY : "ghi"
+  USER ||--o{ SETTINGS_AUDIT_LOG : "thay đổi"
+  DEPARTMENT ||--o{ DEPARTMENT : "cấp trên"
+  DEPARTMENT ||--o{ POSITION : "có"
+  DEPARTMENT ||--o{ EMPLOYEE : "gồm"
+  POSITION ||--o{ EMPLOYEE : "đảm nhiệm"
+  EMPLOYEE ||--o{ EMPLOYEE : "quản lý"
+  EMPLOYEE ||--o{ ATTENDANCE : "chấm công"
+  EMPLOYEE ||--o{ LEAVE_REQUEST : "gửi, duyệt"
+  EMPLOYEE ||--o{ CONTRACT : "ký"
+  EMPLOYEE ||--o{ PAYROLL : "nhận"
+  EMPLOYEE ||--o{ ONBOARDING_PROGRESS : "thực hiện"
+  ONBOARDING_TASK ||--o{ ONBOARDING_PROGRESS : "theo dõi"
+  EMPLOYEE ||--o{ TRAINING_SESSION : "tham gia"
+  TRAINING_SESSION ||--o{ TRAINING_ATTEMPT : "gồm"
+  EMPLOYEE |o--o{ AI_CHAT_SESSION : "trò chuyện"
+  AI_CHAT_SESSION ||--o{ AI_CHAT_MESSAGE : "chứa"
+  USER {
+    string id PK
+    string email UK
+    UserRole role
+    int failedLoginAttempts
+    datetime lockedUntil
+  }
+  EMPLOYEE {
+    string id PK
+    string employeeCode UK
+    string userId FK
+    string departmentId FK
+    string positionId FK
+    EmploymentStatus status
+    int dependents
+  }
+  ATTENDANCE {
+    string employeeId FK
+    date date
+    AttendanceStatus status
+    float workDays
+    float overtime
+    AttendanceDayType dayType
+  }
+  LEAVE_REQUEST {
+    string employeeId FK
+    LeaveType type
+    float totalDays
+    LeaveStatus status
+    string approvedById FK
+  }
+  CONTRACT {
+    string contractNumber UK
+    ContractType type
+    float baseSalary
+    float allowances
+  }
+  PAYROLL {
+    string employeeId FK
+    int month
+    int year
+    float bhxh
+    float tax
+    float netSalary
+    PayrollStatus status
+  }
+  AI_CHAT_SESSION {
+    string id PK
+    ChatSessionType type
+    string channel
+    boolean isActive
+    datetime escalatedAt
+  }
+  AI_CHAT_MESSAGE {
+    string sessionId FK
+    string role
+    text content
+    json metadata
+  }
+  TRAINING_SESSION {
+    TrainingScenario scenario
+    float quizScore
+    json aiScore
+    float totalScore
+  }

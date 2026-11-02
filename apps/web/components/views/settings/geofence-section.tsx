@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { MapPin, Loader2, Save } from "lucide-react"
+import { MapPin, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -123,7 +123,7 @@ export function GeofenceSection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
             {error && <p className="mt-3 text-[11px] text-agent-coral">{error}</p>}
             <div className="mt-3 flex items-center gap-3">
               <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Lưu Vùng Chấm Công
+                {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Vùng Chấm Công
               </Button>
               {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
             </div>

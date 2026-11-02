@@ -1,5 +1,5 @@
-import { AttendanceStatus, LeaveType, LeaveStatus, ContractType, PayrollStatus } from './auth.types';
-import { EmployeeSummary } from './employee.types';
+import { AttendanceStatus, LeaveType, LeaveStatus, ContractType, PayrollStatus } from './auth.types.js';
+import { EmployeeSummary } from './employee.types.js';
 
 // ===== Attendance Types =====
 export interface Attendance {
@@ -25,8 +25,23 @@ export interface CheckOutRequest {
   note?: string;
 }
 
-// ===== Leave Request Types =====
-export interface LeaveRequest {
+export interface Attendance {
+  id: string;
+  employeeId: string;
+  employee?: EmployeeSummary;
+  date: string;
+  checkIn?: string;
+  checkOut?: string;
+  status: AttendanceStatus;
+  workHours?: number;
+  workDays?: number;
+  overtime?: number;
+  note?: string;
+  createdAt: string;
+}
+
+// ===== Leave / Request Types =====
+export interface Request {
   id: string;
   employeeId: string;
   employee?: EmployeeSummary;
@@ -34,6 +49,8 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   totalDays: number;
+  overtimeHours?: number;
+  overtimeDate?: string;
   reason: string;
   status: LeaveStatus;
   approvedById?: string;
@@ -43,14 +60,16 @@ export interface LeaveRequest {
   updatedAt: string;
 }
 
-export interface CreateLeaveRequestDto {
+export interface CreateRequestDto {
   type: LeaveType;
   startDate: string;
   endDate: string;
   reason: string;
+  overtimeHours?: number;
+  overtimeDate?: string;
 }
 
-export interface ApproveLeaveDto {
+export interface ApproveRequestDto {
   status: LeaveStatus.APPROVED | LeaveStatus.REJECTED;
   rejectionReason?: string;
 }

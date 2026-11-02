@@ -1,0 +1,21 @@
+flowchart LR
+  subgraph DEV["Máy phát triển Windows 11"]
+    subgraph DC["Docker Compose"]
+      PG[("pgvector/pgvector:pg16<br/>:5432")]
+      N8N["n8nio/n8n<br/>:5678"]
+      PGA["pgAdmin 4<br/>:5050"]
+    end
+    API["NestJS API, pnpm dev<br/>:3001"]
+    WEB["Next.js, pnpm dev<br/>:3000"]
+  end
+  GEM["Google AI Studio<br/>Gemini API"]
+  SLK["Slack workspace"]
+  FB["Firebase Authentication"]
+  WEB --> API --> PG
+  N8N --> PG
+  API <--> N8N
+  N8N --> GEM
+  API --> GEM
+  API <--> SLK
+  WEB --> FB
+  PGA --> PG

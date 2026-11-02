@@ -1,0 +1,26 @@
+sequenceDiagram
+  autonumber
+  actor E as Nhân viên
+  participant W as Web Portal
+  participant A as NestJS AgentsService
+  participant R as n8n WF01
+  participant H as n8n WF02
+  participant G as Gemini
+  participant T as NestJS /n8n API
+  E->>W: Lương tháng 8 của tôi bao nhiêu?
+  W->>A: POST /agents/chat
+  A->>A: Kiểm tra AiAgentConfig.enabled, timeout 90 giây
+  A->>R: POST /webhook/chat kèm x-api-key
+  R->>R: Che PII, phân loại HR_QA, không gọi LLM
+  R->>H: Execute Workflow
+  H->>T: Lấy hoặc tạo phiên, lưu tin nhắn
+  H->>G: Prompt hệ thống, lịch sử, câu hỏi
+  G-->>H: Yêu cầu gọi GetPayrollContext
+  H->>T: GET /n8n/payroll-context/EMP003?month=8&year=2026
+  T-->>H: Phiếu lương do Rule Engine tính sẵn
+  H->>G: Kết quả công cụ
+  G-->>H: Câu trả lời diễn giải số liệu
+  H->>T: Lưu câu trả lời, phát sự kiện ai:activity
+  H-->>R: answer
+  R-->>A: answer, intent
+  A-->>W: Hiển thị câu trả lời

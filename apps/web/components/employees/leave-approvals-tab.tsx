@@ -7,20 +7,14 @@ import {
   XCircle,
   Clock,
   Calendar as CalendarIcon,
-  Filter,
   CheckSquare,
   Square,
-  AlertTriangle,
   Loader2,
-  CalendarDays,
-  List,
   ChevronLeft,
   ChevronRight,
-  User,
-  ShieldCheck,
   FileText,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -33,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { leaveApi } from "@/lib/api/leave.api"
 import type { LeaveRequest } from "@/lib/schemas/leave.schema"
@@ -54,11 +47,9 @@ const DAY_NAMES = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
 export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) {
   const { user } = useAuth()
   const approverId = user?.employee?.id ?? ""
-  const isManagerOrAdmin = user?.role === "ADMIN" || !!user?.employee?.id
 
   const [leaves, setLeaves] = React.useState<LeaveRequest[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null)
 
   // Filters
@@ -75,20 +66,16 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([])
   const [isBulkProcessing, setIsBulkProcessing] = React.useState(false)
 
-  // Detail & Reject modal
+  // Detail modal
   const [detailTarget, setDetailTarget] = React.useState<LeaveRequest | null>(null)
-  const [rejectTarget, setRejectTarget] = React.useState<LeaveRequest | null>(null)
-  const [rejectionReason, setRejectionReason] = React.useState("")
-  const [rejectSubmitting, setRejectSubmitting] = React.useState(false)
 
   const fetchLeaves = React.useCallback(async () => {
     setLoading(true)
-    setError(null)
     try {
       const data = await leaveApi.list()
       setLeaves(data)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Không thể tải danh sách đơn nghỉ phép.")
+      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -149,7 +136,7 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
     if (!approverId) return
     setActionSuccess(null)
     try {
-      await leaveApi.approve(id, approverId)
+      await leaveApi.approve(id)
       setActionSuccess("Đã phê duyệt đơn nghỉ phép thành công!")
       setSelectedIds((prev) => prev.filter((i) => i !== id))
       await fetchLeaves()
@@ -158,33 +145,11 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
     }
   }
 
-  // Thao tác từ chối đơn đơn lẻ
-  const handleRejectSubmit = async () => {
-    if (!rejectTarget || !approverId) return
-    if (!rejectionReason.trim()) {
-      alert("Vui lòng nhập lý do từ chối.")
-      return
-    }
-    setRejectSubmitting(true)
-    try {
-      await leaveApi.reject(rejectTarget.id, approverId, rejectionReason.trim())
-      setRejectTarget(null)
-      setRejectionReason("")
-      setActionSuccess("Đã từ chối đơn nghỉ phép.")
-      setSelectedIds((prev) => prev.filter((i) => i !== rejectTarget.id))
-      await fetchLeaves()
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Từ chối thất bại.")
-    } finally {
-      setRejectSubmitting(false)
-    }
-  }
-
   // Từ chối từ trong LeaveDetailModal (nút "Xem & Duyệt")
   const handleModalReject = async (id: string, reason: string) => {
     if (!approverId) return
     try {
-      await leaveApi.reject(id, approverId, reason)
+      await leaveApi.reject(id, reason)
       setActionSuccess("Đã từ chối đơn nghỉ phép.")
       setSelectedIds((prev) => prev.filter((i) => i !== id))
       await fetchLeaves()
@@ -201,7 +166,7 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
     setIsBulkProcessing(true)
     setActionSuccess(null)
     try {
-      await leaveApi.approveBulk(selectedIds, approverId)
+      await leaveApi.approveBulk(selectedIds)
       setActionSuccess(`Đã phê duyệt thành công ${selectedIds.length} đơn nghỉ phép!`)
       setSelectedIds([])
       await fetchLeaves()
@@ -382,23 +347,23 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
               <div className="flex items-center rounded-lg border border-border bg-muted/30 p-0.5">
                 <button
                   onClick={() => setViewMode("table")}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                     viewMode === "table"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <List className="size-3.5" /> Bảng
+                  Bảng
                 </button>
                 <button
                   onClick={() => setViewMode("calendar")}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                     viewMode === "calendar"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <CalendarDays className="size-3.5" /> Lịch Nghỉ
+                  Lịch Nghỉ
                 </button>
               </div>
             </div>
@@ -414,11 +379,11 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                   onClick={handleBulkApprove}
                   disabled={isBulkProcessing}
                 >
-                  {isBulkProcessing ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                  {isBulkProcessing && <Loader2 className="size-3.5 animate-spin" />}
                   Duyệt Các Mục Đã Chọn ({selectedIds.length})
                 </Button>
                 <Button
@@ -604,22 +569,10 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
                               <div className="flex items-center justify-end gap-1.5">
                                 <Button
                                   size="xs"
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                   onClick={() => setDetailTarget(leave)}
                                 >
-                                  <CheckCircle2 className="size-3" /> Xem & Duyệt
-                                </Button>
-                                <Button
-                                  size="xs"
-                                  variant="ghost"
-                                  className="text-destructive hover:bg-destructive/10"
-                                  onClick={() => {
-                                    setRejectTarget(leave)
-                                    setRejectionReason("")
-                                  }}
-                                  title="Từ chối đơn"
-                                >
-                                  <XCircle className="size-3.5" />
+                                  Xem & Duyệt
                                 </Button>
                               </div>
                             ) : (
@@ -763,63 +716,6 @@ export function LeaveApprovalsTab({ departments = [] }: LeaveApprovalsTabProps) 
             })}
           </div>
         </Card>
-      )}
-
-      {/* Modal nhập lý do từ chối */}
-      {rejectTarget && (
-        <Dialog open={true} onOpenChange={(open) => !open && setRejectTarget(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setRejectTarget(null)}
-            />
-            <div className="relative z-50 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95">
-              <DialogHeader>
-                <DialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
-                  <AlertTriangle className="size-4" /> Từ Chối Đơn Nghỉ Phép
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Đơn của nhân viên: <span className="font-semibold text-foreground">{rejectTarget.employee?.fullName}</span> ({rejectTarget.totalDays} ngày)
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="mt-4 flex flex-col gap-3">
-                <label className="text-xs font-semibold text-foreground">
-                  Lý do từ chối <span className="text-destructive">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Nhập lý do từ chối để thông báo cho nhân viên biết..."
-                  className="rounded-lg border border-border bg-background p-2.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <DialogFooter className="mt-6 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs flex-1"
-                  onClick={() => setRejectTarget(null)}
-                  disabled={rejectSubmitting}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="text-xs flex-1 gap-1"
-                  onClick={handleRejectSubmit}
-                  disabled={rejectSubmitting || !rejectionReason.trim()}
-                >
-                  {rejectSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <XCircle className="size-3.5" />}
-                  Xác Nhận Từ Chối
-                </Button>
-              </DialogFooter>
-            </div>
-          </div>
-        </Dialog>
       )}
 
       {/* Modal chi tiết & phê duyệt — nút "Xem & Duyệt" (trước đây thiếu render nên bấm không có tác dụng) */}

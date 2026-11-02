@@ -1,4 +1,4 @@
-import { Gender, EmploymentStatus } from './auth.types';
+import { Gender, EmploymentStatus } from './auth.types.js';
 
 // ===== Department Types =====
 export interface Department {

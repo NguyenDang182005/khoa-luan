@@ -3,7 +3,7 @@
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist-seed",
-    "rootDir": ".",
+    "rootDir": "../..",
     "types": ["node"]
   },
   "include": ["prisma/seed.ts"],

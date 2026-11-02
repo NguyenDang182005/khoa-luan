@@ -8,7 +8,6 @@ import {
   Bot,
   ArrowUpRight,
   CheckCircle2,
-  XCircle,
   Sparkles,
   MessageSquare,
   AlertTriangle,
@@ -18,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import {
   AreaChart,
   Area,
@@ -39,6 +37,7 @@ import type { KpiData, AttendanceChartData, DeptDistributionData, PendingLeaveDa
 import { useAuth } from '@/lib/auth-context'
 import { useAiSocket } from '@/lib/hooks/useAiSocket'
 import { LeaveDetailModal } from "@/components/employees/leave-detail-modal"
+import { vnd } from "@/lib/utils"
 
 function fmtVN(iso: string) {
   if (!iso) return "--"
@@ -60,6 +59,12 @@ export function DashboardView() {
   const [aiStats, setAiStats] = useState<AiWorkflowStat[]>([])
   const [loading, setLoading] = useState(true)
   const { user, isAdmin } = useAuth()
+
+  // Nhãn tháng của biểu đồ (API trả "dd/MM" theo tháng đang xem).
+  const chartMonthLabel = React.useMemo(() => {
+    const first = attendanceData[0]?.day
+    return first ? first.split("/")[1] : ""
+  }, [attendanceData])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -104,22 +109,14 @@ export function DashboardView() {
   const handleAction = async (id: string, action: 'approve' | 'reject', reason?: string) => {
     if (!user?.employee?.id) return
     try {
-      if (action === 'approve') await dashboardApi.approveLeave(id, user.employee.id)
-      else await dashboardApi.rejectLeave(id, user.employee.id, reason || 'Từ chối bởi quản lý')
+      if (action === 'approve') await dashboardApi.approveLeave(id)
+      else await dashboardApi.rejectLeave(id, reason || 'Từ chối bởi quản lý')
       const updated = await dashboardApi.getPendingLeaves()
       setPendingLeaves(updated)
     } catch (e) { console.error(e) }
   }
 
   const [detailTarget, setDetailTarget] = React.useState<PendingLeaveData | null>(null)
-  const [rejectTarget, setRejectTarget] = React.useState<PendingLeaveData | null>(null)
-  const [rejectReason, setRejectReason] = React.useState('')
-  const confirmReject = async () => {
-    if (!rejectTarget) return
-    await handleAction(rejectTarget.id, 'reject', rejectReason.trim() || undefined)
-    setRejectTarget(null)
-    setRejectReason('')
-  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -193,7 +190,7 @@ export function DashboardView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? <div className="animate-pulse h-8 w-24 bg-muted rounded" /> : `₫${kpis?.monthlyPayrollTotal ?? '...'}`}
+              {loading ? <div className="animate-pulse h-8 w-24 bg-muted rounded" /> : vnd(kpis?.monthlyPayrollTotal ?? NaN)}
             </div>
             <p className="mt-1 flex items-center text-xs text-muted-foreground">
               <ArrowUpRight className="mr-1 size-3 text-agent-amber" /> Đã chốt dự thảo sơ bộ
@@ -227,7 +224,9 @@ export function DashboardView() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">Xu Hướng Chấm Công 9 Ngày Đầu Tháng</CardTitle>
+            <CardTitle className="text-sm font-semibold">
+              Xu Hướng Chấm Công Tháng {chartMonthLabel}
+            </CardTitle>
             <CardDescription>Số lượng nhân sự đúng giờ, đi muộn và nghỉ phép thực tế</CardDescription>
           </CardHeader>
           <CardContent>
@@ -346,19 +345,10 @@ export function DashboardView() {
                       <Button
                         size="xs"
                         variant="default"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         onClick={() => setDetailTarget(leave)}
                       >
-                        <CheckCircle2 className="size-3" /> Xem & Duyệt
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10"
-                        aria-label="Từ chối đơn"
-                        onClick={() => { setRejectTarget(leave); setRejectReason('') }}
-                      >
-                        <XCircle className="size-3.5" />
+                        Xem & Duyệt
                       </Button>
                     </div>
                   </div>
@@ -479,36 +469,6 @@ export function DashboardView() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Reject Reason Dialog */}
-      <Dialog open={rejectTarget !== null} onOpenChange={(open) => { if (!open) setRejectTarget(null) }}>
-        <DialogHeader>
-          <DialogTitle>Từ Chối Đơn Nghỉ Phép</DialogTitle>
-          <DialogDescription>
-            Đơn của {rejectTarget?.employee.fullName ?? "nhân viên"} ({rejectTarget?.startDate} → {rejectTarget?.endDate})
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-3">
-          <label className="text-[11px] font-semibold text-muted-foreground">Lý do từ chối</label>
-          <textarea
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            rows={2}
-            placeholder="Nhập lý do từ chối (để trống sẽ dùng lý do mặc định)..."
-            className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-xs text-foreground outline-none"
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setRejectTarget(null)}>Hủy</Button>
-          <Button
-            variant="default"
-            className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={confirmReject}
-          >
-            Xác Nhận Từ Chối
-          </Button>
-        </DialogFooter>
-      </Dialog>
 
       {/* Pop up chi tiết đơn nghỉ phép kèm phê duyệt */}
       <LeaveDetailModal

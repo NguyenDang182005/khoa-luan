@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useRef, useState } from "react"
 import { io, Socket } from "socket.io-client"
@@ -35,13 +35,19 @@ export function useAiSocket({ userId, isAdmin, onActivity }: UseAiSocketOptions)
   useEffect(() => {
     if (!userId || !isAdmin) return
 
+    // #14: gửi token trong handshake — server verify JWT mới cho join room.
     const rawApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
     const wsBase = rawApiUrl.replace(/\/api\/v1\/?$/, "")
+
+    // Lấy token từ localStorage (cách lưu của auth-context).
+    let token: string | null = null
+    try { token = localStorage.getItem("hr_auth_token") ?? sessionStorage.getItem("hr_auth_token") } catch { /* storage bị chặn: kết nối không token, server sẽ từ chối */ }
 
     const socket = io(`${wsBase}/notifications`, {
       transports: ["websocket"],
       reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
+      auth: { token },
     })
     socketRef.current = socket
 

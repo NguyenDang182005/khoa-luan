@@ -1,14 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateSecurityPolicyDto } from './dto/update-security-policy.dto';
 import { UpdateAiAgentConfigDto } from './dto/update-ai-agent-config.dto';
 import { SettingsAuditService } from './settings-audit.service';
+import { dayKey } from '../common/workdays';
+import { vnDateUtc, vnMonth } from '../common/vn-date';
 import {
   ensureDefaultLeavePolicy,
   ensureDefaultSecurityPolicy,
   ensureDefaultAiAgentConfig,
+  ensureDefaultGeofence,
 } from './single-row.utils';
 
 export interface IntegrationStatus {
@@ -33,12 +41,8 @@ export class SettingsService {
   ) {}
 
   /** Vùng chấm công — tự tạo bản ghi default khi chưa có */
-  async getGeofence() {
-    const existing = await this.prisma.officeGeofence.findUnique({ where: { id: 'default' } });
-    if (existing) return existing;
-    return this.prisma.officeGeofence.create({
-      data: { id: 'default', name: 'Văn phòng công ty', lat: 10.7951, lng: 106.7218, radiusM: 200 },
-    });
+  getGeofence() {
+    return ensureDefaultGeofence(this.prisma);
   }
 
   async updateGeofence(
@@ -62,6 +66,66 @@ export class SettingsService {
       after: after as unknown as Record<string, unknown>,
     });
     return after;
+  }
+
+  // ── Ngày lễ quốc gia ──
+
+  /** Danh sách ngày lễ của một năm (mặc định năm hiện tại theo giờ VN). */
+  async getHolidays(year?: number) {
+    const y =
+      typeof year === 'number' && Number.isFinite(year) && year > 2000
+        ? year
+        : vnMonth().year;
+    return this.prisma.holiday.findMany({
+      where: {
+        date: { gte: new Date(Date.UTC(y, 0, 1)), lt: new Date(Date.UTC(y + 1, 0, 1)) },
+      },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  async createHoliday(
+    dto: { date: string; name: string },
+    admin: { id?: string; email?: string },
+  ) {
+    if (!dto.date) throw new BadRequestException('Thiếu ngày lễ');
+    if (!dto.name?.trim()) throw new BadRequestException('Thiếu tên ngày lễ');
+
+    const raw = new Date(dto.date);
+    if (Number.isNaN(raw.getTime())) {
+      throw new BadRequestException('Ngày lễ không hợp lệ');
+    }
+    const date = vnDateUtc(raw);
+    const existing = await this.prisma.holiday.findUnique({ where: { date } });
+    if (existing) {
+      throw new ConflictException(`Ngày ${dayKey(date)} đã có trong lịch nghỉ`);
+    }
+
+    const created = await this.prisma.holiday.create({
+      data: { date, name: dto.name.trim() },
+    });
+    await this.audit.logAction({
+      section: 'holiday',
+      admin,
+      field: 'date',
+      oldValue: null,
+      newValue: `${dayKey(date)} — ${created.name}`,
+    });
+    return created;
+  }
+
+  async deleteHoliday(id: string, admin: { id?: string; email?: string }) {
+    const row = await this.prisma.holiday.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Không tìm thấy ngày lễ');
+    await this.prisma.holiday.delete({ where: { id } });
+    await this.audit.logAction({
+      section: 'holiday',
+      admin,
+      field: 'date',
+      oldValue: `${dayKey(row.date)} — ${row.name}`,
+      newValue: null,
+    });
+    return { deleted: true };
   }
 
   /** Chính sách phép năm — tự tạo bản ghi default khi chưa có */

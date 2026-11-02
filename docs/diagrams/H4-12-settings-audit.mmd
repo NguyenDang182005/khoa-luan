@@ -1,0 +1,8 @@
+flowchart LR
+  AD["ADMIN"] --> UI["settings-view<br/>7 mục cấu hình"]
+  UI -->|"PATCH"| SV["SettingsService"]
+  SV --> R["ensureDefault<br/>bản ghi đơn id = default"]
+  R --> U["Cập nhật cấu hình"]
+  U --> L["SettingsAuditService.logChanges<br/>so sánh giá trị cũ và mới"]
+  L --> DB[("settings_audit_logs")]
+  UI -->|"GET /settings/integrations"| P["Ping PostgreSQL, n8n healthz,<br/>Slack auth.test, Gemini models"]

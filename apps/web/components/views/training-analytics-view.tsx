@@ -232,7 +232,9 @@ export function TrainingAnalyticsView() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{item.status}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {item.status === 'GRADED' ? 'Đã chấm' : item.status === 'COMPLETED' ? 'Hoàn thành' : 'Đang làm'}
+                    </TableCell>
                     <TableCell className="text-center font-mono text-xs text-emerald-400">{quizPart}/50</TableCell>
                     <TableCell className="text-center font-mono text-xs text-agent-amber">{aiScoreVal}/50</TableCell>
                     <TableCell className="text-center font-mono text-xs font-bold text-primary">

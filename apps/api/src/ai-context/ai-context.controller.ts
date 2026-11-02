@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiSecurity } from '@nestjs/swagger';
 import { AiContextService, ApiKeyGuard } from './ai-context.service';
+import { vnMonth } from '../common/vn-date';
 
 @ApiTags('AI Context (n8n)')
 @ApiSecurity('x-api-key')
@@ -30,11 +31,11 @@ export class AiContextController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    const now = new Date();
+    const { year: y, month: m } = vnMonth();
     return this.service.getPayrollContext(
       employeeId,
-      Number(month) || now.getMonth() + 1,
-      Number(year) || now.getFullYear(),
+      Number(month) || m,
+      Number(year) || y,
     );
   }
 

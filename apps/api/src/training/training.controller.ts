@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
   Body,
   Param,
   Query,
@@ -39,33 +38,30 @@ export class TrainingController {
   }
 
   @Get('my-sessions')
-  @ApiOperation({ summary: 'Lịch sử bài test của nhân viên (by employeeId query)' })
-  getMySessions(@Query('employeeId') employeeId: string) {
-    return this.trainingService.getMySessions(employeeId);
+  @ApiOperation({ summary: 'Lịch sử bài test của chính nhân viên đang đăng nhập' })
+  getMySessions(@Request() req: any) {
+    return this.trainingService.getMySessions(req.user.sub);
   }
 
   @Post('sessions')
-  @ApiOperation({ summary: 'Bắt đầu phiên training mới' })
-  startSession(@Body() body: { employeeId: string; scenario: TrainingScenario }) {
-    return this.trainingService.startSession(body.employeeId, body.scenario);
+  @ApiOperation({ summary: 'Bắt đầu phiên training mới (cho chính mình)' })
+  startSession(@Request() req: any, @Body() body: { scenario: TrainingScenario }) {
+    return this.trainingService.startSession(req.user.sub, body.scenario);
   }
 
   @Post('sessions/:id/attempts')
   @ApiOperation({ summary: 'Nộp câu trả lời (hardcode questions)' })
   submitAttempt(
+    @Request() req: any,
     @Param('id') sessionId: string,
     @Body() body: { questionId: string; answer: string },
   ) {
-    return this.trainingService.submitAttempt(sessionId, body.questionId, body.answer);
-  }
-
-  @Patch('sessions/:id/grade')
-  @ApiOperation({ summary: 'Lưu kết quả chấm điểm AI từ n8n WF03 (legacy)' })
-  gradeSession(
-    @Param('id') sessionId: string,
-    @Body() body: { aiScore: Record<string, number>; aiFeedback: string },
-  ) {
-    return this.trainingService.gradeSession(sessionId, body.aiScore, body.aiFeedback);
+    return this.trainingService.submitAttempt(
+      sessionId,
+      body.questionId,
+      body.answer,
+      req.user.sub,
+    );
   }
 
   @Get('analytics')

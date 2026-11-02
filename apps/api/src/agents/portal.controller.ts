@@ -14,14 +14,17 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AgentsService } from './agents.service';
 import { AiContextService } from '../ai-context/ai-context.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AgentChatDto, SessionTypeDto } from './dto/agent-chat.dto';
 import { AgentReplyDto } from './dto/agent-reply.dto';
 import { PiiAuditQueryDto } from './dto/pii-audit-query.dto';
 
 /**
  * Endpoints cho Web Portal — xác thực bằng JWT (browser KHÔNG gọi n8n trực tiếp).
- * Route chỉ dành cho nhóm Admin (ADMIN / HR_MANAGER / HR_ADMIN) được bảo vệ thêm
- * bởi RolesGuard + @Roles('ADMIN_GROUP').
+ * Chat/session của nhân viên (chat, chat-session/latest, renew, onboarding/my) mở cho mọi
+ * người đã đăng nhập — dùng chính hồ sơ trong JWT.
+ * Các route quản trị (thống kê, hội thoại, escalate, PII audit) có RolesGuard + @Roles('ADMIN_GROUP').
  */
 @ApiTags('Agents (Portal)')
 @ApiBearerAuth()
@@ -73,25 +76,33 @@ export class PortalAgentsController {
     return this.aiContextService.renewWebSession(employee.id, type);
   }
 
-  @Get('intent-stats')
+    @Get('intent-stats')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Thống kê intent Router Agent định tuyến' })
   intentStats() {
     return this.agentsService.getIntentStats();
   }
 
   @Get('conversations')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Tất cả hội thoại CSKH (đang bot + đã escalate)' })
   conversations() {
     return this.aiContextService.getConversations();
   }
 
   @Get('escalation-queue')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Hàng đợi CSKH cần xử lý thủ công (Specialist / Employee)' })
   escalationQueue() {
     return this.aiContextService.getEscalationQueue();
   }
 
   @Get('chat-history/:sessionId')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Lịch sử hội thoại của một session' })
   async chatHistory(@Param('sessionId') sessionId: string) {
     const messages = await this.aiContextService.getSessionHistory(sessionId);
@@ -99,24 +110,32 @@ export class PortalAgentsController {
   }
 
   @Post('chat-session/:id/reactivate')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Bật lại bot cho session (hoàn thành hỗ trợ)' })
   reactivateSession(@Param('id') id: string) {
     return this.aiContextService.reactivateSession(id);
   }
 
   @Post('chat-session/:id/deactivate')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Tắt bot cho session (tiếp quản thủ công)' })
   deactivateSession(@Param('id') id: string) {
     return this.aiContextService.deactivateSession(id);
   }
 
   @Post('chat-session/:id/reply')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Nhân viên phản hồi thủ công vào session (human takeover)' })
   reply(@Param('id') id: string, @Body() dto: AgentReplyDto) {
     return this.agentsService.replyToSession(id, dto.content);
   }
 
   @Get('pii-audit')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Audit PII: message AI gần nhất kèm session' })
   piiAudit(@Query() query: PiiAuditQueryDto) {
     return this.agentsService.getPiiAudit(query.limit ?? 20);

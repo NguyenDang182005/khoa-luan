@@ -1,24 +1,39 @@
 import { TrainingService } from './training.service';
 
 /**
- * Regression test cho bug "tab Kết quả đào tạo hiển thị sai điểm":
+ * Regression test cho bug "tab Kết quả đào tạo hiển thi sai điểm":
  * WF03 (Gemini) tự đếm correct_count/total_mcq ở mức aggregate và đếm SAI
  * so với chính results[] từng câu của nó. Service phải chấm MCQ deterministic
- * phía server (answer vs correctAnswer đã có sẵn trong payload) thay vì tin
- * counter của LLM.
+ * phía server thay vì tin counter của LLM.
+ *
+ * #7: đáp án đúng KHÔNG lấy từ client (client có thể tự gửi đáp án đúng) —
+ * lấy từ bản quiz WF03 đã stash server-side khi sinh bài (metadata.quiz).
  */
 
+// 5 MCQ — học viên trả lời tất cả "B", đáp án đúng B,C,C,B,C → 2/5 đúng
 const answers7 = [
-  // 5 MCQ — học viên trả lời tất cả "B", đáp án đúng B,C,C,B,C → 2/5 đúng
-  { questionId: 1, question: 'Q1', type: 'mcq' as const, answer: 'B', correctAnswer: 'B' },
-  { questionId: 2, question: 'Q2', type: 'mcq' as const, answer: 'B', correctAnswer: 'C' },
-  { questionId: 3, question: 'Q3', type: 'mcq' as const, answer: 'B', correctAnswer: 'C' },
-  { questionId: 4, question: 'Q4', type: 'mcq' as const, answer: 'B', correctAnswer: 'B' },
-  { questionId: 5, question: 'Q5', type: 'mcq' as const, answer: 'B', correctAnswer: 'C' },
+  { questionId: 1, question: 'Q1', type: 'mcq' as const, answer: 'B' },
+  { questionId: 2, question: 'Q2', type: 'mcq' as const, answer: 'B' },
+  { questionId: 3, question: 'Q3', type: 'mcq' as const, answer: 'B' },
+  { questionId: 4, question: 'Q4', type: 'mcq' as const, answer: 'B' },
+  { questionId: 5, question: 'Q5', type: 'mcq' as const, answer: 'B' },
   // 2 tự luận
   { questionId: 6, question: 'E1', type: 'essay' as const, answer: 'hello' },
   { questionId: 7, question: 'E2', type: 'essay' as const, answer: 'jaaw' },
 ];
+
+/** Bản quiz WF03 stash server-side khi sinh bài (đáp án đúng B,C,C,B,C) */
+const STASHED_QUIZ = {
+  quiz: [
+    { id: 1, type: 'mcq', correct: 'B' },
+    { id: 2, type: 'mcq', correct: 'C' },
+    { id: 3, type: 'mcq', correct: 'C' },
+    { id: 4, type: 'mcq', correct: 'B' },
+    { id: 5, type: 'mcq', correct: 'C' },
+    { id: 6, type: 'essay' },
+    { id: 7, type: 'essay' },
+  ],
+};
 
 /** WF03 trả results[] đúng (2 câu MCQ đúng) nhưng aggregate đếm sai correct_count=1 */
 const WF03_CONTRADICTORY = {
@@ -37,11 +52,17 @@ const WF03_CONTRADICTORY = {
   overall_feedback: 'fb',
 };
 
-function buildService(gradeResponse: unknown) {
+function buildService(gradeResponse: unknown, stashedQuiz: unknown = STASHED_QUIZ) {
   const prisma: Record<string, any> = {
     employee: { findUnique: jest.fn().mockResolvedValue({ id: 'emp1', employeeCode: 'EMP005' }) },
+    aiChatMessage: {
+      findFirst: jest.fn().mockResolvedValue(
+        stashedQuiz ? { metadata: stashedQuiz } : null,
+      ),
+    },
     trainingSession: {
       create: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 's1', ...data })),
+      count: jest.fn().mockResolvedValue(0),
     },
     trainingQuestion: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -64,7 +85,7 @@ describe('TrainingService.submitQuiz — chấm MCQ deterministic phía server',
 
     const result = await service.submitQuiz('user1', 'colleague_conflict', answers7);
 
-    // Điểm MCQ phải theo kết quả từng câu (deterministic), không theo counter LLM
+    // Điểm MCQ phải theo đáp án stash server-side, không theo counter LLM
     expect(result.correct_count).toBe(2);
     expect(result.total_mcq).toBe(5);
     const session = prisma.trainingSession.create.mock.calls[0][0].data;
@@ -79,55 +100,40 @@ describe('TrainingService.submitQuiz — chấm MCQ deterministic phía server',
     expect(isCorrectFlags).toEqual([true, false, false, true, false, null, null]);
   });
 
-  it('WF03 trả rỗng results[] → vẫn chấm được MCQ từ correctAnswer client gửi lên', async () => {
-    const { service, prisma } = buildService({
-      score_percent: 0,
-      correct_count: 0,
-      total_mcq: 5,
-      results: [],
-      overall_feedback: '',
-    });
-    const answers = [
-      { questionId: 1, question: 'Q1', type: 'mcq' as const, answer: 'B', correctAnswer: 'B' },
-      { questionId: 2, question: 'Q2', type: 'mcq' as const, answer: 'A', correctAnswer: 'A' },
-      { questionId: 3, question: 'Q3', type: 'mcq' as const, answer: 'C', correctAnswer: 'C' },
-      { questionId: 4, question: 'Q4', type: 'mcq' as const, answer: 'B', correctAnswer: 'B' },
-      { questionId: 5, question: 'Q5', type: 'mcq' as const, answer: 'B', correctAnswer: 'B' },
-      { questionId: 6, question: 'E1', type: 'essay' as const, answer: 'bai lam' },
-      { questionId: 7, question: 'E2', type: 'essay' as const, answer: 'bai lam 2' },
-    ]; // 5/5 MCQ đúng
+  it('#7: client gửi correctAnswer sai cũng không ảnh hưởng — server chấm theo bản stash', async () => {
+    const { service, prisma } = buildService(WF03_CONTRADICTORY);
 
-    const result = await service.submitQuiz('user1', 'customer_complaint', answers);
-
-    expect(result.correct_count).toBe(5);
-    const session = prisma.trainingSession.create.mock.calls[0][0].data;
-    expect(session.quizScore).toBe(100);
-    const isCorrectFlags = prisma.trainingAttempt.create.mock.calls.map(
-      (c: any) => c[0].data.isCorrect,
+    // Học viên gửi correctAnswer: 'B' cho tất cả → nếu tin client sẽ ra 5/5
+    const tampered = answers7.map((a) =>
+      a.type === 'mcq' ? { ...a, correctAnswer: 'B' } : a,
     );
-    // MCQ phải được đánh đúng/sai (không còn NULL như bug cũ), essay giữ null
-    expect(isCorrectFlags).toEqual([true, true, true, true, true, null, null]);
+
+    const result = await service.submitQuiz('user1', 'colleague_conflict', tampered);
+
+    expect(result.correct_count).toBe(2); // vẫn 2/5 theo đáp án thật
+    const session = prisma.trainingSession.create.mock.calls[0][0].data;
+    expect(session.quizScore).toBe(40);
   });
 
-  it('client không gửi correctAnswer → fallback theo results[] từng câu của WF03', async () => {
-    const { service } = buildService({
-      score_percent: 20,
-      correct_count: 1, // aggregate sai
-      total_mcq: 5,
-      results: [
-        { id: 1, type: 'mcq', correct: true },
-        { id: 2, type: 'mcq', correct: true },
-        { id: 3, type: 'mcq', correct: true },
-        { id: 4, type: 'mcq', correct: false },
-        { id: 5, type: 'mcq', correct: false },
-      ],
-      overall_feedback: '',
-    });
-    const answers = answers7.map((a) =>
-      a.type === 'mcq' ? { ...a, correctAnswer: undefined } : a,
+  it('không có bản stash → fallback theo results[] từng câu của WF03', async () => {
+    const { service } = buildService(
+      {
+        score_percent: 20,
+        correct_count: 1, // aggregate sai
+        total_mcq: 5,
+        results: [
+          { id: 1, type: 'mcq', correct: true },
+          { id: 2, type: 'mcq', correct: true },
+          { id: 3, type: 'mcq', correct: true },
+          { id: 4, type: 'mcq', correct: false },
+          { id: 5, type: 'mcq', correct: false },
+        ],
+        overall_feedback: '',
+      },
+      null, // không stash
     );
 
-    const result = await service.submitQuiz('user1', 'colleague_conflict', answers);
+    const result = await service.submitQuiz('user1', 'colleague_conflict', answers7);
 
     // 3 câu đúng theo results[] (không phải 1 theo counter LLM)
     expect(result.correct_count).toBe(3);

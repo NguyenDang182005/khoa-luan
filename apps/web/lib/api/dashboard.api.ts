@@ -25,12 +25,13 @@ export const dashboardApi = {
     const { data } = await apiClient.get('/dashboard/ai-activity')
     return AiActivitySchema.parse(data)
   },
-  approveLeave: async (id: string, approverId: string) => {
-    const { data } = await apiClient.patch(`/leave/${id}/approve`, { approverId })
+  // approverId do server lấy từ JWT — web không gửi.
+  approveLeave: async (id: string) => {
+    const { data } = await apiClient.patch(`/leave/${id}/approve`, {})
     return data
   },
-  rejectLeave: async (id: string, approverId: string, reason: string) => {
-    const { data } = await apiClient.patch(`/leave/${id}/reject`, { approverId, rejectionReason: reason })
+  rejectLeave: async (id: string, reason: string) => {
+    const { data } = await apiClient.patch(`/leave/${id}/reject`, { rejectionReason: reason })
     return data
   },
 }

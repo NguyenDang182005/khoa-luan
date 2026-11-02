@@ -7,10 +7,6 @@ import {
   MonitorSmartphone,
   History,
   Loader2,
-  Save,
-  RefreshCw,
-  LogOut,
-  Trash2,
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react"
@@ -347,8 +343,7 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
               )}
               <div className="mt-3 flex items-center gap-3">
                 <Button size="sm" className="gap-1.5" onClick={savePolicy} disabled={policyBusy || !policyDirty}>
-                  {policyBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Lưu Chính
-                  Sách
+                  {policyBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu Chính Sách
                 </Button>
                 {policyDirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
               </div>
@@ -414,7 +409,7 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
             </p>
           )}
           <Button size="sm" className="mt-3 gap-1.5" onClick={submitPassword} disabled={pwBusy}>
-            {pwBusy ? <Loader2 className="size-3.5 animate-spin" /> : <KeyRound className="size-3.5" />} Đổi Mật Khẩu
+            {pwBusy && <Loader2 className="size-3.5 animate-spin" />} Đổi Mật Khẩu
           </Button>
         </CardContent>
       </Card>
@@ -433,10 +428,16 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button size="sm" variant="outline" className="gap-1.5" onClick={loadAll} disabled={sessionsBusy}>
-                {sessionsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Tải Lại
+                {sessionsBusy && <Loader2 className="size-3.5 animate-spin" />} Tải Lại
               </Button>
-              <Button size="sm" variant="destructive" className="gap-1.5" onClick={doRevokeOthers} disabled={sessionsBusy}>
-                <LogOut className="size-3.5" /> Đăng Xuất Thiết Bị Khác
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5"
+                onClick={doRevokeOthers}
+                disabled={sessionsBusy || (sessions?.length ?? 0) <= 1}
+              >
+                Đăng Xuất Thiết Bị Khác
               </Button>
             </div>
           </div>
@@ -482,7 +483,7 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
                         onClick={() => doRevoke(s.id)}
                         disabled={revokingId === s.id}
                       >
-                        {revokingId === s.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                        {revokingId === s.id && <Loader2 className="size-3 animate-spin" />}
                         Thu hồi
                       </Button>
                     </TableCell>

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
+import { timingSafeEqual } from 'crypto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 import { LeaveService } from '../leave/leave.service';
@@ -17,7 +18,10 @@ export class ApiKeyGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request>();
     const key = req.headers['x-api-key'];
     const expected = this.config.get<string>('N8N_API_KEY');
-    if (!expected || key !== expected) {
+    // So sánh hằng thời gian — tránh dò khóa qua thời gian phản hồi.
+    const a = Buffer.from(typeof key === 'string' ? key : '');
+    const b = Buffer.from(expected ?? '');
+    if (!expected || a.length !== b.length || !timingSafeEqual(a, b)) {
       throw new UnauthorizedException('Invalid API Key');
     }
     return true;
@@ -32,7 +36,7 @@ export class AiContextService {
     private prisma: PrismaService,
     private config: ConfigService,
     @Optional() private gateway: NotificationsGateway,
-    @Optional() private leaveService?: LeaveService,
+    private leaveService: LeaveService,
   ) {}
 
   /** Returns full employee context for n8n to inject into LLM prompt.
@@ -57,55 +61,19 @@ export class AiContextService {
           },
           take: 1,
         },
-        leaveRequests: {
-          where: {
-            status: 'APPROVED',
-            startDate: { gte: new Date(new Date().getFullYear(), 0, 1) },
-          },
-          select: { type: true, totalDays: true },
-        },
       },
     });
 
     const activeContract = employee.contracts[0];
 
-    // Tính toán số ngày phép chuẩn từ LeaveService (bao gồm thâm niên, chuyển phép năm trước, v.v.)
-    // Khớp 100% với số liệu hiển thị trên Employee Portal
+    // Tính số ngày phép bằng đúng LeaveService (quota + pro-rate + ngày lễ) —
+    // trước đây còn nhánh fallback đọc allowances.annualLeaveDays trong khi
+    // allowances là Float nên luôn undefined (dead code).
     const currentYear = new Date().getFullYear();
-    let balance = {
-      total: 12,
-      used: 0,
-      remaining: 12,
-      quota: 12,
-      carryOver: 0,
-      seniorityBonus: 0,
-    };
-
-    if (this.leaveService) {
-      const b = await this.leaveService.getBalance(employee.id, currentYear);
-      balance = {
-        total: b.total,
-        used: b.used,
-        remaining: b.remaining,
-        quota: b.quota,
-        carryOver: b.carryOver,
-        seniorityBonus: b.seniorityBonus,
-      };
-    } else {
-      const annualLeaveUsed = employee.leaveRequests
-        .filter((l) => l.type === 'ANNUAL')
-        .reduce((s, l) => s + l.totalDays, 0);
-      const annualLeaveTotal: number =
-        (activeContract?.allowances as any)?.annualLeaveDays ?? 12;
-      balance = {
-        total: annualLeaveTotal,
-        used: annualLeaveUsed,
-        remaining: Math.max(0, annualLeaveTotal - annualLeaveUsed),
-        quota: annualLeaveTotal,
-        carryOver: 0,
-        seniorityBonus: 0,
-      };
-    }
+    const balance = await this.leaveService.getBalance(
+      employee.id,
+      currentYear,
+    );
 
     return {
       employeeId: employee.id,
@@ -125,8 +93,6 @@ export class AiContextService {
           used: balance.used,
           remaining: balance.remaining,
           quota: balance.quota,
-          carryOver: balance.carryOver,
-          seniorityBonus: balance.seniorityBonus,
         },
       },
     };
@@ -299,7 +265,14 @@ export class AiContextService {
 
   async getEscalationQueue() {
     const sessions = await this.prisma.aiChatSession.findMany({
-      where: { type: 'CSKH', isActive: false, channel: 'zalo' },
+      // Chỉ phiên THỰC SỰ bị escalate (có escalatedAt). Phiên bị đóng do qua ngày
+      // cũng isActive=false nhưng không có escalatedAt → không chen vào hàng đợi.
+      where: {
+        type: 'CSKH',
+        isActive: false,
+        channel: 'zalo',
+        escalatedAt: { not: null },
+      },
       include: {
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -307,7 +280,7 @@ export class AiContextService {
         },
         employee: { select: { fullName: true, employeeCode: true } },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { escalatedAt: 'desc' },
     });
     return sessions.map(s => ({
       id: s.id,
@@ -346,11 +319,18 @@ export class AiContextService {
       };
       const wfInfo = wfMap[type];
       if (wfInfo) {
-        // Lightweight aggregate — only count messages of this workflow type
+        // Aggregate bounded (7 ngày gần nhất, tối đa 500 tin) — trước đây mỗi tin nhắn
+        // lại quét toàn bộ lịch sử nên càng chat càng chậm (O(n²)).
+        const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const messages = await this.prisma.aiChatMessage.findMany({
-          where: { role: 'assistant', session: { type: type as any } },
+          where: {
+            role: 'assistant',
+            session: { type: type as any },
+            createdAt: { gte: since },
+          },
           select: { metadata: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
+          take: 500,
         });
         const latencies = messages
           .map(m => (m.metadata as any)?.latency_ms as number | null)
@@ -390,12 +370,12 @@ export class AiContextService {
     lastMessage: string;
     reason: string;
   }) {
-    // 1. Tắt bot đối với session này để nhường quyền cho nhân viên
+    // 1. Tắt bot + đánh dấu thời điểm escalate (dashboard/hàng đợi dựa vào cột này)
     if (dto.sessionId) {
       await this.prisma.aiChatSession
         .update({
           where: { id: dto.sessionId },
-          data: { isActive: false },
+          data: { isActive: false, escalatedAt: new Date() },
         })
         .catch(() => null);
     }
@@ -426,10 +406,17 @@ export class AiContextService {
               escalatedAt: new Date().toISOString(),
             },
           },
-          select: { id: true },
         })
         .catch(() => null);
-      if (notification) notificationIds.push(notification.id);
+      if (!notification) continue;
+      notificationIds.push(notification.id);
+
+      // Đẩy realtime tới đúng admin (và room admin cho màn hình tổng hợp).
+      // Trước đây chỉ ghi DB nên portal phải refresh mới thấy escalation.
+      this.gateway?.server
+        ?.to(`user:${admin.id}`)
+        .to('admin')
+        .emit('notification:new', notification);
     }
 
     return { notified: notificationIds.length, notificationIds };
@@ -439,7 +426,7 @@ export class AiContextService {
   async reactivateSession(sessionId: string) {
     return this.prisma.aiChatSession.update({
       where: { id: sessionId },
-      data: { isActive: true },
+      data: { isActive: true, escalatedAt: null },
     });
   }
 
@@ -464,7 +451,7 @@ export class AiContextService {
     return sessions.map((s) => ({
       id: s.id,
       externalId: s.externalId,
-      escalated: !s.isActive,
+      escalated: s.escalatedAt !== null,
       lastMessage: s.messages[0]?.content ?? '',
       lastMessageAt: s.messages[0]?.createdAt ?? s.updatedAt,
       messageCount: s._count.messages,
@@ -578,8 +565,10 @@ export class AiContextService {
   @Cron('0 0 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async midnightResetEscalatedSessions() {
     const { count } = await this.prisma.aiChatSession.updateMany({
-      where: { type: 'CSKH', isActive: false },
-      data: { isActive: true },
+      // Chỉ phiên bị leo thang — phiên đóng do sang ngày mới giữ nguyên.
+      where: { type: 'CSKH', isActive: false, escalatedAt: { not: null } },
+      // Mở lại bot cho ngày mới; xóa dấu escalate để hàng đợi không giữ phiên cũ.
+      data: { isActive: true, escalatedAt: null },
     });
 
     if (count > 0) {

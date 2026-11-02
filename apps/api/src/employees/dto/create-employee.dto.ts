@@ -3,8 +3,10 @@ import {
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -80,4 +82,19 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsIn(['ADMIN', 'EMPLOYEE'])
   role?: string;
+
+  @ApiPropertyOptional({
+    example: 12000000,
+    description: 'Lương cơ bản — nếu truyền, tạo luôn hợp đồng thử việc để chạy được bảng lương',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  baseSalary?: number;
+
+  @ApiPropertyOptional({ example: 1000000, description: 'Phụ cấp hàng tháng của hợp đồng' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  allowances?: number;
 }

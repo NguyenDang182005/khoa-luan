@@ -45,19 +45,6 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { id: "settings",          label: "Cài Đặt Hệ Thống",       icon: Settings },
 ]
 
-/** Các tab hiển thị với EMPLOYEE:
- *  - Cổng nhân viên (ESS)
- *  - Kết quả đào tạo cá nhân
- *  - AI Multi-Agents Sandbox (n8n chat / thử nghiệm agents)
- *  - Tiếp quản CSKH & PII (Escalation queue)
- */
-const EMPLOYEE_TABS: Set<NavigationTab> = new Set([
-  "employee-portal",
-  "my-training",
-  "ai-agents",
-  "cskh-escalation",
-])
-
 // ─── Search Modal ────────────────────────────────────────────────────────────
 function SearchModal({
   query, results, onClose, onChange,
@@ -105,7 +92,7 @@ function AppShell() {
   const { user, isAuthenticated, logout } = useAuth()
   const [activeTab, setActiveTab] = React.useState<NavigationTab>(
     user?.role === "EMPLOYEE" ? "employee-portal" : "dashboard",
-  )
+  )  
   const [searchOpen, setSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
@@ -117,7 +104,6 @@ function AppShell() {
         "employee-portal",
         "my-training",
         "ai-agents",
-        "cskh-escalation",
       ]
       return empOrder
         .map((id) => ALL_NAV_ITEMS.find((item) => item.id === id))
@@ -154,17 +140,13 @@ function AppShell() {
     const quickLinks = [
       { key: "q-wf02",   label: "Giám sát WF02 - Tra cứu ngày phép", hint: "AI Agent",  tab: "ai-agents"       as NavigationTab, adminOnly: false },
       { key: "q-payroll",label: "Mở bảng lương & chạy Rule Engine",   hint: "Bảng Lương", tab: "payroll"         as NavigationTab, adminOnly: true },
-      { key: "q-cskh",   label: "Tiếp quản khiếu nại Zalo khẩn cấp",  hint: "Cảnh Báo",   tab: "cskh-escalation" as NavigationTab, adminOnly: false },
+      { key: "q-cskh",   label: "Tiếp quản khiếu nại Zalo khẩn cấp",  hint: "Cảnh Báo",   tab: "cskh-escalation" as NavigationTab, adminOnly: true },
     ]
       .filter((i) => !i.adminOnly || (user && isAdminRole(user.role)))
       .filter((i) => !q || i.label.toLowerCase().includes(q))
       .map((i) => ({ key: i.key, label: i.label, hint: i.hint, action: () => { setActiveTab(i.tab); setSearchOpen(false) } }))
     return [...navMatches, ...quickLinks]
   }, [searchQuery, navItems, user])
-
-  const userInitials = user?.employee?.fullName
-    ? user.employee.fullName.split(" ").map((w) => w[0]).slice(-2).join("").toUpperCase()
-    : "AD"
 
   if (!isAuthenticated || !user) return <LoginView />
 
@@ -180,8 +162,6 @@ function AppShell() {
           navItems={navItems}
           activeTab={activeTab}
           onTabChange={(id) => setActiveTab(id as NavigationTab)}
-          onLogout={logout}
-          userInitials={userInitials}
         />
 
         {/* CONTENT — chỉ vùng này cuộn */}

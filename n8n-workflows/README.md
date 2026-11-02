@@ -37,7 +37,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 
 ### 01 — Router Agent
 
-**Webhook:** `POST /webhook/chat`
+**Webhook:** `POST /webhook/chat` (header `x-api-key` bắt buộc)
 
 **Request body:**
 ```json
@@ -111,7 +111,7 @@ Vao **Settings → Environment Variables** hoac set trong docker-compose:
 
 ### 04 — Zalo OA CSKH Agent (Human-in-the-loop)
 
-**Webhook:** `POST /webhook/zalo-webhook`
+**Webhook:** `POST /webhook/zalo-webhook` (header `x-api-key` bắt buộc)
 
 **Flow:**
 1. Parse Zalo Message

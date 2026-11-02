@@ -1,6 +1,7 @@
 ---
-tags: [khoa-luan, devops, docker, infrastructure]
+tags: [khoa-luan, devops, docker, infrastructure, verified]
 created: 2026-09-04
+updated: 2026-10-17
 ---
 
 # 🐳 Infrastructure & DevOps
@@ -59,18 +60,29 @@ WEBHOOK_URL: http://localhost:5678
 TIMEZONE: Asia/Ho_Chi_Minh
 ```
 
-### Endpoint cho n8n (x-api-key) — cập nhật 14/09
+### Endpoint cho n8n (x-api-key) — cập nhật 17/10
 
 | Endpoint | Mục đích |
 |---|---|
-| `GET /n8n/employee-context/:employeeId` | Context nhân viên (WF02 tool) |
+| `GET /n8n/employee-context/:employeeId` | Context nhân viên (WF02 tool — hỗ trợ cả UUID và `EMP003` code) |
 | `GET /n8n/payroll-context/:employeeId` | Bảng lương theo tháng (WF02 tool) |
-| `GET\|POST /n8n/knowledge-search` *(mới — RAG)* | Tìm chunk chính sách theo ngữ nghĩa (`KnowledgeService`: pgvector `<=>` hoặc cosine fallback) |
-| `POST /n8n/chat/session` \| `chat/message` | Session + lưu tin nhắn |
-| `POST /n8n/outbound-reply` | Forward reply AI → Slack DM khách |
+| `GET\|POST /n8n/knowledge-search` | RAG: tìm chunk chính sách (`KnowledgeService`: pgvector `<=>` hoặc cosine fallback) |
+| `POST /n8n/chat/session` | Tạo/lấy session (day-based rollover VN timezone) |
+| `POST /n8n/chat/message` | Lưu tin nhắn AI (audit trail) |
+| `POST /n8n/outbound-reply` | Forward reply AI → Slack channel/DM |
 | `POST /n8n/escalate` | Escalation CSKH → WebSocket admin |
 
-## Bảng API Keys & Secrets (chuẩn 14/09)
+### Slack Integration (cập nhật 17/10)
+
+| Thành phần | Chi tiết |
+|---|---|
+| **SlackModule** | Bolt SDK **Socket Mode** (không cần public URL) |
+| **Inbound:** | Channel message → `slack.service.ts` → forward WF04 webhook |
+| **Outbound:** | `AiContextService.sendSlackChannelMessage()` qua Slack Web API |
+| **Thread-aware:** | Gửi `slackChannel` + `threadTs` → reply trong thread + broadcast ra kênh |
+| **Bot loop guard:** | Metadata `event_type: 'hr_agent_reply'` → Bolt listener bỏ qua tin của chính bot |
+
+## Bảng API Keys & Secrets (cập nhật 17/10)
 
 Toàn bộ secret thật nằm trong **root `.env`** (đã gitignored) — `docker-compose.yml` chỉ tham chiếu `${VAR:-}`; NestJS đọc từ `apps/api/.env`; **browser không bao giờ giữ key n8n/Slack/Gemini** (chỉ JWT đăng nhập).
 
@@ -79,12 +91,14 @@ Toàn bộ secret thật nằm trong **root `.env`** (đã gitignored) — `dock
 | `HR_API_KEY` | n8n → NestJS qua header `x-api-key` (tất cả endpoint `/api/v1/n8n/*`) | root `.env` + `apps/api/.env` (phải khớp nhau) | Backend + n8n credential `httpHeaderAuth` |
 | `N8N_API_KEY` | NestJS validate header `x-api-key` incoming | `apps/api/.env` | Backend |
 | `GEMINI_API_KEY` | n8n gọi Gemini 3.1 Flash Lite (WF02–WF04) + embedding RAG | root `.env` → n8n credential `googlePalmApi` | n8n credential |
-| `SLACK_BOT_TOKEN` (`xoxb-…`) | NestJS gửi Slack DM cho khách (CSKH reply + outbound-reply) | root `.env` → NestJS `ConfigService` | Backend only |
-| `SLACK_SIGNING_SECRET` | Verify signature Slack Events (khi bật) | root `.env` | Backend only |
+| `SLACK_BOT_TOKEN` (`xoxb-…`) | NestJS Bolt Socket Mode + gửi Slack channel message | root `.env` → NestJS `ConfigService` | Backend only |
+| `SLACK_SIGNING_SECRET` | Verify signature Slack Events (khi bật HTTP mode) | root `.env` | Backend only |
+| `SLACK_APP_TOKEN` (`xapp-…`) | Bolt Socket Mode connection | root `.env` | Backend only |
+| `SLACK_CHANNEL_ID` | Channel cho midnight greeting + CSKH reply | root `.env` | Backend only |
 | `DATABASE_URL` | Prisma connect PostgreSQL | `apps/api/.env` / env khi chạy | Backend |
 | `NEXT_PUBLIC_FIREBASE_*` | Firebase Web SDK đăng nhập OAuth | `apps/web/.env.local` | Browser (public by design) |
 | `N8N_URL` | NestJS ping `/healthz` + proxy chat tới WF01 | `apps/api/.env` | Backend |
-| ~~`NEXT_PUBLIC_N8N_*`~~ | ~~Key n8n trong browser~~ — **đã xóa** (14/09, xem [[15 - Refactor Real API Toàn Portal & Review Best Practice]]) | — | — |
+| ~~`NEXT_PUBLIC_N8N_*`~~ | ~~Key n8n trong browser~~ — **đã xóa** (14/09) | — | — |
 
 > 🔁 Luồng gọi có key: `Browser (JWT) → NestJS → (x-api-key) → n8n → (x-api-key) → NestJS`; gửi tin khách: `NestJS → Slack Web API (Bearer)`. Không có đường nào đưa secret xuống browser.
 
@@ -98,6 +112,12 @@ Toàn bộ secret thật nằm trong **root `.env`** (đã gitignored) — `dock
 | `@repo/eslint-config` | ESLint rules |
 | `@repo/typescript-config` | tsconfig bases |
 
+## Cron Jobs (NestJS)
+
+| Cron | Service | Mô tả |
+|---|---|---|
+| `0 0 * * *` (VN) | `AiContextService.midnightResetEscalatedSessions` | Bật lại tất cả CSKH sessions đã escalate + gửi greeting Slack |
+
 ## Bảo Mật Production
 
 > ⚠️ Cần đổi trước khi deploy:
@@ -105,7 +125,8 @@ Toàn bộ secret thật nằm trong **root `.env`** (đã gitignored) — `dock
 > - `HR_API_KEY` (trong cả docker-compose và `.env` API)
 > - `PGADMIN_DEFAULT_PASSWORD`
 > - `POSTGRES_PASSWORD`
+> - `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN`
 
 ---
 
-*Liên kết:* [[00 - Tổng Quan Dự Án]] | [[05 - Database Schema (Prisma)]] | [[06 - n8n Workflows & AI Agents]]
+*Liên kết:* [[00 - Tổng Quan Dự Án]] | [[05 - Database Schema (Prisma)]] | [[06 - n8n Workflows & AI Agents]] | [[30 - Business Logic & ADR Alignment (Verified 17-10-2026)]]

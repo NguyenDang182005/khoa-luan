@@ -1,0 +1,13 @@
+flowchart TD
+  A1["Execute Workflow Trigger<br/>từ WF01"] --> N
+  A2["Webhook POST /hr-qa<br/>x-api-key"] --> N
+  N["Normalize Input + PII Masking"] --> S["POST /n8n/chat/session<br/>lấy hoặc tạo phiên HR_QA"]
+  S --> U["POST /n8n/chat/message<br/>lưu tin người dùng"]
+  U --> AG["HR Agent<br/>maxIterations = 3"]
+  LLM["Gemini 3.1 Flash Lite<br/>temperature 0.3, 1024 tokens"] -.-> AG
+  MEM["Postgres Chat Memory<br/>n8n_chat_histories, 50 lượt"] -.-> AG
+  T1["GetEmployeeContext<br/>GET /n8n/employee-context/:id"] -.-> AG
+  T2["GetPayrollContext<br/>GET /n8n/payroll-context/:id"] -.-> AG
+  T3["SearchPolicyKnowledge<br/>GET /n8n/knowledge-search"] -.-> AG
+  AG --> SA["POST /n8n/chat/message<br/>lưu câu trả lời"]
+  SA --> F["Format Output"] --> R["Respond to Webhook"]

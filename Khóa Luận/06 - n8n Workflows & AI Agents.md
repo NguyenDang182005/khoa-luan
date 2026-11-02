@@ -1,7 +1,7 @@
 ---
-tags: [khoa-luan, n8n, ai-agents, workflow, gemini, zalo, gemini-3.1-flash-lite, rag, quiz, training]
+tags: [khoa-luan, n8n, ai-agents, workflow, gemini, zalo, gemini-3.1-flash-lite, rag, quiz, training, adr, slack]
 created: 2026-09-04
-updated: 2026-09-21
+updated: 2026-10-17
 ---
 
 # 🤖 n8n Workflows & AI Agents
@@ -19,7 +19,7 @@ Hệ thống sử dụng mô hình **Google Gemini 3.1 Flash Lite** (`models/gem
 > [!NOTE]
 > **Lựa chọn mô hình `gemini-3.1-flash-lite` (cập nhật 21/09):** 500 requests/ngày (15 RPM), phản hồi siêu tốc (~1-2s), hỗ trợ đầy đủ Tool Calling và vượt trội hạn mức so với các bản Flash 20 RPD.
 
-Thư mục lưu trữ: `n8n-workflows/` — gồm **4 workflows JSON** đã được cấu hình credentials và published lên n8n.
+Thư mục lưu trữ: `n8n-workflows/` — gồm **5 workflows JSON** đã được cấu hình credentials và published lên n8n.
 
 ---
 
@@ -39,6 +39,8 @@ graph TD
     WF03 --> RespAll
     NestJS -->|POST /training/submit| WF03Quiz[WF03 /webhook/training-quiz]
     WF03Quiz -->|grade JSON| NestJS
+    SlackBolt[Slack Bolt Socket Mode] -->|channel message| WF05[05 - Slack Verify]
+    WF05 -->|forward| WF04
 ```
 
 ---
@@ -62,6 +64,12 @@ graph TD
 - **Model:** `models/gemini-3.1-flash-lite` (Temperature: 0.3, **maxIterations: 3**)
 - **Bộ nhớ:** `Postgres Chat Memory` bảng `n8n_chat_histories`
 - **AI Tools:** `GetEmployeeContext`, `GetPayrollContext`, `SearchPolicyKnowledge` (RAG `policy_chunks`)
+
+> [!TIP]
+> **ADR-0001 alignment ✅:** Postgres Chat Memory là nguồn sự thật duy nhất cho lịch sử hội thoại. Xem `[[30 - Business Logic & ADR Alignment]]` mục 8.
+
+> [!TIP]
+> **ADR-0002 alignment ✅:** `SearchPolicyKnowledge` gọi vào NestJS endpoint `/n8n/knowledge-search` — n8n KHNG kết nối DB trực tiếp. Xem `KnowledgeService.search()`: pgvector `<=>` với fallback cosine in-app.
 
 ---
 
@@ -99,6 +107,13 @@ Trigger B (Webhook /training-quiz) ┘                                          
 
 > [!WARNING]
 > **1 LLM node KHÔNG được kết nối vào nhiều Agent cùng lúc** → n8n lỗi khởi tạo (runData rỗng, status: error). Phải tạo node Gemini riêng cho mỗi Agent.
+
+### Quiz Anti-Cheat (#7)
+
+- **Server stash:** NestJS lưu đáp án đúng vào `AiChatMessage.metadata.quiz` khi WF03 sinh quiz
+- **Submit grading:** Server đọc lại đáp án từ DB, **KHÔNG tin `correctAnswer` từ client**
+- **Scoring:** `totalScore = quizScore×0.5 + essayAvg×10×0.5`, 4 tiêu chí (professional, empathy, problemSolving, clarity)
+- **Chi tiết:** Xem `[[30 - Business Logic & ADR Alignment]]` mục 4
 
 ### Quiz Response Format
 
@@ -147,6 +162,15 @@ Trigger B (Webhook /training-quiz) ┘                                          
 ### Midnight Reset
 - Cron `0 0 * * *` (Asia/Ho_Chi_Minh) trong NestJS `AiContextService`
 - Reset toàn bộ session `isActive=false` → `isActive=true` lúc 00:00 VN
+- Gửi greeting vào Slack channel (nếu có `SLACK_CHANNEL_ID`)
+
+---
+
+## Workflow 05 — Slack Verify 🔗 (mới)
+
+- **File:** `n8n-workflows/05-slack-verify.json`
+- **Mục đích:** Xác thực Slack Events API challenge (`url_verification`)
+- **Transport:** NestJS `SlackModule` dùng Bolt SDK **Socket Mode** — WF05 là fallback cho HTTP mode
 
 ---
 
@@ -166,11 +190,11 @@ Trigger B (Webhook /training-quiz) ┘                                          
 
 | Script | Công dụng |
 |---|---|
-| `scripts/import-workflows.mjs` | Login, import và activate 4 WF |
+| `scripts/import-workflows.mjs` | Login, import và activate 5 WF |
 | `scripts/generate-wf03.cjs` | Generate WF03 JSON (programmatic) |
 | `scripts/fix-wf01-quiz-action.cjs` | Patch WF01 quiz keywords + action |
 | `scripts/update-gemini-model.cjs` | Đổi model/credential toàn bộ WF |
-| `scripts/test-all-wf.cjs` | Test tất cả 4 workflows cùng lúc |
+| `scripts/test-all-wf.cjs` | Test tất cả 5 workflows cùng lúc |
 
 ---
 
@@ -184,4 +208,4 @@ Trigger B (Webhook /training-quiz) ┘                                          
 
 ---
 
-*Liên kết:* [[10 - Nhật Ký Tích Hợp n8n & NestJS (E2E Test)]] | [[01 - Kiến Trúc Hệ Thống & Multi-Agent]] | [[14 - Training Quiz & Dashboard]]
+*Liên kết:* [[10 - Nhật Ký Tích Hợp n8n & NestJS (E2E Test)]] | [[01 - Kiến Trúc Hệ Thống & Multi-Agent]] | [[14 - Training Quiz & Dashboard]] | [[30 - Business Logic & ADR Alignment (Verified 17-10-2026)]]

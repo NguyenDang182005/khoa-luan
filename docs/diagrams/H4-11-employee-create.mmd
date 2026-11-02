@@ -1,0 +1,8 @@
+flowchart TD
+  A["ADMIN gửi POST /employees"] --> B["Sinh mã EMP#### kế tiếp"]
+  B --> C{"Cấp tài khoản đăng nhập ngay?"}
+  C -->|"có"| D["Tạo User active<br/>email là whitelist OAuth"]
+  C -->|"không"| E["Tạo User giữ chỗ<br/>isActive = false"]
+  D & E --> F["Tạo hồ sơ Employee<br/>phòng ban, chức danh, quản lý"]
+  F --> G["Gán toàn bộ OnboardingTask<br/>trạng thái PENDING"]
+  G --> H["Hồ sơ 5 nhóm thông tin trên portal"]

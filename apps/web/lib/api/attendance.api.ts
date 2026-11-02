@@ -9,12 +9,14 @@ export const attendanceApi = {
     const { data } = await apiClient.get(`/attendance/employee/${employeeId}`, { params: { month, year } })
     return AttendanceListSchema.parse(data)
   },
-  checkIn: async (employeeId: string, location?: string): Promise<AttendanceRecord> => {
-    const { data } = await apiClient.post('/attendance/check-in', { employeeId, location })
+  // employeeId do server lấy từ JWT — web không gửi (không chấm hộ người khác).
+  // Server kiểm tra lại geofence từ lat/lng — client chỉ báo lỗi sớm.
+  checkIn: async (lat: number, lng: number): Promise<AttendanceRecord> => {
+    const { data } = await apiClient.post('/attendance/check-in', { lat, lng })
     return AttendanceRecordSchema.parse(data)
   },
-  checkOut: async (employeeId: string): Promise<AttendanceRecord> => {
-    const { data } = await apiClient.post('/attendance/check-out', { employeeId })
+  checkOut: async (): Promise<AttendanceRecord> => {
+    const { data } = await apiClient.post('/attendance/check-out', {})
     return AttendanceRecordSchema.parse(data)
   },
 }

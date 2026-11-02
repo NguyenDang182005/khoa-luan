@@ -1,5 +1,12 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import {
+  countWorkdays,
+  dayKey,
+  dayTypeFor,
+  eachDay,
+} from '../../../apps/api/src/common/workdays';
+import { PayrollService } from '../../../apps/api/src/payroll/payroll.service';
 
 const prisma = new PrismaClient();
 
@@ -13,13 +20,21 @@ function det(...nums: number[]): number {
   return h % 100000;
 }
 
-/** Các ngày trong tuần (Mon–Fri) của 1 tháng */
-function weekdays(year: number, month: number, upToDay = 31): number[] {
+/** Các ngày trong tuần (Mon–Fri) của 1 tháng, trừ ngày lễ quốc gia */
+function weekdays(
+  year: number,
+  month: number,
+  upToDay = 31,
+  holidays?: Set<string>,
+): number[] {
   const days: number[] = [];
   const last = Math.min(upToDay, new Date(year, month, 0).getDate());
   for (let d = 1; d <= last; d++) {
     const dow = new Date(year, month - 1, d).getDay();
-    if (dow >= 1 && dow <= 5) days.push(d);
+    if (dow < 1 || dow > 5) continue;
+    const key = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (holidays?.has(key)) continue;
+    days.push(d);
   }
   return days;
 }
@@ -38,13 +53,18 @@ async function main() {
       bhxhRate: 0.08,
       bhytRate: 0.015,
       bhtnRate: 0.01,
-      pitFreeAmount: 11000000,
+      pitFreeAmount: 15500000,
+      pitDependentDeduction: 6200000,
       overtimeRate: 1.5,
       otWeekendRate: 2.0,
       otHolidayRate: 3.0,
       standardWorkHours: 8,
     },
   });
+
+  // Ngày lễ quốc gia do migration tạo sẵn — dùng chung cho chấm công, phép năm và bảng lương
+  const holidayRows = await prisma.holiday.findMany({ select: { date: true } });
+  const holidays = new Set(holidayRows.map((h) => dayKey(h.date)));
 
   // =====================
   // 2. DEPARTMENTS
@@ -132,8 +152,19 @@ async function main() {
   // =====================
   // 4. USERS (tài khoản đăng nhập — upsert trước employee để map userId ổn định)
   // =====================
-  const pwdAdmin = await bcrypt.hash('Admin@123', 10);
-  const pwdEmp = await bcrypt.hash('Employee@123', 10);
+  // Mật khẩu demo đọc từ env. Production bắt buộc set — không chứa mật khẩu mặc định.
+  const seedPassword = (envKey: string, demo: string) => {
+    const v = process.env[envKey];
+    if (v) return v;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        `Thiếu ${envKey}. Không tạo tài khoản seed bằng mật khẩu mẫu khi chạy production.`,
+      );
+    }
+    return demo;
+  };
+  const pwdAdmin = await bcrypt.hash(seedPassword('SEED_ADMIN_PASSWORD', 'Admin@123'), 10);
+  const pwdEmp = await bcrypt.hash(seedPassword('SEED_EMPLOYEE_PASSWORD', 'Employee@123'), 10);
 
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@hr-system.com' },
@@ -316,65 +347,7 @@ async function main() {
   });
 
   // =====================
-  // 7. PAYROLL — tháng 6 (PAID), 7 (PAID), 8 (APPROVED), 9 (DRAFT chờ duyệt)
-  // =====================
-  const joinMonth = (seed: EmpSeed) => Number(seed.join.slice(5, 7));
-  const joinYear = (seed: EmpSeed) => Number(seed.join.slice(0, 4));
-  const leaveFactor: Record<string, number> = { ACTIVE: 1, PROBATION: 1, ON_LEAVE: 0.5, TERMINATED: 1 };
-
-  for (const seed of empSeeds) {
-    const empId = byCode(seed.code);
-    for (const month of [6, 7, 8, 9]) {
-      // Nhân viên mới vào sau tháng hiện tại thì bỏ qua; người nghỉ việc tính đến tháng 7
-      if (joinYear(seed) === 2026 && month < joinMonth(seed)) continue;
-      if (seed.status === 'TERMINATED' && month > 7) continue;
-      if (month === 9 && seed.join > '2026-09-01') continue;
-
-      const base = seed.contract.salary;
-      const allowances = seed.contract.allowances;
-      const workDays = 23;
-      const actual = Math.max(15, Math.round(workDays * (0.9 + (det(empId.length, seed.code.length, month) % 11) / 100) * (leaveFactor[seed.status] ?? 1)));
-      const otHours = det(empId.length, month) % 5 === 0 ? 4 : det(empId.length, month) % 7 === 0 ? 2 : 0;
-      const socialIns = base * (0.08 + 0.015 + 0.01);
-      const hourlyRate = base / (workDays * 8);
-      const otPay = otHours * hourlyRate * 1.5;
-      const gross = base + allowances + otPay;
-      const taxableIncome = Math.max(0, base + otPay - socialIns - 11000000);
-      const pit = calcPIT(taxableIncome);
-      const netSalary = Math.round(gross - socialIns - pit);
-      const status = month === 9 ? 'DRAFT' : month === 8 ? 'APPROVED' : 'PAID';
-
-      await prisma.payroll.upsert({
-        where: { employeeId_month_year: { employeeId: empId, month, year: 2026 } },
-        update: {
-          status,
-          paidAt: status === 'PAID' ? new Date(`2026-${String(month).padStart(2, '0')}-28T10:00:00`) : null,
-          note: status === 'DRAFT' ? 'Chờ HR Admin duyệt kỳ lương tháng 9' : null,
-        },
-        create: {
-          employeeId: empId,
-          month,
-          year: 2026,
-          baseSalary: base,
-          allowances,
-          bonus: 0,
-          deductions: Math.round(socialIns),
-          tax: pit,
-          netSalary,
-          workingDays: workDays,
-          actualWorkingDays: month === 9 ? workDays : actual,
-          overtimeHours: otHours,
-          overtimePay: Math.round(otPay),
-          status,
-          paidAt: status === 'PAID' ? new Date(`2026-${String(month).padStart(2, '0')}-28T10:00:00`) : null,
-          note: status === 'DRAFT' ? 'Chờ HR Admin duyệt kỳ lương tháng 9' : null,
-        },
-      });
-    }
-  }
-
-  // =====================
-  // 8. ATTENDANCE — tháng 7, 8 (cả tháng) + 9 (từ mùng 1 đến hết ngày 9)
+  // 8. ATTENDANCE — tháng 6, 7, 8, 9 (cả tháng, đã trừ ngày lễ quốc gia)
   // =====================
   const attendanceRows: Array<{
     employeeId: string; date: Date; checkIn: Date; checkOut: Date | null;
@@ -387,25 +360,25 @@ async function main() {
     if (seed.status === 'TERMINATED') {
       // nghỉ việc: chỉ chấm công tới 31/7
       for (const month of [6, 7]) {
-        for (const day of weekdays(2026, month)) {
+        for (const day of weekdays(2026, month, 31, holidays)) {
           pushAttendance(attendanceRows, empId, seed, month, day, 2026);
         }
       }
       continue;
     }
     for (const month of [6, 7, 8]) {
-      for (const day of weekdays(2026, month)) {
+      for (const day of weekdays(2026, month, 31, holidays)) {
         pushAttendance(attendanceRows, empId, seed, month, day, 2026);
       }
     }
     if (seed.join > '2026-09-01') {
       // nhân viên mới giữa tháng 9: chấm từ ngày vào
       const fromDay = Number(seed.join.slice(8, 10));
-      for (const day of weekdays(2026, 9, 9)) {
+      for (const day of weekdays(2026, 9, 30, holidays)) {
         if (day >= fromDay) pushAttendance(attendanceRows, empId, seed, 9, day, 2026);
       }
     } else {
-      for (const day of weekdays(2026, 9, 9)) {
+      for (const day of weekdays(2026, 9, 30, holidays)) {
         pushAttendance(attendanceRows, empId, seed, 9, day, 2026);
       }
     }
@@ -415,20 +388,106 @@ async function main() {
 
   // =====================
   // 9. LEAVE REQUESTS (xoá & tạo lại — dữ liệu demo, đảm bảo đủ đơn PENDING để duyệt)
+  //    totalDays tính bằng countWorkdays (trừ T7/CN + ngày lễ) — cùng công thức với LeaveService.
   // =====================
   await prisma.leaveRequest.deleteMany({});
+
+  const leaveDays = (start: string, end: string) =>
+    countWorkdays(
+      new Date(`${start}T00:00:00Z`),
+      new Date(`${end}T00:00:00Z`),
+      holidays,
+    );
+
+  const leaveSeeds: Array<{
+    code: string;
+    type: 'ANNUAL' | 'SICK' | 'MATERNITY' | 'EMERGENCY' | 'UNPAID';
+    start: string;
+    end: string;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    approvedBy?: string;
+    approvedAt?: Date;
+    rejectionReason?: string;
+  }> = [
+    { code: 'EMP004', type: 'ANNUAL', start: '2026-08-25', end: '2026-08-26', reason: 'Nghỉ phép năm về quê', status: 'APPROVED', approvedBy: 'EMP003', approvedAt: new Date('2026-08-20') },
+    { code: 'EMP002', type: 'SICK', start: '2026-08-19', end: '2026-08-19', reason: 'Sốt, đi khám bác sĩ', status: 'APPROVED', approvedBy: 'EMP001', approvedAt: new Date('2026-08-19') },
+    // 3 đơn PENDING cho demo duyệt phép trên Dashboard
+    { code: 'EMP020', type: 'ANNUAL', start: '2026-09-14', end: '2026-09-15', reason: 'Nghỉ phép năm du lịch gia đình', status: 'PENDING' },
+    { code: 'EMP008', type: 'SICK', start: '2026-09-10', end: '2026-09-10', reason: 'Đau bụng đi khám, có giấy báo của phòng khám', status: 'PENDING' },
+    { code: 'EMP015', type: 'EMERGENCY', start: '2026-09-11', end: '2026-09-11', reason: 'Việc gia đình khẩn cần xử lý trong ngày', status: 'PENDING' },
+    { code: 'EMP012', type: 'MATERNITY', start: '2026-09-01', end: '2026-11-30', reason: 'Thai sản theo quy định luật lao động', status: 'APPROVED', approvedBy: 'EMP007', approvedAt: new Date('2026-08-25') },
+    { code: 'EMP022', type: 'UNPAID', start: '2026-09-21', end: '2026-09-30', reason: 'Nghỉ không lương về hồ sơ cá nhân', status: 'REJECTED', approvedBy: 'EMP020', approvedAt: new Date('2026-09-02'), rejectionReason: 'Giai đoạn nước rút dự án, xin dời sang tháng 10' },
+  ];
+
   await prisma.leaveRequest.createMany({
-      data: [
-        { employeeId: byCode('EMP004'), type: 'ANNUAL', startDate: new Date('2026-08-25'), endDate: new Date('2026-08-26'), totalDays: 2, reason: 'Nghỉ phép năm về quê', status: 'APPROVED', approvedById: byCode('EMP003'), approvedAt: new Date('2026-08-20') },
-        { employeeId: byCode('EMP002'), type: 'SICK', startDate: new Date('2026-08-19'), endDate: new Date('2026-08-19'), totalDays: 1, reason: 'Sốt, đi khám bác sĩ', status: 'APPROVED', approvedById: byCode('EMP001'), approvedAt: new Date('2026-08-19') },
-        // 3 đơn PENDING cho demo duyệt phép trên Dashboard
-        { employeeId: byCode('EMP020'), type: 'ANNUAL', startDate: new Date('2026-09-14'), endDate: new Date('2026-09-15'), totalDays: 2, reason: 'Nghỉ phép năm du lịch gia đình', status: 'PENDING' },
-        { employeeId: byCode('EMP008'), type: 'SICK', startDate: new Date('2026-09-10'), endDate: new Date('2026-09-10'), totalDays: 1, reason: 'Đau bụng đi khám, có giấy báo của phòng khám', status: 'PENDING' },
-        { employeeId: byCode('EMP015'), type: 'EMERGENCY', startDate: new Date('2026-09-11'), endDate: new Date('2026-09-11'), totalDays: 1, reason: 'Việc gia đình khẩn cần xử lý trong ngày', status: 'PENDING' },
-        { employeeId: byCode('EMP012'), type: 'MATERNITY', startDate: new Date('2026-09-01'), endDate: new Date('2026-11-30'), totalDays: 62, reason: 'Thai sản theo quy định luật lao động', status: 'APPROVED', approvedById: byCode('EMP007'), approvedAt: new Date('2026-08-25') },
-        { employeeId: byCode('EMP022'), type: 'UNPAID', startDate: new Date('2026-09-21'), endDate: new Date('2026-09-30'), totalDays: 8, reason: 'Nghỉ không lương về hồ sơ cá nhân', status: 'REJECTED', approvedById: byCode('EMP020'), approvedAt: new Date('2026-09-02'), rejectionReason: 'Giai đoạn nước rút dự án, xin dời sang tháng 10' },
-  ],
+    data: leaveSeeds.map((l) => ({
+      employeeId: byCode(l.code),
+      type: l.type,
+      startDate: new Date(`${l.start}T00:00:00Z`),
+      endDate: new Date(`${l.end}T00:00:00Z`),
+      totalDays: leaveDays(l.start, l.end),
+      reason: l.reason,
+      status: l.status,
+      approvedById: l.approvedBy ? byCode(l.approvedBy) : null,
+      approvedAt: l.approvedAt ?? null,
+      rejectionReason: l.rejectionReason ?? null,
+    })),
   });
+
+  // Đơn đã duyệt phải phản ánh vào chấm công: các ngày làm việc chuyển ON_LEAVE, 0 công.
+  // (Trước đây seed để nguyên PRESENT → bảng lương vừa trả công vừa trả phép.)
+  for (const leave of await prisma.leaveRequest.findMany({ where: { status: 'APPROVED' } })) {
+    for (const date of eachDay(leave.startDate, leave.endDate)) {
+      if (dayTypeFor(date, holidays) !== 'NORMAL') continue;
+      const dayUtc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      await prisma.attendance.updateMany({
+        where: { employeeId: leave.employeeId, date: dayUtc },
+        data: { status: 'ON_LEAVE', workDays: 0, overtime: 0 },
+      });
+    }
+  }
+
+  // =====================
+  // 7. PAYROLL — tháng 6 (PAID), 7 (PAID), 8 (APPROVED), 9 (DRAFT chờ duyệt)
+  //    Sinh SAU chấm công + đơn nghỉ và dùng đúng PayrollService.calculatePayroll():
+  //    thuế theo giai đoạn luật, BHXH, ngày lễ, OT, nghỉ phép/BHXH đều khớp service.
+  // =====================
+  const payrollService = new PayrollService(prisma as any, {} as any);
+  const joinMonth = (seed: EmpSeed) => Number(seed.join.slice(5, 7));
+  const joinYear = (seed: EmpSeed) => Number(seed.join.slice(0, 4));
+
+  for (const seed of empSeeds) {
+    const empId = byCode(seed.code);
+    for (const month of [6, 7, 8, 9]) {
+      if (joinYear(seed) === 2026 && month < joinMonth(seed)) continue;
+      if (seed.status === 'TERMINATED' && month > 7) continue;
+      if (month === 9 && seed.join > '2026-09-01') continue;
+
+      const calc = await payrollService.calculatePayroll(empId, month, 2026);
+      const {
+        _breakdown,
+        employeeId: _employeeId,
+        month: _month,
+        year: _year,
+        ...data
+      } = calc;
+
+      const status: 'DRAFT' | 'APPROVED' | 'PAID' =
+        month === 9 ? 'DRAFT' : month === 8 ? 'APPROVED' : 'PAID';
+      const paidAt =
+        status === 'PAID'
+          ? new Date(`2026-${String(month).padStart(2, '0')}-28T10:00:00`)
+          : null;
+      const note = status === 'DRAFT' ? 'Chờ HR Admin duyệt kỳ lương tháng 9' : null;
+
+      await prisma.payroll.upsert({
+        where: { employeeId_month_year: { employeeId: empId, month, year: 2026 } },
+        update: { ...data, status, paidAt, note },
+        create: { employeeId: empId, month, year: 2026, ...data, status, paidAt, note },
+      });
+    }
+  }
 
   // =====================
   // 10. ONBOARDING
@@ -568,6 +627,8 @@ async function main() {
     employeeCode?: string;
     externalId?: string;
     isActive?: boolean;
+    /** Thời điểm escalate — chỉ phiên thực sự escalate mới có (không suy từ isActive) */
+    escalatedAt?: Date;
     turns: Array<{ role: 'user' | 'assistant'; content: string; intent?: string; latency?: number; escalated?: boolean; escalateReason?: string; summary?: string; sender?: string }>;
   }) {
     const session = await prisma.aiChatSession.create({
@@ -577,6 +638,7 @@ async function main() {
         employeeId: opts.employeeCode ? byCode(opts.employeeCode) : null,
         externalId: opts.externalId ?? null,
         isActive: opts.isActive ?? true,
+        escalatedAt: opts.escalatedAt ?? null,
       },
     });
     for (const turn of opts.turns) {
@@ -667,6 +729,7 @@ async function main() {
   // --- CSKH ESCALATED (isActive=false → vào queue tiếp quản ngay khi mở portal) ---
   const esc1 = await seedChat({
     type: 'CSKH', channel: 'zalo', externalId: 'U0SLACK77', isActive: false,
+    escalatedAt: new Date('2026-09-07T10:20:00'),
     turns: [
       { role: 'user', content: 'Tôi đặt 5 hộp quà Tết từ đầu tháng rồi mà đến giờ chưa thấy giao, gọi hotline thì tự động ngắt máy!' },
       { role: 'assistant', content: 'Dạ em thành thật xin lỗi anh về trải nghiệm chưa tốt ạ. Em kiểm tra ngay trạng thái 5 hộp quà Tết của anh trong hệ thống…', intent: 'CSKH', latency: 350 },
@@ -676,6 +739,7 @@ async function main() {
   });
   await seedChat({
     type: 'CSKH', channel: 'zalo', externalId: 'U0SLACK42', isActive: false,
+    escalatedAt: new Date('2026-09-07T11:05:00'),
     turns: [
       { role: 'user', content: 'Tôi nhận được hàng bị rách vỏ hộp và thiếu 1 phụ kiện. SĐT tôi là 0912345678, mã đơn #10198.' },
       { role: 'assistant', content: 'Dạ em xin lỗi anh/chị về tình trạng hàng hóa ạ. Em xin phép ghi nhận: đơn #10198, thiếu 1 phụ kiện, vỏ hộp bị rách. Anh/chị chụp giúp em vài ảnh sản phẩm để em mở yêu cầu đền bù ngay ạ.', intent: 'CSKH', latency: 280 },
@@ -703,17 +767,16 @@ async function main() {
   // =====================
   console.log('\n✅ Seeding completed!\n');
   console.log('👤 Tài khoản đăng nhập:');
-  console.log('  🔴 Admin:           admin@hr-system.com      / Admin@123');
-  console.log('  🟡 HR Manager:      hr@hr-system.com         / Hr@123456');
-  console.log('  🟣 HR Admin Portal: hr-admin@company.com     / Admin@123     (EMP006)');
-  console.log('  🟢 employee1:       employee1@company.com    / Employee@123  (EMP005 - Phạm Văn Chinh)');
-  console.log('  🟢 employee2:       employee2@company.com    / Employee@123  (EMP003 - Nguyễn Văn An)');
-  console.log('  🟢 Developer:       tranthib@hr-system.com   / Employee@123  (EMP004)');
+  console.log('  🔴 Admin:           admin@hr-system.com      / <SEED_ADMIN_PASSWORD>');
+  console.log('  🟣 HR Admin Portal: hr-admin@company.com     / <SEED_ADMIN_PASSWORD>  (EMP006)');
+  console.log('  🟢 employee1:       employee1@company.com    / <SEED_EMPLOYEE_PASSWORD>  (EMP005 - Phạm Văn Chinh)');
+  console.log('  🟢 employee2:       employee2@company.com    / <SEED_EMPLOYEE_PASSWORD>  (EMP003 - Nguyễn Văn An)');
+  console.log('  🟢 Developer:       tranthib@hr-system.com   / <SEED_EMPLOYEE_PASSWORD>  (EMP004)');
   console.log('  ⚪ Đã khóa (thay bằng employee1/2): nguyenvana@, phamvanc@hr-system.com');
   console.log('\n📊 Dữ liệu:');
   console.log('  • 30 nhân viên / 5 phòng ban / 10 chức vụ / 30 hợp đồng');
   console.log('  • Payroll: tháng 6-7 (PAID), tháng 8 (APPROVED), tháng 9 (DRAFT — chờ duyệt tất cả)');
-  console.log('  • Attendance: tháng 6, 7, 8 (giờ hành chính) + 1–9/9');
+  console.log('  • Attendance: tháng 6–9/2026 (giờ hành chính, đã trừ ngày lễ)');
   console.log('  • 7 đơn nghỉ phép (3 PENDING để demo duyệt)');
   console.log('  • AI Chat: HR_QA, TRAINING, CSKH + 2 phiên CSKH escalated (queue tiếp quản có sẵn dữ liệu)');
   console.log('  • Training: 7 phiên GRADED + attempts (phân tích đào tạo có số liệu)');
@@ -733,8 +796,9 @@ function pushAttendance(
   day: number,
   year: number,
 ) {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const date = new Date(`${year}-${pad(month)}-${pad(day)}T00:00:00`);
+    const pad = (n: number) => String(n).padStart(2, '0');
+  // #2: cột `date` là @db.Date — Prisma lấy PHẦN NGÀY UTC, nên dùng 'Z' để tránh lệch −1 ngày.
+  const date = new Date(`${year}-${pad(month)}-${pad(day)}T00:00:00Z`);
   const r = det(employeeId.length, day, month, year);
   const late = r % 17 === 0;
   const remote = !late && r % 13 === 0;
@@ -745,39 +809,15 @@ function pushAttendance(
   rows.push({
     employeeId,
     date,
-    checkIn: absent ? null : new Date(`${year}-${pad(month)}-${pad(day)}T${inTime}`),
-    checkOut: outTime ? new Date(`${year}-${pad(month)}-${pad(day)}T${outTime}`) : null,
+    // Giờ vào/ra là giờ địa phương VN (UTC+7) — giữ thời gian thực 08:47 VN.
+    checkIn: absent ? null : new Date(`${year}-${pad(month)}-${pad(day)}T${inTime}+07:00`),
+    checkOut: outTime ? new Date(`${year}-${pad(month)}-${pad(day)}T${outTime}+07:00`) : null,
     status,
     workHours: absent ? 0 : late ? 8 : 8.5,
     overtime: !absent && day % 9 === 0 ? 2 : 0,
     location: remote ? 'REMOTE (HOME)' : 'GPS 10.7951,106.7218 (32m)',
     dayType: 'NORMAL',
   });
-}
-
-// Tính thuế TNCN lũy tiến 7 bậc (Biểu thuế VN 2026)
-function calcPIT(taxableIncome: number): number {
-  const brackets = [
-    { limit: 5000000,   rate: 0.05 },
-    { limit: 10000000,  rate: 0.10 },
-    { limit: 18000000,  rate: 0.15 },
-    { limit: 32000000,  rate: 0.20 },
-    { limit: 52000000,  rate: 0.25 },
-    { limit: 80000000,  rate: 0.30 },
-    { limit: Infinity,  rate: 0.35 },
-  ];
-  let tax = 0;
-  let remaining = taxableIncome;
-  let prevLimit = 0;
-  for (const bracket of brackets) {
-    const rangeSize = bracket.limit - prevLimit;
-    const taxable = Math.min(remaining, rangeSize);
-    tax += taxable * bracket.rate;
-    remaining -= taxable;
-    prevLimit = bracket.limit;
-    if (remaining <= 0) break;
-  }
-  return Math.round(tax);
 }
 
 main()

@@ -13,20 +13,10 @@ import * as React from "react"
 import { useAuth } from "@/lib/auth-context"
 import {
   Search,
-  Plus,
-  FileSpreadsheet,
   ShieldCheck,
   X,
   Loader2,
   AlertTriangle,
-  Pencil,
-  Settings,
-  Users,
-  CalendarCheck2,
-  UserCheck,
-  KeyRound,
-  Copy,
-  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,7 +36,7 @@ import {
 } from "@/components/ui/table"
 import { LeaveApprovalsTab } from "@/components/employees/leave-approvals-tab"
 import { OnboardingManagementTab } from "@/components/employees/onboarding-management-tab"
-import { employeeStatusLabel, leaveTypeLabel, payrollStatusLabel, currentMonthYearVN, todayVN, vnd } from "@/lib/utils"
+import { employeeStatusLabel, leaveTypeLabel, payrollStatusLabel, currentMonthYearVN, todayVN, vnd, fmtVNDate } from "@/lib/utils"
 
 const CONTRACT_TYPE_LABEL: Record<string, string> = {
   FULL_TIME: "Chính thức (Toàn thời gian)",
@@ -331,7 +321,7 @@ export function EmployeesView() {
   const exportCsv = () => {
     const header = ["Mã NV", "Họ tên", "Email", "Phòng ban", "Chức vụ", "Ngày vào làm", "Trạng thái"]
     const rows = employees.map((e) => [
-      e.employeeCode, e.fullName, e.email, e.department.name, e.position.title, e.joinDate, employeeStatusLabel(e.status),
+      e.employeeCode, e.fullName, e.email, e.department.name, e.position.title, fmtVNDate(e.joinDate), employeeStatusLabel(e.status),
     ])
     const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
@@ -363,21 +353,21 @@ export function EmployeesView() {
         <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 gap-6 h-11">
           <TabsTrigger
             value="list"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs gap-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs"
           >
-            <Users className="size-4" /> Danh Sách Nhân Sự ({total})
+            Danh Sách Nhân Sự ({total})
           </TabsTrigger>
           <TabsTrigger
             value="leave-approvals"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs gap-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs"
           >
-            <CalendarCheck2 className="size-4 text-amber-400" /> Kiểm Duyệt Nghỉ Phép
+            Kiểm Duyệt Nghỉ Phép
           </TabsTrigger>
           <TabsTrigger
             value="onboarding"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs gap-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs"
           >
-            <UserCheck className="size-4 text-emerald-400" /> Lộ Trình Hội Nhập
+            Lộ Trình Hội Nhập
           </TabsTrigger>
         </TabsList>
 
@@ -394,11 +384,11 @@ export function EmployeesView() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={exportCsv} disabled={employees.length === 0}>
-                <FileSpreadsheet className="size-4" /> Xuất Excel (CSV)
+              <Button variant="outline" size="sm" className="text-xs" onClick={exportCsv} disabled={employees.length === 0}>
+                Xuất Excel (CSV)
               </Button>
-              <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground text-xs" onClick={() => setShowAdd(true)}>
-                <Plus className="size-4" /> Thêm Nhân Viên
+              <Button size="sm" className="bg-primary text-primary-foreground text-xs" onClick={() => setShowAdd(true)}>
+                Thêm Nhân Viên
               </Button>
             </div>
           </div>
@@ -451,13 +441,12 @@ export function EmployeesView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12 text-center text-xs">Mã NV</TableHead>
+                    <TableHead className="w-16 text-center text-xs">Mã NV</TableHead>
                     <TableHead className="text-xs">Họ và tên</TableHead>
                     <TableHead className="text-xs">Phòng ban</TableHead>
                     <TableHead className="text-xs">Chức danh</TableHead>
                     <TableHead className="text-xs">Ngày vào làm</TableHead>
-                    <TableHead className="text-xs">Trạng thái</TableHead>
-                    <TableHead className="text-xs text-right">Chi tiết</TableHead>
+                    <TableHead className="text-xs text-right">Trạng thái</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -484,22 +473,10 @@ export function EmployeesView() {
                       <TableCell className="text-xs">{emp.department.name}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{emp.position.title}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{emp.joinDate.slice(0, 10)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <Badge variant={emp.status === "ACTIVE" ? "success" : emp.status === "PROBATION" ? "warning" : "secondary"}>
                           {employeeStatusLabel(emp.status)}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            openDrawer(emp)
-                          }}
-                        >
-                          Xem Hồ Sơ
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -535,35 +512,40 @@ export function EmployeesView() {
 
       {/* Slide-over Profile Drawer — dữ liệu thật, 5 nhóm thông tin */}
       {selectedEmployee && (
-        <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card p-6 shadow-2xl animate-in slide-in-from-right duration-300">
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <div className="flex items-center gap-3">
-              <Avatar initials={initialsOf(selectedEmployee.fullName)} className="size-10 bg-primary/20 text-primary font-bold text-sm" />
-              <div>
-                <h3 className="font-bold text-base text-foreground">{selectedEmployee.fullName}</h3>
-                <p className="text-xs text-muted-foreground">{selectedEmployee.employeeCode} • {selectedEmployee.position.title}</p>
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity"
+            onClick={() => setSelectedEmployee(null)}
+          />
+          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card p-6 shadow-2xl animate-in slide-in-from-right duration-300">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-3">
+                <Avatar initials={initialsOf(selectedEmployee.fullName)} className="size-10 bg-primary/20 text-primary font-bold text-sm" />
+                <div>
+                  <h3 className="font-bold text-base text-foreground">{selectedEmployee.fullName}</h3>
+                  <p className="text-xs text-muted-foreground">{selectedEmployee.employeeCode} • {selectedEmployee.position.title}</p>
+                </div>
               </div>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedEmployee(null)} aria-label="Đóng hồ sơ">
+                <X className="size-4" />
+              </Button>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setSelectedEmployee(null)} aria-label="Đóng hồ sơ">
-              <X className="size-4" />
-            </Button>
-          </div>
 
-          <div className="flex flex-col gap-5 py-5 overflow-y-auto text-xs">
-            {editError && (
-              <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-400">
-                <AlertTriangle className="size-3.5" /> {editError}
-              </div>
-            )}
+            <div className="flex flex-col gap-5 py-5 overflow-y-auto text-xs">
+              {editError && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-400">
+                  <AlertTriangle className="size-3.5" /> {editError}
+                </div>
+              )}
 
-            {/* 1. Hồ sơ cá nhân */}
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">1. Hồ Sơ Cá Nhân</p>
-                <Button size="xs" variant="outline" className="gap-1 text-[10px]" onClick={() => setEditOpen(true)}>
-                  <Pencil className="size-3" /> Sửa hồ sơ
-                </Button>
-              </div>
+              {/* 1. Hồ sơ cá nhân */}
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">1. Hồ Sơ Cá Nhân</p>
+                  <Button size="xs" variant="outline" className="text-[10px]" onClick={() => setEditOpen(true)}>
+                    Sửa hồ sơ
+                  </Button>
+                </div>
               <div className="flex flex-col gap-2">
                 <Row label="Ngày sinh" value={fmtDate(drawerDetail?.dateOfBirth)} />
                 <Row label="Giới tính" value={genderLabel(drawerDetail?.gender)} />
@@ -653,13 +635,13 @@ export function EmployeesView() {
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-[11px] font-mono text-foreground truncate">{drawerDetail?.user?.email ?? selectedEmployee.email}</span>
                     {/* Google icon */}
-                    {(drawerDetail?.user as any)?.googleId && (
+                    {drawerDetail?.user?.googleId && (
                       <span title="Đã liên kết Google" className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm">
                         <svg viewBox="0 0 24 24" className="size-3"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                       </span>
                     )}
                     {/* Facebook icon */}
-                    {(drawerDetail?.user as any)?.facebookId && (
+                    {drawerDetail?.user?.facebookId && (
                       <span title="Đã liên kết Facebook" className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#1877F2]">
                         <svg viewBox="0 0 24 24" fill="white" className="size-3"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                       </span>
@@ -669,8 +651,8 @@ export function EmployeesView() {
                 {/* Role badge */}
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2.5">
                   <span className="text-[11px] text-muted-foreground">Role tài khoản</span>
-                  <Badge variant={(drawerDetail?.user as any)?.role === "ADMIN" ? "default" : "secondary"} className="text-[10px]">
-                    {(drawerDetail?.user as any)?.role ?? "EMPLOYEE"}
+                  <Badge variant={drawerDetail?.user?.role === "ADMIN" ? "default" : "secondary"} className="text-[10px]">
+                    {drawerDetail?.user?.role ?? "EMPLOYEE"}
                   </Badge>
                 </div>
                 <Row
@@ -698,31 +680,31 @@ export function EmployeesView() {
                 </div>
                 {/* Account actions — chỉ ADMIN */}
                 {isAdmin && (
-                  <>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-1 gap-1.5 text-xs"
+                      className="text-xs"
                       onClick={() => {
                         setEditAccountForm({
                           email: drawerDetail?.user?.email ?? "",
-                          role: ((drawerDetail?.user as any)?.role ?? "EMPLOYEE") as "ADMIN" | "EMPLOYEE",
+                          role: (drawerDetail?.user?.role ?? "EMPLOYEE") as "ADMIN" | "EMPLOYEE",
                         })
                         setEditAccountError(null)
                         setEditAccountOpen(true)
                       }}
                     >
-                      <Settings className="size-3" /> Sửa Email & Role
+                      Sửa Email & Role
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-1 gap-1.5 text-xs"
+                      className="text-xs"
                       onClick={openResetPassword}
                     >
-                      <KeyRound className="size-3" /> Đặt Lại Mật Khẩu
+                      Đặt Lại Mật Khẩu
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </section>
@@ -749,13 +731,8 @@ export function EmployeesView() {
               <EmployeeLeavesMini employeeId={selectedEmployee.id} />
             </div>
           </div>
-
-          <div className="mt-auto border-t border-border pt-4 flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setSelectedEmployee(null)}>
-              Đóng
-            </Button>
           </div>
-        </div>
+        </>
       )}
 
       {/* Edit Profile Dialog */}
@@ -926,8 +903,8 @@ export function EmployeesView() {
                   <code className="flex-1 select-all rounded-md border border-border bg-background/60 px-2.5 py-1.5 font-mono text-sm text-foreground">
                     {resetResult.generatedPassword}
                   </code>
-                  <Button size="sm" variant="outline" className="gap-1.5" onClick={copyGeneratedPassword}>
-                    {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} {copied ? "Đã chép" : "Sao chép"}
+                  <Button size="sm" variant="outline" onClick={copyGeneratedPassword}>
+                    {copied ? "Đã chép" : "Sao chép"}
                   </Button>
                 </div>
                 <p className="mt-1.5 text-[10px] text-muted-foreground">

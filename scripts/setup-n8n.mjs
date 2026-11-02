@@ -20,10 +20,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // CẤU HÌNH
 // =====================
 const N8N_BASE = 'http://127.0.0.1:5678';
-const N8N_API_KEY = process.env.HR_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k';
+// Secrets chỉ đọc từ env — không hardcode. Thiếu key → dừng ngay.
+const N8N_API_KEY = process.env.HR_API_KEY;
+if (!N8N_API_KEY) {
+  console.error('❌ Thiếu HR_API_KEY (x-api-key của n8n ↔ NestJS). Set trước khi chạy.');
+  process.exit(1);
+}
 
 // Đọc từ docker-compose env (hoặc set tay ở đây)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6I3lec1ip2XklRzfF74aLkvbdvuD-yylIVZEJX85Qb5gg';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error('❌ Thiếu GEMINI_API_KEY. Set trước khi chạy.');
+  process.exit(1);
+}
 const PG_HOST = 'host.docker.internal'; // n8n trong docker gọi ra ngoài
 const PG_PORT = 5432;
 const PG_DATABASE = 'hr_system_db';
@@ -130,7 +139,7 @@ async function createPostgresCredential() {
 async function createNestJSCredential() {
   log('🔐', 'Tạo NestJS API Key credential...');
 
-  const HR_API_KEY = process.env.HR_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjhjNjczMy01ZDU1LTRiMjYtOWVjYS1mMGRjY2JhZDQxZDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzUxZWFiMGMtOTIyZi00ODRjLTkyZDktMDYxMDNmODAxYjIwIiwiaWF0IjoxNzg4NTQwMjM5fQ.t2tPDsIFoPfi_h1WmiECQ_1N_IhvKRQpJLeKp9Hqe7k';
+  const HR_API_KEY = process.env.HR_API_KEY;
 
   const existing = await n8nFetch('/api/v1/credentials');
   const found = existing.data?.find(c => c.name === 'HR API Key Header');
@@ -182,6 +191,10 @@ async function importAndPublishWorkflow(filename, geminiCred, pgCred, nestCredId
           p => p.name !== 'x-api-key'
         );
       }
+    }
+    // Webhook bật headerAuth (WF01/02/03/04) dùng chung khóa x-api-key với NestJS
+    if (node.type === 'n8n-nodes-base.webhook' && node.parameters?.authentication === 'headerAuth') {
+      node.credentials = { httpHeaderAuth: { id: nestCredId, name: 'HR API Key Header' } };
     }
     return node;
   });
@@ -265,7 +278,7 @@ async function main() {
   console.log('📋 Kiểm tra tại: http://localhost:5678');
   console.log('🧪 Test WF02 HR Agent:');
   console.log(`   curl -X POST http://localhost:5678/webhook/chat \\`);
-  console.log(`     -H "Content-Type: application/json" \\`);
+  console.log(`     -H "Content-Type: application/json" -H "x-api-key: $HR_API_KEY" \\`);
   console.log(`     -d '{"message":"Lương tháng 8 của tôi là bao nhiêu?","channel":"web","employeeId":"EMP003"}'`);
   console.log('');
 }

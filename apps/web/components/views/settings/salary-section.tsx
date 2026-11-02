@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { Coins, Loader2, Save } from "lucide-react"
+import { Coins, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,16 +9,20 @@ import { payrollApi } from "@/lib/api/payroll.api"
 import { settingsApi } from "@/lib/api/settings.api"
 import type { SalaryConfig } from "@/lib/schemas/payroll.schema"
 
-const SALARY_FIELDS: Array<{ key: keyof SalaryConfig; label: string; step: string; hint: string }> = [
-  { key: "bhxhRate", label: "BHXH (%)", step: "0.001", hint: "Tỷ lệ nhân viên đóng, VD 0.08 = 8%" },
-  { key: "bhytRate", label: "BHYT (%)", step: "0.001", hint: "VD 0.015 = 1.5%" },
-  { key: "bhtnRate", label: "BHTN (%)", step: "0.001", hint: "VD 0.01 = 1%" },
+// Rate lưu dạng thập phân (0.08 = 8%). Nhãn hiển thị dạng phần trăm cho khỏi nhập nhầm.
+const SALARY_FIELDS: Array<{ key: keyof SalaryConfig; label: string; step: string; hint: string; percent?: boolean }> = [
+  { key: "bhxhRate", label: "BHXH", step: "0.001", hint: "Nhập dạng thập phân: 0.08 = 8%", percent: true },
+  { key: "bhytRate", label: "BHYT", step: "0.001", hint: "0.015 = 1,5%", percent: true },
+  { key: "bhtnRate", label: "BHTN", step: "0.001", hint: "0.01 = 1%", percent: true },
   { key: "pitFreeAmount", label: "Giảm trừ gia cảnh (đ)", step: "100000", hint: "Mức miễn thuế TNCN, mặc định 11.000.000" },
   { key: "overtimeRate", label: "Hệ số OT ngày thường", step: "0.1", hint: "Mặc định 1.5" },
   { key: "otWeekendRate", label: "Hệ số OT cuối tuần", step: "0.1", hint: "Mặc định 2.0" },
   { key: "otHolidayRate", label: "Hệ số OT ngày lễ", step: "0.1", hint: "Mặc định 3.0" },
   { key: "standardWorkHours", label: "Giờ làm chuẩn/ngày", step: "0.5", hint: "Dùng để tính công và OT" },
 ]
+
+/** Hiển thị rate dạng phần trăm (0.08 → "8", 0.015 → "1.5") */
+const displayRate = (v: number): string => String(Math.round(v * 10000) / 100)
 
 export function SalarySection({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
   const [salary, setSalary] = useState<SalaryConfig | null>(null)
@@ -105,14 +109,18 @@ export function SalarySection({ onDirtyChange }: { onDirtyChange?: (dirty: boole
                   className="mt-1 h-8 w-32 text-xs font-mono"
                 />
               </div>
-              {SALARY_FIELDS.map(({ key, label, step, hint }) => (
+              {SALARY_FIELDS.map(({ key, label, step, hint, percent }) => (
                 <div key={key} title={hint}>
-                  <label className="text-[11px] font-semibold text-muted-foreground">{label}</label>
+                  <label className="text-[11px] font-semibold text-muted-foreground">
+                    {label}{percent ? " (%)" : ""}
+                  </label>
                   <Input
                     type="number"
                     step={step}
-                    value={String(salary[key])}
-                    onChange={(e) => setSalary({ ...salary, [key]: Number(e.target.value) })}
+                    value={percent ? displayRate(salary[key] as number) : String(salary[key])}
+                    onChange={(e) =>
+                      setSalary({ ...salary, [key]: Number(e.target.value) })
+                    }
                     className="mt-1 h-8 text-xs font-mono"
                   />
                 </div>
@@ -122,7 +130,7 @@ export function SalarySection({ onDirtyChange }: { onDirtyChange?: (dirty: boole
             {error && <p className="mt-3 text-[11px] text-agent-coral">{error}</p>}
             <div className="mt-3 flex items-center gap-3">
               <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Lưu Cấu Hình Lương
+                {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Cấu Hình Lương
               </Button>
               {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
             </div>

@@ -1,8 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { LogOut } from "lucide-react"
-import { Avatar } from "@/components/ui/avatar"
 import type { LucideIcon } from "lucide-react"
 
 export interface NavItem {
@@ -15,11 +13,9 @@ interface AppSidebarProps {
   navItems: NavItem[]
   activeTab: string
   onTabChange: (id: string) => void
-  onLogout: () => void
-  userInitials: string
 }
 
-export function AppSidebar({ navItems, activeTab, onTabChange, onLogout, userInitials }: AppSidebarProps) {
+export function AppSidebar({ navItems, activeTab, onTabChange }: AppSidebarProps) {
   return (
     <aside className="w-16 shrink-0 flex flex-col items-center gap-3 border-r border-border bg-rail py-4 z-10">
       {navItems.map((item) => {
@@ -40,17 +36,6 @@ export function AppSidebar({ navItems, activeTab, onTabChange, onLogout, userIni
           </button>
         )
       })}
-
-      <div className="mt-auto flex flex-col items-center gap-3">
-        <button
-          onClick={onLogout}
-          title="Đăng xuất hệ thống"
-          className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        >
-          <LogOut className="size-4" />
-        </button>
-        <Avatar initials={userInitials} className="size-8 bg-avatar-sand text-foreground" />
-      </div>
     </aside>
   )
 }

@@ -35,11 +35,13 @@ Parser WF03 đọc `fgo.essay_avg` nhưng prompt không yêu cầu → luôn und
 ### 🟡 R3 — Đáp án MCQ nằm trong payload trình duyệt → chấp nhận có chủ đích
 Client nhận quiz kèm `correct` rồi echo `correctAnswer` khi nộp — đây là điều kiện để chấm deterministic. Trade-off hợp lý cho demo; **ghi vào báo cáo** là giới hạn anti-cheat, hướng phát triển: che đáp án server-side.
 
-### 🟡 R4 — `gradeSession` legacy skew → ghi nhận, chưa sửa
-`Object.values(aiScore)` tính trung bình trên mọi key (nếu có `essay_avg` thì bị lệch). Endpoint không còn ai gọi; đề xuất: xóa hoặc bỏ trong báo cáo như "legacy surface".
+### 🟡 R4 — `gradeSession` legacy skew → **ĐÃ SỬA (14/10)**
+`Object.values(aiScore)` tính trung bình trên mọi key (nếu có `essay_avg` thì bị lệch). **Fix 14/10:** trung bình chỉ 4 tiêu chí, lọc bỏ `essay_avg` khỏi `Object.entries` — xem [[26 - Nhật Ký Ngày 14-10-2026 (Audit 20 Lỗi & Debug n8n Live)]], mục 2.
 
 ### 🔵 R5 — Fallback essay = 6 cứng → đúng thiết kế
 Graceful degradation khi WF03 chết. Báo cáo phải ghi rõ đây là "chế độ offline", không phải "AI chấm".
+
+> **⚠️ Cập nhật 14/10 — regression phát hiện sau audit này:** `submitQuiz` ghi DB lại nhân bản `essay_avg` ×4 (bỏ qua `criteria`), khiến radar 3/4 trục bằng nhau. Đã sửa `aiScore = { ...criteriaScore, essay_avg }` + xác minh DB. Chi tiết: [[26 - Nhật Ký Ngày 14-10-2026 (Audit 20 Lỗi & Debug n8n Live)]].
 
 ## 4. Bằng chứng kiểm thử (25/09)
 
@@ -60,7 +62,7 @@ Graceful degradation khi WF03 chết. Báo cáo phải ghi rõ đây là "chế 
 
 ## 6. Ghi chú phụ phát hiện trong lúc audit
 
-- `scripts/setup-n8n.mjs` chứa **fallback hardcode** `N8N_API_KEY` + `GEMINI_API_KEY` trong source — mâu thuẫn với cam kết "secrets chỉ nằm ở .env" (doc 00/README). Đề xuất: chuyển sang chỉ đọc `process.env`, fail nhanh khi thiếu.
+- `scripts/setup-n8n.mjs` chứa **fallback hardcode** `N8N_API_KEY` + `GEMINI_API_KEY` trong source — mâu thuẫn với cam kết "secrets chỉ nằm ở .env" (doc 00/README). **→ Đã xử lý 14/10:** xoá secret khỏi source/JSON, fail-fast khi thiếu env ([[26 - Nhật Ký Ngày 14-10-2026 (Audit 20 Lỗi & Debug n8n Live)]], mục 1 #1).
 
 ---
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { Bot, Loader2, Save, RefreshCw, PlugZap, Info, CheckCircle2, AlertTriangle, CircleSlash } from "lucide-react"
+import { Bot, Loader2, PlugZap, Info, CheckCircle2, AlertTriangle, CircleSlash } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -149,13 +149,27 @@ export function AiAgentSection({ onDirtyChange }: { onDirtyChange?: (dirty: bool
                       {cfg.apiKeySet ? "•••••••••••• (bấm để thay đổi)" : "Bấm để nhập API key"}
                     </Button>
                   ) : (
-                    <Input
-                      type="password"
-                      value={newApiKey}
-                      placeholder="Dán API key mới (trống = xóa, fallback env)"
-                      onChange={(e) => setNewApiKey(e.target.value)}
-                      className="mt-1 h-8 font-mono text-xs"
-                    />
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <Input
+                        type="password"
+                        value={newApiKey}
+                        placeholder="Dán API key mới (trống = xóa, fallback env)"
+                        onChange={(e) => setNewApiKey(e.target.value)}
+                        className="h-8 flex-1 font-mono text-xs"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs shrink-0"
+                        onClick={() => {
+                          setShowKeyInput(false)
+                          setNewApiKey("")
+                        }}
+                      >
+                        Hủy
+                      </Button>
+                    </div>
                   )}
                 </div>
                 <div title="Thời gian chờ tối đa mỗi lần gọi n8n (ms)">
@@ -184,7 +198,7 @@ export function AiAgentSection({ onDirtyChange }: { onDirtyChange?: (dirty: bool
               )}
               <div className="mt-3 flex items-center gap-3">
                 <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                  {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Lưu Cấu Hình
+                  {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Cấu Hình
                 </Button>
                 {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
               </div>
@@ -207,7 +221,7 @@ export function AiAgentSection({ onDirtyChange }: { onDirtyChange?: (dirty: bool
               </CardDescription>
             </div>
             <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={runTest} disabled={testing}>
-              {testing ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Kiểm Tra Ngay
+              {testing && <Loader2 className="size-3.5 animate-spin" />} Kiểm Tra Ngay
             </Button>
           </div>
         </CardHeader>

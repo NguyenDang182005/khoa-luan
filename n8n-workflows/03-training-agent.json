@@ -20,7 +20,8 @@
         "httpMethod": "POST",
         "path": "training-quiz",
         "responseMode": "lastNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "training-webhook",
       "name": "Training Quiz Webhook",
@@ -30,11 +31,17 @@
         240,
         520
       ],
-      "webhookId": "training-quiz-webhook"
+      "webhookId": "training-quiz-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WZBfvs5Ihd9XEGUN",
+          "name": "NestJS API Key"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const src=$input.first().json;const body=src.body||src;return[{json:{message:body.message||\"\",maskedMessage:body.maskedMessage||body.message||\"\",employeeId:body.employeeId||null,scenarioType:body.scenarioType||\"general_communication\",action:body.action||null,answers:body.answers||null,sessionId:body.sessionId||null,channel:body.channel||\"web\"}}];"
+        "jsCode": "const src=$input.first().json;const body=src.body||src;\n// #12: mask PII (CCCD/SĐT/email) trước khi LLM thấy nội dung.\nconst maskPii=(s)=>String(s||'').replace(/\\b(\\d{9}|\\d{12})\\b/g,'[MASKED_ID]').replace(/\\b(0[35789]\\d{8})\\b/g,'[MASKED_PHONE]').replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g,'[MASKED_EMAIL]');\nreturn[{json:{message:maskPii(body.message||''),maskedMessage:maskPii(body.maskedMessage||body.message||''),employeeId:body.employeeId||null,scenarioType:body.scenarioType||'general_communication',action:body.action||null,answers:body.answers||null,sessionId:body.sessionId||null,channel:body.channel||'web'}}];"
       },
       "id": "normalize-input",
       "name": "Normalize Input",
@@ -47,7 +54,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input=$input.first().json;const st=input.scenarioType||\"general_communication\";const scenarios={customer_complaint:{role:\"khach hang kho tinh phan nan ve dich vu cham tre\",objective:\"xu ly khieu nai, de xuat giai phap, giu chan khach hang\",difficulty:\"cao\"},colleague_conflict:{role:\"dong nghiep co mau thuan phan cong cong viec\",objective:\"giai quyet mau thuan, duy tri quan he chuyen nghiep\",difficulty:\"trung binh\"},manager_feedback:{role:\"manager feedback hieu suat thap va deadline tre\",objective:\"tiep nhan feedback tich cuc, lap ke hoach cai thien cu the\",difficulty:\"trung binh\"},new_employee_onboarding:{role:\"nhan vien moi tuan dau tien can huong dan lam quen moi truong\",objective:\"hoa nhap nhanh, hieu ro quy dinh va ky vong cong ty\",difficulty:\"thap\"},performance_review:{role:\"HR danh gia hieu suat quy, thao luan muc tieu SMART\",objective:\"danh gia trung thuc, thiet lap muc tieu ro rang, dong thuan\",difficulty:\"cao\"},general_communication:{role:\"doi tac trong cuoc hop dam phan hop dong dich vu\",objective:\"giao tiep hieu qua, dat thoa thuan co loi cho ca hai\",difficulty:\"trung binh\"}};const sd=scenarios[st]||scenarios.general_communication;return[{json:{...input,scenarioType:st,scenarioData:sd}}];"
+        "jsCode": "const input=$input.first().json;const st=input.scenarioType||\"general_communication\";const companyPolicy=\"Chinh sach cong ty: Gio lam viec T2-T6 (8:00-17:30, nghi trua 12:00-13:30), cham cong GPS ban kinh van phong. Thu viec toi da 60 ngay (huong 85% luong). Phep nam chuan 12 ngay/nam duong lich (nhan vien moi vao lam trong nam tinh theo ty le so thang lam viec thuc te pro-rate, KHONG ap dung bat ky co che cong them ngay phep nao: KHONG cong phep tham nien, KHONG chuyen phep du nam truoc sang nam sau). BHXH 8%, BHYT 1.5%, BHTN 1%. OT ngay thuong x1.5, cuoi tuan x2.0, le tet x3.0. Bao mat PII: khong chia se CCCD, SDT, luong cua dong nghiep.\";const scenarios={customer_complaint:{role:\"khach hang kho tinh phan nan ve dich vu cham tre\",objective:\"xu ly khieu nai, de xuat giai phap, giu chan khach hang\",difficulty:\"cao\"},colleague_conflict:{role:\"dong nghiep co mau thuan phan cong cong viec\",objective:\"giai quyet mau thuan, duy tri quan he chuyen nghiep\",difficulty:\"trung binh\"},manager_feedback:{role:\"manager feedback hieu suat thap va deadline tre\",objective:\"tiep nhan feedback tich cuc, lap ke hoach cai thien cu the\",difficulty:\"trung binh\"},new_employee_onboarding:{role:\"nhan vien moi tuan dau tien can huong dan lam quen moi truong va chinh sach nhan su (nghi phep 12 ngay/nam pro-rate khong cong phep tham nien va khong chuyen phep du, cham cong GPS, thu viec, BHXH)\",objective:\"hoa nhap nhanh, hieu ro quy dinh cong ty va ky vong cong viec\",difficulty:\"thap\"},performance_review:{role:\"HR danh gia hieu suat quy, thao luan muc tieu SMART\",objective:\"danh gia trung thuc, thiet lap muc tieu ro rang, dong thuan\",difficulty:\"cao\"},general_communication:{role:\"doi tac trong cuoc hop dam phan hop dong dich vu\",objective:\"giao tiep hieu qua, dat thoa thuan co loi cho ca hai\",difficulty:\"trung binh\"}};const sd=scenarios[st]||scenarios.general_communication;return[{json:{...input,scenarioType:st,scenarioData:sd,companyPolicy}}];"
       },
       "id": "load-scenario",
       "name": "Load Scenario",
@@ -125,7 +132,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d=$input.first().json;const sd=d.scenarioData||{};const names={customer_complaint:\"Xu ly khieu nai khach hang\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat lam viec\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const p=\"Sinh 7 cau hoi dao tao ky nang mem tieng Viet cho kich ban: \"+sn+\". Muc tieu: \"+(sd.objective||\"giao tiep hieu qua\")+\".\\n5 MCQ + 2 tu luan. TRA VE CHI JSON THUAN:\\n{\\\"questions\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"question\\\":\\\"Q?\\\",\\\"options\\\":{\\\"A\\\":\\\"a\\\",\\\"B\\\":\\\"b\\\",\\\"C\\\":\\\"c\\\",\\\"D\\\":\\\"d\\\"},\\\"correct\\\":\\\"B\\\",\\\"explanation\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Mo ta...\\\"},{\\\"id\\\":7,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Neu...\\\"}]}\";return[{json:{...d,quizPrompt:p}}];"
+        "jsCode": "const d=$input.first().json;const sd=d.scenarioData||{};const names={customer_complaint:\"Xu ly khieu nai khach hang\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat lam viec\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const cp=d.companyPolicy?\"\\nBoi canh chinh sach cong ty: \"+d.companyPolicy:\"\";const p=\"Sinh 7 cau hoi dao tao tieng Viet cho kich ban: \"+sn+\". Muc tieu: \"+(sd.objective||\"giao tiep hieu qua\")+\".\"+cp+\"\\n5 MCQ + 2 tu luan. YEU CAU BAT BUOC: Tra ve JSON MINIFIED tren 1 dong duy nhat (khong xuong dong, khong indent), phuong an va explanation ngan gon (<12 tu), cau essay CHI co id, type, question (khong co explanation) de khong vuot 1024 tokens:\\n{\\\"questions\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"question\\\":\\\"Q?\\\",\\\"options\\\":{\\\"A\\\":\\\"a\\\",\\\"B\\\":\\\"b\\\",\\\"C\\\":\\\"c\\\",\\\"D\\\":\\\"d\\\"},\\\"correct\\\":\\\"B\\\",\\\"explanation\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Mo ta...\\\"},{\\\"id\\\":7,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Neu...\\\"}]}\";return[{json:{...d,quizPrompt:p}}];"
       },
       "id": "quiz-gen-prompt",
       "name": "Build Quiz Gen Prompt",
@@ -142,7 +149,7 @@
         "text": "={{ $json.quizPrompt }}",
         "options": {
           "maxIterations": 1,
-          "systemMessage": "Ban la AI sinh cau hoi dao tao. Chi tra ve JSON thuan, khong markdown."
+          "systemMessage": "Ban la AI sinh cau hoi dao tao nhan su. Bam sat quy dinh cong ty (phep nam chuan 12 ngay/nam, pro-rate nam dau theo thang vao lam, khong cong phep tham nien va khong chuyen phep du sang nam sau). Chi tra ve JSON thuan minified tren 1 dong, khong markdown."
         }
       },
       "id": "quiz-gen-agent",
@@ -152,7 +159,10 @@
       "position": [
         1300,
         220
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -169,7 +179,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10, moi TuLuan PHAI cham theo 4 tieu chi (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang.\\nJSON THUAN:{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
+        "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const cp=d.companyPolicy?\"\\nBoi canh chinh sach cong ty: \"+d.companyPolicy:\"\";const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\"+cp+\"\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10, moi TuLuan PHAI cham theo 4 tieu chi (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang. YEU CAU: Tra ve JSON MINIFIED tren 1 dong (feedback ngan gon <15 tu):\\n{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
       },
       "id": "quiz-grade-prompt",
       "name": "Build Quiz Grade Prompt",
@@ -186,7 +196,7 @@
         "text": "={{ $json.gradePrompt }}",
         "options": {
           "maxIterations": 1,
-          "systemMessage": "Ban la giam khao cham bai dao tao. Chi tra ve JSON thuan, khong markdown."
+          "systemMessage": "Ban la giam khao cham bai dao tao nhan su. Bam sat quy dinh cong ty (phep nam chuan 12 ngay/nam, pro-rate nam dau theo thang vao lam, khong cong phep tham nien va khong chuyen phep du sang nam sau). Chi tra ve JSON thuan minified tren 1 dong, khong markdown."
         }
       },
       "id": "quiz-grade-agent",
@@ -196,11 +206,14 @@
       "position": [
         1300,
         580
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
-        "jsCode": "const raw=$input.first().json.output||\"\";let gr;try{const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();gr=JSON.parse(c);}catch(e){gr={score_percent:60,correct_count:3,total_mcq:5,results:[],overall_feedback:\"He thong cham diem tu dong.\"};}const input=$(\"Build Quiz Grade Prompt\").first().json;return[{json:{...gr,scenarioType:input.scenarioType,employeeId:input.employeeId,intent:\"TRAINING\",action:\"submit_quiz\",answer:\"Ket qua: \"+(gr.score_percent||0)+\"% - Dung \"+(gr.correct_count||0)+\"/\"+(gr.total_mcq||5)+\" MCQ. \"+(gr.overall_feedback||\"\")}}];"
+        "jsCode": "const raw=$input.first().json.output||\"\";let gr;try{const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();gr=JSON.parse(c);}catch(e){gr={score_percent:60,correct_count:3,total_mcq:5,results:[],overall_feedback:\"He thong cham diem tu dong.\"};}const input=$(\"Build Quiz Grade Prompt\").first().json;return[{json:{...gr,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"submit_quiz\",answer:\"Ket qua: \"+(gr.score_percent||0)+\"% - Dung \"+(gr.correct_count||0)+\"/\"+(gr.total_mcq||5)+\" MCQ. \"+(gr.overall_feedback||\"\")}}];"
       },
       "id": "quiz-grade-format",
       "name": "Format Grade Output",
@@ -330,7 +343,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const session=$input.first().json;const scenario=$(\"Load Scenario\").first().json.scenarioData;const ri=$(\"Normalize Input\").first().json;return[{json:{sessionId:session.sessionId||session.id,maskedMessage:ri.maskedMessage,employeeId:ri.employeeId,scenarioRole:scenario.role,scenarioObjective:scenario.objective,scenarioDifficulty:scenario.difficulty}}];"
+        "jsCode": "const session=$input.first().json;const ls=$(\"Load Scenario\").first().json;const scenario=ls.scenarioData;const ri=$(\"Normalize Input\").first().json;return[{json:{sessionId:session.sessionId||session.id,maskedMessage:ri.maskedMessage,employeeId:ri.employeeId,scenarioRole:scenario.role,scenarioObjective:scenario.objective,scenarioDifficulty:scenario.difficulty,companyPolicy:ls.companyPolicy}}];"
       },
       "id": "prep-agent-input",
       "name": "Prepare Agent Input",
@@ -344,10 +357,11 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $(\"Normalize Input\").first().json.maskedMessage }}",
+        "text": "={{ $(\"Normalize Input\").first().json.maskedMessage || \"Bat dau tinh huong dao tao\" }}",
+        "systemMessage": "={{ \"Ban dang dong vai trong kich ban dao tao:\\nVai dien: \" + $json.scenarioRole + \".\\nMuc tieu: \" + $json.scenarioObjective + \".\\nDo kho: \" + $json.scenarioDifficulty + \".\\nBoi canh chinh sach cong ty: \" + ($json.companyPolicy || \"Phep nam 12 ngay/nam, pro-rate nam dau theo thang vao lam, KHONG cong phep tham nien va KHONG chuyen phep du sang nam sau.\") + \"\\n\\nHuong dan:\\n1) Phan ung TU NHIEN theo vai dien (tieng Viet), bam sat quy dinh cong ty neu tinh huong lien quan den nhan su/hoi nhap.\\n2) Sau do CHAM DIEM cau tra loi TRUOC (neu co) theo format:\\n[DANH GIA: chuyen_nghiep=X, dong_cam=X, giai_quyet=X, ro_rang=X, tong=X, nhan_xet=text]\\n\\nX la so tu 0-10. Neu tin nhan dau tien thi khong cham, chi bat dau dong vai.\" }}",
         "options": {
           "maxIterations": 3,
-          "systemMessage": "={{ \"Ban dang dong vai trong kich ban dao tao:\\nVai dien: \" + $json.scenarioRole + \".\\nMuc tieu: \" + $json.scenarioObjective + \".\\nDo kho: \" + $json.scenarioDifficulty + \".\\n\\nHuong dan:\\n1) Phan ung TU NHIEN theo vai dien (tieng Viet)\\n2) Sau do CHAM DIEM cau tra loi TRUOC (neu co) theo format:\\n[DANH GIA: chuyen_nghiep=X, dong_cam=X, giai_quyet=X, ro_rang=X, tong=X, nhan_xet=text]\\n\\nX la so tu 0-10. Neu tin nhan dau tien thi khong cham, chi bat dau dong vai.\" }}"
+          "systemMessage": "={{ \"Ban dang dong vai trong kich ban dao tao:\\nVai dien: \" + $json.scenarioRole + \".\\nMuc tieu: \" + $json.scenarioObjective + \".\\nDo kho: \" + $json.scenarioDifficulty + \".\\nBoi canh chinh sach cong ty: \" + ($json.companyPolicy || \"Phep nam 12 ngay/nam, pro-rate nam dau theo thang vao lam, KHONG cong phep tham nien va KHONG chuyen phep du sang nam sau.\") + \"\\n\\nHuong dan:\\n1) Phan ung TU NHIEN theo vai dien (tieng Viet), bam sat quy dinh cong ty neu tinh huong lien quan den nhan su/hoi nhap.\\n2) Sau do CHAM DIEM cau tra loi TRUOC (neu co) theo format:\\n[DANH GIA: chuyen_nghiep=X, dong_cam=X, giai_quyet=X, ro_rang=X, tong=X, nhan_xet=text]\\n\\nX la so tu 0-10. Neu tin nhan dau tien thi khong cham, chi bat dau dong vai.\" }}"
         }
       },
       "id": "training-agent",
@@ -357,14 +371,17 @@
       "position": [
         1500,
         400
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
         "modelName": "models/gemini-3.1-flash-lite",
         "options": {
           "temperature": 0.8,
-          "maxOutputTokens": 8192
+          "maxOutputTokens": 1024
         }
       },
       "id": "gemini-training",
@@ -373,15 +390,15 @@
       "typeVersion": 1,
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 3000,
+      "waitBetweenTries": 2000,
       "position": [
         1300,
         700
       ],
       "credentials": {
         "googlePalmApi": {
-          "id": "saU5RHwXIHvauhiS",
-          "name": "Google Gemini(PaLM) Api account"
+          "id": "GijeOpAk3nuWoDHZ",
+          "name": "Gemini 2025"
         }
       }
     },
@@ -577,7 +594,7 @@
       "main": [
         [
           {
-            "node": "Restore Item",
+            "node": "Save User Message",
             "type": "main",
             "index": 0
           }
@@ -591,17 +608,20 @@
             "node": "Action Switch",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Save User Message",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
     },
     "Save User Message": {
-      "main": []
+      "main": [
+        [
+          {
+            "node": "Restore Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Agent Input": {
       "main": [
@@ -753,7 +773,7 @@
         "updatedAt": "2026-09-04T16:41:36.365Z",
         "createdAt": "2026-09-04T16:26:36.752Z",
         "id": "Z5JubgHtW2JgD0ii",
-        "name": "Nguyen Dang <haidangnguyen1214@gmail.com>",
+        "name": "Nguyen Dang <n8n-owner@example.com>",
         "type": "personal",
         "icon": null,
         "description": null,
