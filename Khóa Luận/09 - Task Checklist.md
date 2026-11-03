@@ -14,7 +14,7 @@
 - [x] **Thực nghiệm Router:** 80 câu có nhãn → accuracy 83,8%, macro-F1 0,838, 0,05 ms/tin nhắn (`scripts/eval/`)
 - [ ] Chèn ảnh PNG từ `docs/diagrams/` vào Google Doc (thủ công)
 - [x] **Rà soát & sửa 16 lỗi mã nguồn** — webhook n8n có khóa, WF04 tắt bot đúng, form OT, ownership `POST /leave`, geofence server-side, giảm trừ thống nhất, socket kiểm tra phiên, lint sạch; Jest 49/49, endpoints 59/59, security 12/12
-- [x] **Google Doc:** 46 footnote cho trích dẫn; mục 5.3 thành "Rà soát mã nguồn và hạn chế còn lại" kèm Bảng 5.3; cập nhật Chương 3–5 và 4 biểu đồ
+- [x] **Google Doc:** trích dẫn `[n]` dạng chỉ số trên, không footnote (03/11); mục 5.3 thành "Rà soát mã nguồn và hạn chế còn lại" kèm Bảng 5.3; cập nhật Chương 3–5 và 4 biểu đồ
 - [ ] Sửa `scripts/setup-n8n.mjs` cho API credential của n8n mới; cố định phiên bản image n8n
 - [ ] Đối chiếu văn bản gốc NĐ 161/2026/NĐ-CP (tài liệu [18])
 - [ ] Commit các thay đổi

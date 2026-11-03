@@ -65,7 +65,7 @@ Toàn bộ 16 vấn đề của đợt rà soát đã được khắc phục và
 
 ## 4b. Cập nhật Google Doc ngày 02/11/2026 (lần 2)
 
-- Thêm **46 footnote**: mỗi trích dẫn [1]–[41] ở lần xuất hiện đầu tiên có chú thích cuối trang ghi đầy đủ nguồn; 5 tham chiếu "ghi chú NN" có chú thích trỏ tới tệp nhật ký trong `Khóa Luận/`.
+- Trích dẫn: **không dùng footnote**. 64 chỗ `[n]` trong thân bài để dạng chỉ số trên nhỏ (superscript) ngay chỗ lấy dữ liệu, tra ở danh mục Tài liệu tham khảo [1]–[41]. (Ngày 03/11/2026 đã gỡ 46 footnote thêm trước đó theo yêu cầu.)
 - Mục 5.3 đổi thành **"Rà soát mã nguồn và hạn chế còn lại"** kèm Bảng 5.3 (vấn đề → cách sửa → kiểm chứng).
 - Cập nhật 3.4.4, 3.5.2, 4.2.3–4.2.5, 4.3.3, 4.4, 4.6 (CH4), tiểu kết, kết luận; Bảng 4.3 thêm `payroll.service.spec.ts` (49/49), Bảng 4.4 ghi kết quả trước/sau sửa.
 - Biểu đồ cập nhật: H3.5, H3.8 (nhánh Bot Muted), H4.3 (geofence server), H4.12.
