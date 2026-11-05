@@ -1,0 +1,48 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+left to right direction
+
+rectangle "Web Portal" as WP
+rectangle "Slack channel\n(mô phỏng Zalo OA)" as SD
+package "NestJS" {
+  component "AgentsService\nPOST /agents/chat" as AS
+  component "SlackService\n(Socket Mode)" as SS
+}
+package "n8n" {
+  package "WF01 Router Agent (0 lần gọi LLM)" {
+    component "PII Masking\n(regex)" as M
+    component "Parse Intent\n(từ khóa)" as I
+    component "Route by Intent" as SW
+  }
+  component "WF02 HR Q&A Agent\nDeepSeek, 3 tools, memory" as W2
+  component "WF03 Training Agent\nrole-play, sinh quiz, chấm quiz" as W3
+  component "WF04 CSKH Agent\nDeepSeek, leo thang" as W4
+  component "Phản hồi tĩnh" as ST
+  component "Respond Chat Webhook\n(trả kết quả về AgentsService)" as R
+}
+
+WP --> AS
+SD --> SS : tin nhắn trong channel
+AS --> M : POST /webhook/chat
+M --> I
+I --> SW
+SW --> W2 : HR_QA
+SW --> W3 : TRAINING
+SW --> W4 : CSKH
+SW --> ST : OTHER
+SS --> W4 : POST /webhook/zalo-webhook
+W2 --> R
+W3 --> R
+W4 --> R
+ST --> R
+note right of R
+  WF02/03/04 lỗi → Agent Error Fallback
+  trả "Hệ thống AI đang bận..."
+end note
+note right of W4
+  Nhánh Slack: trả lời qua
+  POST /n8n/outbound-reply
+  vào Slack thread
+end note
+@enduml

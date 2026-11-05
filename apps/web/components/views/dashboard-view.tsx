@@ -4,16 +4,15 @@ import * as React from "react"
 import {
   Users,
   Clock,
-  Coins,
-  Bot,
-  ArrowUpRight,
-  CheckCircle2,
+  Wallet,
   Sparkles,
-  MessageSquare,
-  AlertTriangle,
-  Timer,
+  Calendar,
+  Inbox,
+  ChartArea,
+  PieChart as PieChartIcon,
+  UserRoundCheck,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
@@ -28,7 +27,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from "recharts"
 
 import { useEffect, useState, useCallback } from 'react'
@@ -37,7 +35,7 @@ import type { KpiData, AttendanceChartData, DeptDistributionData, PendingLeaveDa
 import { useAuth } from '@/lib/auth-context'
 import { useAiSocket } from '@/lib/hooks/useAiSocket'
 import { LeaveDetailModal } from "@/components/employees/leave-detail-modal"
-import { vnd } from "@/lib/utils"
+import { vnd, requestDurationLabel, leaveTypeLabel } from "@/lib/utils"
 
 function fmtVN(iso: string) {
   if (!iso) return "--"
@@ -106,293 +104,319 @@ export function DashboardView() {
     onActivity: handleAiActivity,
   })
 
+  // Lỗi ném lên để LeaveDetailModal hiển thị; người duyệt lấy từ JWT phía backend
   const handleAction = async (id: string, action: 'approve' | 'reject', reason?: string) => {
-    if (!user?.employee?.id) return
-    try {
-      if (action === 'approve') await dashboardApi.approveLeave(id)
-      else await dashboardApi.rejectLeave(id, reason || 'Từ chối bởi quản lý')
-      const updated = await dashboardApi.getPendingLeaves()
-      setPendingLeaves(updated)
-    } catch (e) { console.error(e) }
+    if (action === 'approve') await dashboardApi.approveLeave(id)
+    else await dashboardApi.rejectLeave(id, reason || 'Từ chối bởi quản lý')
+    setPendingLeaves(await dashboardApi.getPendingLeaves())
   }
 
   const [detailTarget, setDetailTarget] = React.useState<PendingLeaveData | null>(null)
 
+  const now = new Date()
+  const periodLabel = `Tháng ${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`
+
+  const chartTooltipStyle: React.CSSProperties = {
+    background: "var(--card)",
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    boxShadow: "var(--shadow-sm)",
+    fontSize: 12,
+  }
+  const axisTick = { fill: "var(--muted-foreground)", fontSize: 12 }
+  const DEPT_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"]
+  const deptTotal = departmentData.reduce((s, d) => s + d.value, 0)
+
+  const kpiCards = [
+    {
+      label: "Tổng hồ sơ nhân sự",
+      icon: Users,
+      tint: "bg-primary-tint text-primary",
+      value: kpis
+        ? (kpis.totalEmployeeRecords ?? kpis.totalEmployees).toLocaleString("vi-VN")
+        : "--",
+      unit: "hồ sơ",
+      sub: kpis
+        ? `${kpis.totalEmployees.toLocaleString("vi-VN")} đang làm việc · ${(kpis.terminatedEmployees ?? 0).toLocaleString("vi-VN")} đã nghỉ việc`
+        : "Đang tải...",
+    },
+    {
+      label: "Tỷ lệ đi làm hôm nay",
+      icon: Clock,
+      tint: "bg-success-tint text-success",
+      value: kpis ? `${kpis.todayAttendanceRate.toLocaleString("vi-VN")}%` : "--",
+      sub: `${kpis?.todayDetail?.onTime ?? 0} đúng giờ · ${kpis?.todayDetail?.late ?? 0} đi muộn · ${kpis?.todayDetail?.onLeave ?? 0} nghỉ phép`,
+    },
+    {
+      label: "Quỹ lương tháng",
+      icon: Wallet,
+      tint: "bg-warning-tint text-warning",
+      value: vnd(kpis?.monthlyPayrollTotal ?? NaN),
+      sub: "Tổng thực lĩnh, mọi trạng thái",
+    },
+    {
+      label: "AI tự giải quyết",
+      icon: Sparkles,
+      tint: "bg-ai-tint text-ai",
+      value: kpis?.aiResolutionRate != null ? `${kpis.aiResolutionRate.toLocaleString("vi-VN")}%` : "--",
+      sub: `${(kpis?.totalAiMessages ?? 0).toLocaleString("vi-VN")} câu hỏi · ${kpis?.escalationCount ?? 0} ca chuyển người · ${kpis?.activeWorkflows ?? 0} agent hoạt động (7 ngày)`,
+    },
+  ]
+
+  // Màu agent: WF01 violet · WF02 blue · WF03 amber · WF04 rose
+  const WF_COLORS: Record<string, { tag: string; bar: string }> = {
+    WF01: { tag: "bg-agent-wf01-tint text-agent-wf01", bar: "bg-agent-wf01" },
+    WF02: { tag: "bg-agent-wf02-tint text-agent-wf02", bar: "bg-agent-wf02" },
+    WF03: { tag: "bg-agent-wf03-tint text-agent-wf03", bar: "bg-agent-wf03" },
+    WF04: { tag: "bg-agent-wf04-tint text-agent-wf04", bar: "bg-agent-wf04" },
+  }
+  const DEFAULT_WF_COLOR = WF_COLORS.WF02!
+
+  const emptyState = (Icon: React.ElementType, title: string, desc: string) => (
+    <div className="flex h-full min-h-56 flex-col items-center justify-center px-6 py-8 text-center">
+      <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="size-5" />
+      </span>
+      <p className="mt-3 text-body font-semibold text-foreground">{title}</p>
+      <p className="mt-1 max-w-72 text-body-sm text-muted-foreground">{desc}</p>
+    </div>
+  )
+
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Top Header Banner */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-5">
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Bảng Điều Hành Nhân Sự & AI Multi-Agent
-          </h1>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            Theo dõi tổng quan quân số, chấm công, quỹ lương và hiệu năng điều phối của 4 AI Agent
+          <h1 className="text-h1 font-semibold text-foreground">Bảng điều hành</h1>
+          <p className="mt-1 text-body text-muted-foreground">
+            Tình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="teal" className="gap-1 px-3 py-1">
-            <span className="size-2 rounded-full bg-agent-teal animate-pulse" />
-            {kpis?.activeWorkflows ?? 0} Workflows AI Có Hoạt Động (7 ngày qua)
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="h-8 px-3 text-body-sm">
+            <Calendar className="size-4" />
+            {periodLabel}
+          </Badge>
+          <Badge variant={wsConnected ? "success" : "secondary"} className="h-8 px-3 text-body-sm">
+            <span className={`size-2 rounded-full ${wsConnected ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
+            {wsConnected ? "Realtime" : "Mất kết nối"}
           </Badge>
         </div>
       </div>
 
-      {/* Row 1: 4 Key Metric Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:border-primary/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Tổng Quân Số
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Users className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="animate-pulse h-8 w-16 bg-muted rounded" /> : kpis?.totalEmployees ?? '...'}
-              {!loading && <span className="text-xs font-normal text-muted-foreground ml-1">nhân sự</span>}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Tổng số nhân sự đang quản lý trong hệ thống
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:border-agent-teal/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Tỷ Lệ Đi Làm Hôm Nay
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-agent-teal/10 text-agent-teal">
-              <Clock className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-agent-teal">
-              {loading ? <div className="animate-pulse h-8 w-16 bg-muted rounded" /> : `${kpis?.todayAttendanceRate ?? '...'}%`}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {loading ? '...' : `${kpis?.todayDetail?.onTime ?? 0} đúng giờ • ${kpis?.todayDetail?.late ?? 0} đi muộn • ${kpis?.todayDetail?.onLeave ?? 0} nghỉ phép`}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:border-agent-amber/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Quỹ Lương Tháng
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-agent-amber/10 text-agent-amber">
-              <Coins className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? <div className="animate-pulse h-8 w-24 bg-muted rounded" /> : vnd(kpis?.monthlyPayrollTotal ?? NaN)}
-            </div>
-            <p className="mt-1 flex items-center text-xs text-muted-foreground">
-              <ArrowUpRight className="mr-1 size-3 text-agent-amber" /> Đã chốt dự thảo sơ bộ
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:border-agent-coral/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              AI Multi-Agent Resolution
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-agent-coral/10 text-agent-coral">
-              <Bot className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-agent-coral">
-              {loading
-                ? <div className="animate-pulse h-8 w-16 bg-muted rounded" />
-                : kpis?.aiResolutionRate != null ? `${kpis.aiResolutionRate}%` : '--'}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {loading ? '...' : `${kpis?.totalAiMessages ?? 0} câu hỏi • ${kpis?.escalationCount ?? 0} ca Escalate con người`}
-            </p>
-          </CardContent>
-        </Card>
+      {/* KPI */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-5 xl:grid-cols-4">
+        {kpiCards.map((k) => (
+          <Card key={k.label} className="p-4 sm:p-5">
+            {loading ? (
+              <>
+                <div className="skeleton size-9 rounded-md" />
+                <div className="skeleton mt-4 h-4 w-28 rounded" />
+                <div className="skeleton mt-2 h-8 w-24 rounded" />
+                <div className="skeleton mt-3 h-3 w-40 rounded" />
+              </>
+            ) : (
+              <>
+                <span className={`flex size-8 items-center justify-center rounded-md ${k.tint}`}>
+                  <k.icon className="size-4" />
+                </span>
+                <p className="mt-3 text-body-sm text-muted-foreground">{k.label}</p>
+                <p className="tabular mt-1 whitespace-nowrap text-[26px] font-semibold leading-8 text-foreground">
+                  {k.value}
+                  {k.unit && <span className="ml-1.5 text-body-sm font-normal text-muted-foreground">{k.unit}</span>}
+                </p>
+                <p className="mt-1 text-caption text-muted-foreground">{k.sub}</p>
+              </>
+            )}
+          </Card>
+        ))}
       </div>
 
-      {/* Row 2: Charts (Recharts Area & Pie) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">
-              Xu Hướng Chấm Công Tháng {chartMonthLabel}
-            </CardTitle>
-            <CardDescription>Số lượng nhân sự đúng giờ, đi muộn và nghỉ phép thực tế</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px] w-full">
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-4 lg:gap-5 xl:grid-cols-3">
+        <Card className="p-4 sm:p-5 xl:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-h3 font-semibold text-foreground">
+                Xu hướng chấm công{chartMonthLabel ? ` tháng ${chartMonthLabel}` : ""}
+              </h2>
+              <p className="text-body-sm text-muted-foreground">Số nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày</p>
+            </div>
+            <div className="flex items-center gap-4 text-caption text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-chart-1" />Đúng giờ</span>
+              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-chart-3" />Đi muộn</span>
+              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-chart-2" />Nghỉ phép</span>
+            </div>
+          </div>
+          <div className={`relative mt-4 w-full ${!loading && attendanceData.length === 0 ? "h-[220px]" : "h-[300px]"}`}>
+            {loading ? (
+              <div className="skeleton absolute inset-0 rounded-md" />
+            ) : attendanceData.length === 0 ? (
+              emptyState(ChartArea, "Chưa có dữ liệu chấm công", "Dữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.")
+            ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={attendanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart data={attendanceData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                   <defs>
                     <linearGradient id="onTimeGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(0.68 0.18 260)" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="oklch(0.68 0.18 260)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="lateGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(0.78 0.15 82)" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="oklch(0.78 0.15 82)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.16} />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.26 0.028 250)" />
-                  <XAxis dataKey="day" stroke="oklch(0.65 0.025 240)" fontSize={12} />
-                  <YAxis stroke="oklch(0.65 0.025 240)" fontSize={12} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(0.18 0.025 248)",
-                      borderColor: "oklch(0.26 0.028 250)",
-                      borderRadius: "8px",
-                      color: "oklch(0.94 0.015 235)",
-                    }}
-                  />
-                  <Area type="monotone" dataKey="onTime" name="Đúng giờ" stroke="oklch(0.68 0.18 260)" fillOpacity={1} fill="url(#onTimeGrad)" />
-                  <Area type="monotone" dataKey="late" name="Đi muộn" stroke="oklch(0.78 0.15 82)" fillOpacity={1} fill="url(#lateGrad)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="day" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Area type="monotone" dataKey="onTime" name="Đúng giờ" stroke="var(--chart-1)" strokeWidth={2} fillOpacity={1} fill="url(#onTimeGrad)" />
+                  <Area type="monotone" dataKey="late" name="Đi muộn" stroke="var(--chart-3)" strokeWidth={2} fill="none" dot={{ r: 3, fill: "var(--chart-3)", strokeWidth: 0 }} />
+                  <Area type="monotone" dataKey="leave" name="Nghỉ phép" stroke="var(--chart-2)" strokeWidth={2} fill="none" />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
+            )}
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Phân Bổ Nhân Lực</CardTitle>
-            <CardDescription>Tỷ trọng cơ cấu theo từng khối phòng ban</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px] w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={departmentData}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {departmentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={["oklch(0.68 0.18 260)", "oklch(0.75 0.14 180)", "oklch(0.78 0.15 82)", "oklch(0.70 0.18 28)"][index % 4]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(0.18 0.025 248)",
-                      borderColor: "oklch(0.26 0.028 250)",
-                      borderRadius: "8px",
-                      color: "oklch(0.94 0.015 235)",
-                    }}
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
+        <Card className="p-4 sm:p-5">
+          <h2 className="text-h3 font-semibold text-foreground">Phân bổ nhân lực</h2>
+          <p className="text-body-sm text-muted-foreground">Cơ cấu nhân sự đang làm việc theo phòng ban</p>
+          <div className="mt-4">
+            {loading ? (
+              <>
+                <div className="skeleton mx-auto size-44 rounded-full" />
+                <div className="skeleton mt-6 h-3 w-full rounded" />
+                <div className="skeleton mt-2 h-3 w-3/4 rounded" />
+              </>
+            ) : departmentData.length === 0 || deptTotal === 0 ? (
+              emptyState(PieChartIcon, "Chưa có nhân sự", "Thêm nhân viên để xem cơ cấu phòng ban.")
+            ) : (
+              <>
+                <div className="relative mx-auto size-44">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={departmentData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={59}
+                        outerRadius={81}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {departmentData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={DEPT_COLORS[index % DEPT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="tabular text-h2 font-semibold text-foreground">{deptTotal.toLocaleString("vi-VN")}</span>
+                    <span className="text-caption text-muted-foreground">nhân sự</span>
+                  </div>
+                </div>
+                <ul className="mt-5 grid gap-2 text-body-sm">
+                  {departmentData.map((d, index) => (
+                    <li key={d.name} className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 shrink-0 rounded-sm"
+                        style={{ background: DEPT_COLORS[index % DEPT_COLORS.length] }}
+                      />
+                      <span className="flex-1 truncate text-secondary-foreground">{d.name}</span>
+                      <span className="tabular text-muted-foreground">{Math.round((d.value / deptTotal) * 100)}%</span>
+                      <span className="tabular w-8 text-right font-medium text-foreground">{d.value}</span>
+                    </li>
+                  ))}
+                </ul>
+                {(kpis?.terminatedEmployees ?? 0) > 0 && (
+                  <p className="mt-3 text-caption text-muted-foreground">
+                    Không gồm {kpis?.terminatedEmployees} hồ sơ đã nghỉ việc.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </Card>
       </div>
 
-      {/* Row 3: Actionable Lists (Pending Approvals & AI Activity Feed) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Lists */}
+      <div className="grid grid-cols-1 gap-4 lg:gap-5 xl:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-start justify-between gap-3 p-4 pb-3 sm:p-5 sm:pb-3">
             <div>
-              <CardTitle className="text-sm font-semibold">Duyệt Đơn Nghỉ Phép Chờ Xử Lý</CardTitle>
-              <CardDescription>Cần HR Admin hoặc Quản lý trực tiếp phê duyệt</CardDescription>
+              <h2 className="text-h3 font-semibold text-foreground">Đơn chờ duyệt</h2>
+              <p className="text-body-sm text-muted-foreground">Tất cả đơn đang chờ, không giới hạn kỳ</p>
             </div>
-            <Badge variant="secondary">{pendingLeaves.length} đơn mới</Badge>
-          </CardHeader>
-          <CardContent>
-            {pendingLeaves.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
-                <CheckCircle2 className="size-8 text-emerald-400 mb-2" />
-                <p className="text-xs">Đã xử lý hết toàn bộ đơn nghỉ phép!</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {pendingLeaves.map((leave) => (
-                  <div
-                    key={leave.id}
-                    onClick={() => setDetailTarget(leave)}
-                    className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-3 hover:bg-muted/40 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar initials={leave.employee.fullName.substring(0, 2).toUpperCase()} className="bg-primary/20 text-primary border border-primary/30" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                            {leave.employee.fullName}
-                          </p>
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-border">
-                            {leave.totalDays} ngày
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {leave.employee.department.name} • {fmtVN(leave.startDate)} → {fmtVN(leave.endDate)}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground italic mt-0.5 truncate max-w-sm">&ldquo;{leave.reason}&rdquo;</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        size="xs"
-                        variant="default"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => setDetailTarget(leave)}
-                      >
-                        Xem & Duyệt
-                      </Button>
-                    </div>
+            <Badge variant="warning" className="tabular">{pendingLeaves.length} đơn</Badge>
+          </div>
+          <ul className="divide-y divide-border-subtle border-t border-border-subtle">
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <li key={i} className="flex gap-3 px-4 py-3.5 sm:px-5">
+                  <div className="skeleton size-10 rounded-full" />
+                  <div className="flex-1">
+                    <div className="skeleton h-4 w-40 rounded" />
+                    <div className="skeleton mt-2 h-3 w-56 rounded" />
                   </div>
-                ))}
-              </div>
+                </li>
+              ))
+            ) : pendingLeaves.length === 0 ? (
+              <li>{emptyState(Inbox, "Đã xử lý hết các đơn", "Đơn mới của nhân viên sẽ hiện ở đây.")}</li>
+            ) : (
+              pendingLeaves.map((leave) => (
+                <li
+                  key={leave.id}
+                  onClick={() => setDetailTarget(leave)}
+                  className="flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors hover:bg-sunken sm:px-5"
+                >
+                  <Avatar
+                    initials={leave.employee.fullName.substring(0, 2).toUpperCase()}
+                    className="size-10 text-body-sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body font-medium text-foreground">
+                      {leave.employee.fullName}{" "}
+                      <span className="font-normal text-muted-foreground">· {leave.employee.department.name}</span>
+                    </p>
+                    <p className="text-body-sm text-secondary-foreground">
+                      <span className="font-medium">{leaveTypeLabel(leave.type)}</span> · {fmtVN(leave.startDate)} → {fmtVN(leave.endDate)} · <span className="tabular">{requestDurationLabel(leave)}</span>
+                    </p>
+                    <p className="truncate text-caption text-muted-foreground">{leave.reason}</p>
+                  </div>
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="outline" onClick={() => setDetailTarget(leave)}>
+                      Xem & duyệt
+                    </Button>
+                  </div>
+                </li>
+              ))
             )}
-          </CardContent>
+          </ul>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div className="flex items-start justify-between gap-3 p-4 pb-3 sm:p-5 sm:pb-3">
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Sparkles className="size-4 text-agent-teal" />
-                Hiệu Năng AI Multi-Agent
-              </CardTitle>
-              <CardDescription>Thống kê tổng hợp theo từng workflow n8n</CardDescription>
+              <h2 className="text-h3 font-semibold text-foreground">Hoạt động AI</h2>
+              <p className="text-body-sm text-muted-foreground">Thống kê theo từng agent</p>
             </div>
-            <Badge
-              variant={wsConnected ? "teal" : "secondary"}
-              className="gap-1 px-2.5 py-1 text-[11px] transition-colors"
-            >
-              <span className={`size-1.5 rounded-full ${wsConnected ? 'bg-agent-teal animate-pulse' : 'bg-muted-foreground'}`} />
-              {wsConnected ? `${kpis?.activeWorkflows ?? 0} workflow active` : 'Ngoại tuyến'}
+            <Badge variant={wsConnected ? "success" : "secondary"}>
+              <span className={`size-2 rounded-full ${wsConnected ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
+              {wsConnected ? "Đang kết nối" : "Ngoại tuyến"}
             </Badge>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {/* Max latency across all workflows — used to size bars */}
-            {(() => {
-              const maxLatency = Math.max(
-                ...aiStats.map(s => s.avgLatencyMs ?? 0),
-                1,
-              )
-              const WF_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
-                WF02: { bg: 'bg-primary/10',        text: 'text-primary',      bar: 'bg-primary' },
-                WF03: { bg: 'bg-agent-amber/10',    text: 'text-agent-amber',  bar: 'bg-agent-amber' },
-                WF04: { bg: 'bg-agent-teal/10',     text: 'text-agent-teal',   bar: 'bg-agent-teal' },
-              }
-              const DEFAULT_WF_COLOR = WF_COLORS.WF02!
-              return aiStats.map((stat) => {
+          </div>
+          <ul className="divide-y divide-border-subtle border-t border-border-subtle">
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <li key={i} className="px-4 py-3.5 sm:px-5">
+                  <div className="skeleton h-4 w-48 rounded" />
+                  <div className="skeleton mt-3 h-2 w-full rounded" />
+                </li>
+              ))
+            ) : aiStats.length === 0 ? (
+              <li>{emptyState(Sparkles, "Chưa có hoạt động AI", "Khi nhân viên hoặc khách hàng nhắn tin, thống kê sẽ hiện ở đây.")}</li>
+            ) : (
+              aiStats.map((stat) => {
                 const color = WF_COLORS[stat.wf] ?? DEFAULT_WF_COLOR
-                const latencyPct = stat.avgLatencyMs
-                  ? Math.min(Math.round((stat.avgLatencyMs / maxLatency) * 100), 100)
-                  : 0
                 const lastActive = stat.lastActiveAt
                   ? (() => {
                       const diff = Date.now() - new Date(stat.lastActiveAt).getTime()
@@ -405,68 +429,45 @@ export function DashboardView() {
                   : 'Chưa hoạt động'
 
                 return (
-                  <div
-                    key={stat.wf}
-                    className="rounded-xl border border-border/60 bg-muted/20 p-3 hover:bg-muted/40 transition-colors"
-                  >
-                    {/* Top row: badge + label + stats */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className={`shrink-0 inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider ${color.bg} ${color.text}`}>
-                          {stat.wf}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">{stat.label}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{stat.desc}</p>
-                        </div>
-                      </div>
-                      {/* Right stats cluster */}
-                      <div className="flex items-center gap-3 shrink-0">
-                        {/* Message count */}
-                        <div className="flex items-center gap-1 text-right">
-                          <MessageSquare className="size-3 text-muted-foreground" />
-                          <span className="text-xs font-semibold text-foreground tabular-nums">{stat.total}</span>
-                        </div>
-                        {/* Escalation (WF04 only) */}
-                        {stat.escalated !== null && (
-                          <div className={`flex items-center gap-1 ${stat.escalated > 0 ? 'text-agent-coral' : 'text-muted-foreground'}`}>
-                            <AlertTriangle className="size-3" />
-                            <span className="text-xs font-semibold tabular-nums">{stat.escalated}</span>
-                          </div>
-                        )}
-                        {/* Last active */}
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Timer className="size-3" />
-                          <span className="text-[10px]">{lastActive}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom row: latency bar */}
-                    <div className="mt-2.5 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-border/60 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${color.bar} opacity-70`}
-                          style={{ width: `${latencyPct}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground w-14 text-right tabular-nums shrink-0">
-                        {stat.avgLatencyMs != null ? `⌀ ${stat.avgLatencyMs}ms` : 'N/A'}
+                  <li key={stat.wf} className="px-4 py-3.5 sm:px-5">
+                    <div className="flex items-center gap-3">
+                      <span className={`inline-flex h-[22px] shrink-0 items-center rounded-sm px-2 font-mono text-micro font-semibold ${color.tag}`}>
+                        {stat.wf}
                       </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-body font-medium text-foreground">{stat.label}</p>
+                        <p className="truncate text-caption text-muted-foreground">{stat.desc}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="tabular text-body font-semibold text-foreground">{stat.total.toLocaleString("vi-VN")}</p>
+                        <p className="text-caption text-muted-foreground">{lastActive}</p>
+                      </div>
                     </div>
-                  </div>
+                    {stat.escalated !== null && (
+                      <div className="mt-2 flex">
+                        {stat.escalated > 0 ? (
+                          <Badge variant="destructive" className="tabular">
+                            <UserRoundCheck className="size-3.5" />
+                            {stat.escalated} chuyển người
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">0 chuyển người</Badge>
+                        )}
+                      </div>
+                    )}
+                  </li>
                 )
               })
-            })()}
-
-            {/* Footer summary row */}
-            <div className="mt-1 flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2">
-              <span className="text-[11px] text-muted-foreground">Tổng phản hồi AI</span>
-              <span className="text-xs font-bold text-foreground tabular-nums">
+            )}
+          </ul>
+          {!loading && aiStats.length > 0 && (
+            <div className="flex items-center justify-between border-t border-border-subtle px-4 py-2.5 sm:px-5">
+              <span className="text-body-sm text-muted-foreground">Tổng phản hồi AI</span>
+              <span className="tabular text-body font-semibold text-foreground">
                 {aiStats.reduce((s, w) => s + w.total, 0).toLocaleString('vi-VN')} lượt
               </span>
             </div>
-          </CardContent>
+          )}
         </Card>
       </div>
 
@@ -480,6 +481,7 @@ export function DashboardView() {
                 startDate: detailTarget.startDate,
                 endDate: detailTarget.endDate,
                 totalDays: detailTarget.totalDays,
+                overtimeHours: detailTarget.overtimeHours,
                 reason: detailTarget.reason,
                 status: "PENDING",
                 employee: {

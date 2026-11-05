@@ -1,0 +1,41 @@
+@startuml
+!include _style.iuml
+start
+if (Nguồn gọi?) then (SlackService)
+  :Webhook POST /zalo-webhook
+  (header x-api-key, trả 200 ngay);
+else (từ WF01)
+  :Execute Workflow Trigger;
+endif
+:Parse Zalo Message;
+:PII Masking;
+:Lấy hoặc tạo phiên CSKH
+(channel zalo);
+if (Is Bot Active?) then (false)
+  :Save Message (Bot Muted)
+  chỉ lưu tin, không gọi AI;
+  stop
+else (true)
+  :Lưu tin nhắn khách;
+  :CSKH Agent
+  DeepSeek, temperature 0.5
+  Memory 20 lượt;
+  :Parse CSKH Output
+  regex [CAN_ESCALATE: lý do];
+  note right
+    Ba nhánh sau bước này
+    chạy lần lượt (executionOrder v1),
+    không song song
+  end note
+  :Lưu câu trả lời;
+  :POST /n8n/outbound-reply
+  gửi vào Slack thread;
+  if (shouldEscalate?) then (có)
+    :POST /n8n/escalate
+    tắt bot, thông báo Admin;
+  else (không)
+  endif
+endif
+:Format CSKH Output;
+stop
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+top to bottom direction
+
+package "apps/web" {
+  component "app/layout.tsx\nfont, html/body" as L
+  component "app/page.tsx\nAuthProvider + AppShell\nlọc menu theo role" as PG
+  component "login-view.tsx" as LG
+  package "Màn hình ADMIN" as AD {
+    component "dashboard, employees, payroll,\nai-agents, cskh-escalation,\ntraining-analytics, employee-portal, settings" as ADV
+  }
+  package "Màn hình EMPLOYEE" as EM {
+    component "employee-portal, my-training,\nai-agents" as EMV
+  }
+  component "lib/api/*.api.ts\naxios + Bearer token" as API
+  component "lib/schemas\nZod kiểm tra dữ liệu trả về" as Z
+  component "useAiSocket — Socket.IO /notifications\n(dashboard, cảnh báo leo thang CSKH)" as SK
+  component "lib/chat/chat-store.ts" as CH
+}
+
+L --> PG
+PG --> LG : chưa đăng nhập
+PG --> ADV : ADMIN
+PG --> EMV : EMPLOYEE
+ADV --> API
+EMV --> API
+API --> Z
+ADV --> SK
+ADV --> CH
+EMV --> CH
+@enduml

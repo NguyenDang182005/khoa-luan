@@ -11,9 +11,10 @@ export class DashboardService {
     const today = vnDateUtc();
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [totalEmployees, todayAttendances, monthPayrolls, escalations, recentAiMessages] =
+    const [totalEmployees, terminatedEmployees, todayAttendances, monthPayrolls, escalations, recentAiMessages] =
       await Promise.all([
         this.prisma.employee.count({ where: { status: { not: 'TERMINATED' } } }),
+        this.prisma.employee.count({ where: { status: 'TERMINATED' } }),
         this.prisma.attendance.findMany({ where: { date: today } }),
         this.prisma.payroll.findMany({ where: { month, year, status: { not: 'CANCELLED' } } }),
         this.prisma.aiChatSession.count({ where: { type: 'CSKH', escalatedAt: { not: null } } }),
@@ -44,7 +45,11 @@ export class DashboardService {
     const totalAiMessages = await this.prisma.aiChatMessage.count({ where: { role: 'user' } });
 
     return {
+      // totalEmployees = người đang làm việc (không gồm TERMINATED).
+      // totalEmployeeRecords = toàn bộ hồ sơ, dùng cho thẻ "Tổng hồ sơ nhân sự".
       totalEmployees,
+      terminatedEmployees,
+      totalEmployeeRecords: totalEmployees + terminatedEmployees,
       todayAttendanceRate,
       todayDetail: { onTime, late, onLeave },
       monthlyPayrollTotal,
@@ -76,10 +81,22 @@ export class DashboardService {
   }
 
   async getDepartmentDistribution() {
-    const departments = await this.prisma.department.findMany({
-      include: { _count: { select: { employees: true } } },
-    });
-    return departments.map(d => ({ name: d.name, value: d._count.employees }));
+    // Chỉ tính nhân sự đang làm việc — khớp với KPI "Nhân sự đang làm việc"
+    // (trước đây _count.employees gồm cả hồ sơ TERMINATED nên tổng bị lệch 30 vs 31).
+    const [departments, counts] = await Promise.all([
+      this.prisma.department.findMany({ orderBy: { name: 'asc' } }),
+      this.prisma.employee.groupBy({
+        by: ['departmentId'],
+        where: { status: { not: 'TERMINATED' } },
+        _count: true,
+      }),
+    ])
+    const countByDept = new Map(
+      counts.map((c) => [c.departmentId, c._count] as const),
+    )
+    return departments
+      .map((d) => ({ name: d.name, value: countByDept.get(d.id) ?? 0 }))
+      .filter((d) => d.value > 0)
   }
 
   async getPendingLeaves() {

@@ -513,14 +513,16 @@ export class EmployeesService {
   private async generateCode(): Promise<string> {
     // Lấy mã lớn nhất thay vì count()+1: xóa 1 nhân viên không làm tái sử dụng mã cũ,
     // và không đụng unique constraint khi có khoảng trống.
-    const last = await this.prisma.employee.findFirst({
+    // So sánh theo số, không theo chuỗi: seed dùng EMP001..EMP030 (3 chữ số) nên
+    // orderBy chuỗi xếp "EMP030" trên "EMP0031" và sinh lặp lại mã đã tồn tại.
+    const rows = await this.prisma.employee.findMany({
       where: { employeeCode: { startsWith: 'EMP' } },
-      orderBy: { employeeCode: 'desc' },
       select: { employeeCode: true },
     });
-    const lastNumber = last
-      ? Number(last.employeeCode.replace(/[^0-9]/g, '')) || 0
-      : 0;
+    const lastNumber = rows.reduce((max, r) => {
+      const n = Number(r.employeeCode.replace(/[^0-9]/g, ''));
+      return Number.isFinite(n) && n > max ? n : max;
+    }, 0);
     return `EMP${String(lastNumber + 1).padStart(4, '0')}`;
   }
 

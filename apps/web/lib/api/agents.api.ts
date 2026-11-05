@@ -26,6 +26,8 @@ export interface QuizSubmitResult {
     id?: number
     type?: string
     correct?: boolean
+    /** Đáp án đúng chỉ trả sau khi nộp bài (không lộ trước) */
+    correct_answer?: string | null
     score?: number
     feedback?: string
   }>

@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "HR Multi-Agent Platform",
-  description: "HR Management System powered by NestJS, n8n and Gemini",
+  description: "Hệ thống quản trị nhân sự tích hợp trợ lý AI",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

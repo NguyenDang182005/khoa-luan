@@ -13,7 +13,7 @@ flowchart TB
   subgraph D["Tầng dữ liệu"]
     PG[("PostgreSQL 16 + pgvector :5432")]
   end
-  EXT["Google Gemini 3.1 Flash Lite<br/>gemini-embedding-001"]
+  EXT["DeepSeek deepseek-flash<br/>Google gemini-embedding-001"]
   FB["Firebase Authentication"]
   WEB -->|"REST + Bearer JWT"| API
   WEB <-->|"WebSocket"| WS

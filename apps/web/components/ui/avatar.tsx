@@ -16,7 +16,7 @@ function Avatar({
     <div
       data-slot="avatar"
       className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg font-semibold text-foreground text-xs select-none",
+        "relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted font-semibold text-secondary-foreground text-caption select-none",
         className
       )}
       {...props}

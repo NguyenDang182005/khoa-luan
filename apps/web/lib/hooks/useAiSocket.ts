@@ -11,10 +11,27 @@ export interface AiActivityEvent {
   lastActiveAt: string
 }
 
+/** Payload của 'notification:new' — chính bản ghi Notification server vừa tạo. */
+export interface NotificationEvent {
+  id: string
+  type: string
+  title: string
+  body: string
+  data?: {
+    sessionId?: string
+    userId?: string
+    channel?: string
+    lastMessage?: string
+    escalatedAt?: string
+  } | null
+  createdAt: string
+}
+
 interface UseAiSocketOptions {
   userId: string | null
   isAdmin: boolean
-  onActivity: (data: AiActivityEvent) => void
+  onActivity?: (data: AiActivityEvent) => void
+  onNotification?: (data: NotificationEvent) => void
 }
 
 /**
@@ -22,15 +39,17 @@ interface UseAiSocketOptions {
  * and calls onActivity() whenever the server emits '"'"'ai:activity'"'"'.
  * Returns `connected` boolean so the dashboard badge can reflect live status.
  */
-export function useAiSocket({ userId, isAdmin, onActivity }: UseAiSocketOptions) {
+export function useAiSocket({ userId, isAdmin, onActivity, onNotification }: UseAiSocketOptions) {
   const [connected, setConnected] = useState(false)
   const socketRef = useRef<Socket | null>(null)
   const onActivityRef = useRef(onActivity)
+  const onNotificationRef = useRef(onNotification)
 
   // Keep callback ref fresh without re-connecting on every render
   useEffect(() => {
     onActivityRef.current = onActivity
-  }, [onActivity])
+    onNotificationRef.current = onNotification
+  }, [onActivity, onNotification])
 
   useEffect(() => {
     if (!userId || !isAdmin) return
@@ -60,7 +79,12 @@ export function useAiSocket({ userId, isAdmin, onActivity }: UseAiSocketOptions)
     socket.on("connect_error", () => setConnected(false))
 
     socket.on("ai:activity", (data: AiActivityEvent) => {
-      onActivityRef.current(data)
+      onActivityRef.current?.(data)
+    })
+
+    // Leo thang CSKH: server emit tới room user:<adminId> và 'admin'
+    socket.on("notification:new", (data: NotificationEvent) => {
+      onNotificationRef.current?.(data)
     })
 
     return () => {

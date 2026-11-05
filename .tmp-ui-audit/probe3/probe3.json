@@ -1,0 +1,67 @@
+{
+  "contrast1366": {
+    "sidebar-group": {
+      "text": "TỔNG QUAN",
+      "color": "rgb(102, 112, 133)",
+      "bg": "rgb(255, 255, 255)",
+      "size": "14px",
+      "weight": "500",
+      "ratio": 4.97
+    },
+    "page-subtitle": {
+      "text": "Tình hình nhân sự, chấm công, quỹ lương và hoạt động AI tron",
+      "color": "rgb(102, 112, 133)",
+      "bg": "rgb(247, 248, 250)",
+      "size": "14px",
+      "weight": "400",
+      "ratio": 4.68
+    },
+    "table-header": null,
+    "helper-text": {
+      "text": "Đang quản lý trong hệ thống",
+      "color": "rgb(102, 112, 133)",
+      "bg": "rgb(255, 255, 255)",
+      "size": "12px",
+      "weight": "400",
+      "ratio": 4.97
+    },
+    "primary-button": null,
+    "status-badge": null
+  },
+  "employees1366": {
+    "viewport": 1366,
+    "mainClient": 1126,
+    "mainScroll": 1126,
+    "tableW": 1060,
+    "bodyScroll": 1366,
+    "overflow": false
+  },
+  "employees_1024": {
+    "viewport": 1024,
+    "mainClient": 784,
+    "mainScroll": 969,
+    "tableW": 976,
+    "bodyScroll": 1024,
+    "overflow": false,
+    "sidebarVisible": true
+  },
+  "employees_768": {
+    "viewport": 768,
+    "mainClient": 768,
+    "mainScroll": 768,
+    "tableW": 976,
+    "bodyScroll": 768,
+    "overflow": false,
+    "sidebarVisible": false
+  },
+  "employees_375": {
+    "viewport": 375,
+    "mainClient": 375,
+    "mainScroll": 375,
+    "tableW": null,
+    "bodyScroll": 375,
+    "overflow": false,
+    "sidebarVisible": false
+  },
+  "error": "TimeoutError: Waiting for selector `input[type=\"email\"]` failed\n    at CSSQueryHandler.waitFor (file:///C:/Users/Admin/Documents/admin/khoa-luan/scripts/diag-browser/node_modules/puppeteer-core/lib/puppeteer/common/QueryHandler.js:211:46)\n    at async CdpFrame.waitForSelector (file:///C:/Users/Admin/Documents/admin/khoa-luan/scripts/diag-browser/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:546:21)\n    at async CdpPage.waitForSelector (file:///C:/Users/Admin/Documents/admin/khoa-luan/scripts/diag-browser/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:1477:20)\n    at async main (C:\\Users\\Admin\\Documents\\admin\\khoa-luan\\scripts\\diag-browser\\ux-probe3.cjs:146:3)"
+}

@@ -1,0 +1,46 @@
+@startuml
+!include _style.iuml
+start
+:Webhook POST /chat
+(header x-api-key);
+:PII Masking
+CMND, CCCD → [MASKED_ID]
+SĐT → [MASKED_PHONE]
+Email → [MASKED_EMAIL];
+:Parse Intent
+(chữ thường, bỏ dấu, đ → d);
+if (Có action quiz, scenarioType\nhoặc sessionType TRAINING?) then (có)
+  :intent = TRAINING;
+elseif (sessionType CSKH\nhoặc channel zalo?) then (có)
+  :intent = CSKH;
+elseif (sessionType HR_QA?\n(portal đã chọn module Nhân sự)) then (có)
+  :intent = HR_QA;
+elseif (Khớp từ khóa nhân sự?) then (có)
+  :intent = HR_QA;
+elseif (Khớp từ khóa đào tạo?) then (có)
+  :intent = TRAINING;
+elseif (Khớp từ khóa CSKH?) then (có)
+  :intent = CSKH;
+else (không)
+  :intent = OTHER;
+endif
+:action = action gửi lên, hoặc generate_quiz
+khi intent TRAINING và có từ khóa "bài test";
+switch (Route by Intent)
+case (HR_QA)
+  :Execute WF02;
+case (TRAINING)
+  :Execute WF03;
+case (CSKH)
+  :Execute WF04;
+case (OTHER)
+  :Respond OTHER Static;
+endswitch
+note right
+  Execute WF02/03/04 lỗi
+  → Agent Error Fallback trả
+  "Hệ thống AI đang bận..."
+end note
+:Respond Chat Webhook;
+stop
+@enduml

@@ -1,0 +1,1228 @@
+﻿{
+    "id":  "685",
+    "finished":  true,
+    "mode":  "webhook",
+    "retryOf":  null,
+    "retrySuccessId":  null,
+    "status":  "success",
+    "startedAt":  "2026-11-05T02:45:47.394Z",
+    "stoppedAt":  "2026-11-05T02:45:54.051Z",
+    "workflowId":  "aaCU1Zr00f506dcJ",
+    "waitTill":  null,
+    "storedAt":  "db",
+    "jsonSizeBytes":  56357,
+    "workflowVersionId":  "9924da44-e434-4398-a3a0-c05890a47b31",
+    "data":  {
+                 "version":  1,
+                 "startData":  {
+
+                               },
+                 "resultData":  {
+                                    "runData":  {
+                                                    "Training Quiz Webhook":  [
+                                                                                  {
+                                                                                      "startTime":  1793846747440,
+                                                                                      "executionIndex":  0,
+                                                                                      "source":  [
+
+                                                                                                 ],
+                                                                                      "hints":  [
+
+                                                                                                ],
+                                                                                      "executionTime":  0,
+                                                                                      "executionStatus":  "success",
+                                                                                      "data":  {
+                                                                                                   "main":  [
+                                                                                                                [
+                                                                                                                    "@{json=; pairedItem=}"
+                                                                                                                ]
+                                                                                                            ]
+                                                                                               }
+                                                                                  }
+                                                                              ],
+                                                    "Normalize Input":  [
+                                                                            {
+                                                                                "startTime":  1793846747441,
+                                                                                "executionIndex":  1,
+                                                                                "source":  [
+                                                                                               {
+                                                                                                   "previousNode":  "Training Quiz Webhook",
+                                                                                                   "previousNodeOutput":  0,
+                                                                                                   "previousNodeRun":  0
+                                                                                               }
+                                                                                           ],
+                                                                                "hints":  [
+
+                                                                                          ],
+                                                                                "executionTime":  6,
+                                                                                "executionStatus":  "success",
+                                                                                "data":  {
+                                                                                             "main":  [
+                                                                                                          [
+                                                                                                              "@{json=; pairedItem=}"
+                                                                                                          ]
+                                                                                                      ]
+                                                                                         }
+                                                                            }
+                                                                        ],
+                                                    "Load Scenario":  [
+                                                                          {
+                                                                              "startTime":  1793846747447,
+                                                                              "executionIndex":  2,
+                                                                              "source":  [
+                                                                                             {
+                                                                                                 "previousNode":  "Normalize Input",
+                                                                                                 "previousNodeOutput":  0,
+                                                                                                 "previousNodeRun":  0
+                                                                                             }
+                                                                                         ],
+                                                                              "hints":  [
+
+                                                                                        ],
+                                                                              "executionTime":  6,
+                                                                              "executionStatus":  "success",
+                                                                              "data":  {
+                                                                                           "main":  [
+                                                                                                        [
+                                                                                                            "@{json=; pairedItem=}"
+                                                                                                        ]
+                                                                                                    ]
+                                                                                       }
+                                                                          }
+                                                                      ],
+                                                    "Get/Create Session":  [
+                                                                               {
+                                                                                   "startTime":  1793846747453,
+                                                                                   "executionIndex":  3,
+                                                                                   "source":  [
+                                                                                                  {
+                                                                                                      "previousNode":  "Load Scenario",
+                                                                                                      "previousNodeOutput":  0,
+                                                                                                      "previousNodeRun":  0
+                                                                                                  }
+                                                                                              ],
+                                                                                   "hints":  [
+
+                                                                                             ],
+                                                                                   "executionTime":  19,
+                                                                                   "executionStatus":  "success",
+                                                                                   "data":  {
+                                                                                                "main":  [
+                                                                                                             [
+                                                                                                                 "@{json=; pairedItem=}"
+                                                                                                             ]
+                                                                                                         ]
+                                                                                            }
+                                                                               }
+                                                                           ],
+                                                    "Save User Message":  [
+                                                                              {
+                                                                                  "startTime":  1793846747472,
+                                                                                  "executionIndex":  4,
+                                                                                  "source":  [
+                                                                                                 {
+                                                                                                     "previousNode":  "Get/Create Session",
+                                                                                                     "previousNodeOutput":  0,
+                                                                                                     "previousNodeRun":  0
+                                                                                                 }
+                                                                                             ],
+                                                                                  "hints":  [
+
+                                                                                            ],
+                                                                                  "executionTime":  23,
+                                                                                  "executionStatus":  "success",
+                                                                                  "data":  {
+                                                                                               "main":  [
+                                                                                                            [
+                                                                                                                "@{json=; pairedItem=}"
+                                                                                                            ]
+                                                                                                        ]
+                                                                                           }
+                                                                              }
+                                                                          ],
+                                                    "Restore Item":  [
+                                                                         {
+                                                                             "startTime":  1793846747495,
+                                                                             "executionIndex":  5,
+                                                                             "source":  [
+                                                                                            {
+                                                                                                "previousNode":  "Save User Message",
+                                                                                                "previousNodeOutput":  0,
+                                                                                                "previousNodeRun":  0
+                                                                                            }
+                                                                                        ],
+                                                                             "hints":  [
+
+                                                                                       ],
+                                                                             "executionTime":  6,
+                                                                             "executionStatus":  "success",
+                                                                             "data":  {
+                                                                                          "main":  [
+                                                                                                       [
+                                                                                                           "@{json=; pairedItem=}"
+                                                                                                       ]
+                                                                                                   ]
+                                                                                      }
+                                                                         }
+                                                                     ],
+                                                    "Action Switch":  [
+                                                                          {
+                                                                              "startTime":  1793846747501,
+                                                                              "executionIndex":  6,
+                                                                              "source":  [
+                                                                                             {
+                                                                                                 "previousNode":  "Restore Item",
+                                                                                                 "previousNodeOutput":  0,
+                                                                                                 "previousNodeRun":  0
+                                                                                             }
+                                                                                         ],
+                                                                              "hints":  [
+
+                                                                                        ],
+                                                                              "executionTime":  4,
+                                                                              "executionStatus":  "success",
+                                                                              "data":  {
+                                                                                           "main":  [
+                                                                                                        [
+
+                                                                                                        ],
+                                                                                                        [
+                                                                                                            "@{json=; pairedItem=}"
+                                                                                                        ],
+                                                                                                        [
+
+                                                                                                        ]
+                                                                                                    ]
+                                                                                       }
+                                                                          }
+                                                                      ],
+                                                    "Build Quiz Grade Prompt":  [
+                                                                                    {
+                                                                                        "startTime":  1793846747506,
+                                                                                        "executionIndex":  7,
+                                                                                        "source":  [
+                                                                                                       {
+                                                                                                           "previousNode":  "Action Switch",
+                                                                                                           "previousNodeOutput":  1,
+                                                                                                           "previousNodeRun":  0
+                                                                                                       }
+                                                                                                   ],
+                                                                                        "hints":  [
+
+                                                                                                  ],
+                                                                                        "executionTime":  6,
+                                                                                        "executionStatus":  "success",
+                                                                                        "data":  {
+                                                                                                     "main":  [
+                                                                                                                  [
+                                                                                                                      "@{json=; pairedItem=}"
+                                                                                                                  ]
+                                                                                                              ]
+                                                                                                 }
+                                                                                    }
+                                                                                ],
+                                                    "DeepSeek Chat":  [
+                                                                          {
+                                                                              "startTime":  1793846747522,
+                                                                              "executionTime":  6485,
+                                                                              "executionIndex":  9,
+                                                                              "executionStatus":  "success",
+                                                                              "source":  [
+                                                                                             {
+                                                                                                 "previousNode":  "Quiz Grader Agent",
+                                                                                                 "previousNodeRun":  0
+                                                                                             }
+                                                                                         ],
+                                                                              "data":  {
+                                                                                           "ai_languageModel":  [
+                                                                                                                    [
+                                                                                                                        "@{json=}"
+                                                                                                                    ]
+                                                                                                                ]
+                                                                                       },
+                                                                              "inputOverride":  {
+                                                                                                    "ai_languageModel":  [
+                                                                                                                             [
+                                                                                                                                 "@{json=}"
+                                                                                                                             ]
+                                                                                                                         ]
+                                                                                                },
+                                                                              "metadata":  {
+                                                                                               "subRun":  [
+                                                                                                              {
+                                                                                                                  "node":  "DeepSeek Chat",
+                                                                                                                  "runIndex":  0
+                                                                                                              }
+                                                                                                          ]
+                                                                                           }
+                                                                          }
+                                                                      ],
+                                                    "Quiz Grader Agent":  [
+                                                                              {
+                                                                                  "startTime":  1793846747512,
+                                                                                  "executionIndex":  8,
+                                                                                  "source":  [
+                                                                                                 {
+                                                                                                     "previousNode":  "Build Quiz Grade Prompt",
+                                                                                                     "previousNodeOutput":  0,
+                                                                                                     "previousNodeRun":  0
+                                                                                                 }
+                                                                                             ],
+                                                                                  "hints":  [
+
+                                                                                            ],
+                                                                                  "executionTime":  6496,
+                                                                                  "metadata":  {
+                                                                                                   "tracing":  {
+                                                                                                                   "llm.tokens.in":  1071,
+                                                                                                                   "llm.tokens.out":  1024,
+                                                                                                                   "llm.tokens.total":  2095,
+                                                                                                                   "llm.tokens.estimated":  false
+                                                                                                               }
+                                                                                               },
+                                                                                  "executionStatus":  "success",
+                                                                                  "data":  {
+                                                                                               "main":  [
+                                                                                                            [
+                                                                                                                "@{json=; pairedItem=}"
+                                                                                                            ]
+                                                                                                        ]
+                                                                                           }
+                                                                              }
+                                                                          ],
+                                                    "Format Grade Output":  [
+                                                                                {
+                                                                                    "startTime":  1793846754008,
+                                                                                    "executionIndex":  10,
+                                                                                    "source":  [
+                                                                                                   {
+                                                                                                       "previousNode":  "Quiz Grader Agent",
+                                                                                                       "previousNodeOutput":  0,
+                                                                                                       "previousNodeRun":  0
+                                                                                                   }
+                                                                                               ],
+                                                                                    "hints":  [
+
+                                                                                              ],
+                                                                                    "executionTime":  6,
+                                                                                    "executionStatus":  "success",
+                                                                                    "data":  {
+                                                                                                 "main":  [
+                                                                                                              [
+                                                                                                                  "@{json=; pairedItem=}"
+                                                                                                              ]
+                                                                                                          ]
+                                                                                             }
+                                                                                }
+                                                                            ],
+                                                    "Save Grade Assistant Message":  [
+                                                                                         {
+                                                                                             "startTime":  1793846754014,
+                                                                                             "executionIndex":  11,
+                                                                                             "source":  [
+                                                                                                            {
+                                                                                                                "previousNode":  "Format Grade Output",
+                                                                                                                "previousNodeOutput":  0,
+                                                                                                                "previousNodeRun":  0
+                                                                                                            }
+                                                                                                        ],
+                                                                                             "hints":  [
+
+                                                                                                       ],
+                                                                                             "executionTime":  28,
+                                                                                             "executionStatus":  "success",
+                                                                                             "data":  {
+                                                                                                          "main":  [
+                                                                                                                       [
+                                                                                                                           "@{json=; pairedItem=}"
+                                                                                                                       ]
+                                                                                                                   ]
+                                                                                                      }
+                                                                                         }
+                                                                                     ],
+                                                    "Format Training Output":  [
+                                                                                   {
+                                                                                       "startTime":  1793846754042,
+                                                                                       "executionIndex":  12,
+                                                                                       "source":  [
+                                                                                                      {
+                                                                                                          "previousNode":  "Save Grade Assistant Message",
+                                                                                                          "previousNodeOutput":  0,
+                                                                                                          "previousNodeRun":  0
+                                                                                                      }
+                                                                                                  ],
+                                                                                       "hints":  [
+
+                                                                                                 ],
+                                                                                       "executionTime":  9,
+                                                                                       "executionStatus":  "success",
+                                                                                       "data":  {
+                                                                                                    "main":  [
+                                                                                                                 [
+                                                                                                                     "@{json=; pairedItem=}"
+                                                                                                                 ]
+                                                                                                             ]
+                                                                                                }
+                                                                                   }
+                                                                               ]
+                                                },
+                                    "lastNodeExecuted":  "Format Training Output"
+                                },
+                 "executionData":  {
+                                       "contextData":  {
+
+                                                       },
+                                       "nodeExecutionStack":  [
+
+                                                              ],
+                                       "metadata":  {
+                                                        "DeepSeek Chat":  [
+                                                                              {
+                                                                                  "subRun":  [
+                                                                                                 {
+                                                                                                     "node":  "DeepSeek Chat",
+                                                                                                     "runIndex":  0
+                                                                                                 }
+                                                                                             ]
+                                                                              }
+                                                                          ]
+                                                    },
+                                       "waitingExecution":  {
+
+                                                            },
+                                       "waitingExecutionSource":  {
+
+                                                                  },
+                                       "runtimeData":  {
+                                                           "version":  1,
+                                                           "establishedAt":  1793846747385,
+                                                           "source":  "webhook",
+                                                           "triggerNode":  {
+                                                                               "name":  "Training Quiz Webhook",
+                                                                               "type":  "n8n-nodes-base.webhook"
+                                                                           },
+                                                           "redaction":  {
+                                                                             "version":  2,
+                                                                             "production":  false,
+                                                                             "manual":  false
+                                                                         }
+                                                       }
+                                   },
+                 "resumeToken":  "31f2fe8f2a718e2c96e2cdb8287e2de7c833a7b498ff88dea3a7129a3a200a32"
+             },
+    "workflowData":  {
+                         "id":  "aaCU1Zr00f506dcJ",
+                         "name":  "03 - Training Role-play Agent",
+                         "nodes":  [
+                                       {
+                                           "parameters":  {
+                                                              "events":  "worklfow_call",
+                                                              "notice":  "",
+                                                              "outdatedVersionWarning":  "",
+                                                              "returnOutput":  "lastRunOnly"
+                                                          },
+                                           "id":  "training-input",
+                                           "name":  "Input from Router",
+                                           "type":  "n8n-nodes-base.executeWorkflowTrigger",
+                                           "typeVersion":  1,
+                                           "position":  [
+                                                            240,
+                                                            300
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "multipleMethods":  false,
+                                                              "httpMethod":  "POST",
+                                                              "path":  "training-quiz",
+                                                              "authentication":  "headerAuth",
+                                                              "responseMode":  "lastNode",
+                                                              "responseData":  "firstEntryJson",
+                                                              "options":  {
+
+                                                                          }
+                                                          },
+                                           "id":  "training-webhook",
+                                           "name":  "Training Quiz Webhook",
+                                           "type":  "n8n-nodes-base.webhook",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            240,
+                                                            520
+                                                        ],
+                                           "webhookId":  "training-quiz-webhook",
+                                           "credentials":  {
+                                                               "httpHeaderAuth":  {
+                                                                                      "id":  "y41wfEp7SW5b1LQ3",
+                                                                                      "name":  "HR API Key Header"
+                                                                                  }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const src=$input.first().json;const body=src.body||src;\n// #12: mask PII (CCCD/SĐT/email) trước khi LLM thấy nội dung.\nconst maskPii=(s)=\u003eString(s||\u0027\u0027).replace(/\\b(\\d{9}|\\d{12})\\b/g,\u0027[MASKED_ID]\u0027).replace(/\\b(0[35789]\\d{8})\\b/g,\u0027[MASKED_PHONE]\u0027).replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g,\u0027[MASKED_EMAIL]\u0027);\nreturn[{json:{message:maskPii(body.message||\u0027\u0027),maskedMessage:maskPii(body.maskedMessage||body.message||\u0027\u0027),employeeId:body.employeeId||null,scenarioType:body.scenarioType||\u0027general_communication\u0027,action:body.action||null,answers:body.answers||null,sessionId:body.sessionId||null,channel:body.channel||\u0027web\u0027}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "normalize-input",
+                                           "name":  "Normalize Input",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            460,
+                                                            400
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const input=$input.first().json;\nconst st=input.scenarioType||\"general_communication\";\nconst companyPolicy=\"Chính sách công ty: Giờ làm việc T2–T6 (8:00–17:30, nghỉ trưa 12:00–13:30), chấm công GPS bán kính văn phòng. Thử việc tối đa 60 ngày (hưởng 85% lương). Phép năm chuẩn 12 ngày/năm dương lịch (nhân viên mới vào làm trong năm tính theo tỷ lệ số tháng làm việc thực tế pro-rate, KHÔNG áp dụng bất kỳ cơ chế cộng thêm ngày phép nào: KHÔNG cộng phép thâm niên, KHÔNG chuyển phép dư năm trước sang năm sau). BHXH 8%, BHYT 1.5%, BHTN 1%. OT ngày thường x1.5, cuối tuần x2.0, lễ tết x3.0. Bảo mật PII: không chia sẻ CCCD, SĐT, lương của đồng nghiệp.\";\nconst scenarios={customer_complaint:{role:\"khách hàng khó tính phàn nàn về dịch vụ chậm trễ\",objective:\"xử lý khiếu nại, đề xuất giải pháp, giữ chân khách hàng\",difficulty:\"cao\"},colleague_conflict:{role:\"đồng nghiệp có mâu thuẫn phân công công việc\",objective:\"giải quyết mâu thuẫn, duy trì quan hệ chuyên nghiệp\",difficulty:\"trung bình\"},manager_feedback:{role:\"quản lý phản hồi về hiệu suất thấp và deadline trễ\",objective:\"tiếp nhận phản hồi tích cực, lập kế hoạch cải thiện cụ thể\",difficulty:\"trung bình\"},new_employee_onboarding:{role:\"nhân viên mới tuần đầu tiên cần hướng dẫn làm quen môi trường và chính sách nhân sự (nghỉ phép 12 ngày/năm pro-rate, không cộng phép thâm niên và không chuyển phép dư, chấm công GPS, thử việc, BHXH)\",objective:\"hòa nhập nhanh, hiểu rõ quy định công ty và kỳ vọng công việc\",difficulty:\"thấp\"},performance_review:{role:\"HR đánh giá hiệu suất quý, thảo luận mục tiêu SMART\",objective:\"đánh giá trung thực, thiết lập mục tiêu rõ ràng, đồng thuận\",difficulty:\"cao\"},general_communication:{role:\"đối tác trong cuộc họp đàm phán hợp đồng dịch vụ\",objective:\"giao tiếp hiệu quả, đạt thỏa thuận có lợi cho cả hai\",difficulty:\"trung bình\"}};\nconst sd=scenarios[st]||scenarios.general_communication;\nreturn[{json:{...input,scenarioType:st,scenarioData:sd,companyPolicy}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "load-scenario",
+                                           "name":  "Load Scenario",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            680,
+                                                            400
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "rules",
+                                                              "rules":  {
+                                                                            "values":  [
+                                                                                           {
+                                                                                               "conditions":  {
+                                                                                                                  "options":  "@{caseSensitive=False; leftValue=; typeValidation=strict; version=2}",
+                                                                                                                  "conditions":  "",
+                                                                                                                  "combinator":  "and"
+                                                                                                              },
+                                                                                               "renameOutput":  true,
+                                                                                               "outputKey":  "generate_quiz"
+                                                                                           },
+                                                                                           {
+                                                                                               "conditions":  {
+                                                                                                                  "options":  "@{caseSensitive=False; leftValue=; typeValidation=strict; version=2}",
+                                                                                                                  "conditions":  "",
+                                                                                                                  "combinator":  "and"
+                                                                                                              },
+                                                                                               "renameOutput":  true,
+                                                                                               "outputKey":  "submit_quiz"
+                                                                                           }
+                                                                                       ]
+                                                                        },
+                                                              "looseTypeValidation":  false,
+                                                              "options":  {
+                                                                              "fallbackOutput":  "extra"
+                                                                          }
+                                                          },
+                                           "id":  "action-switch",
+                                           "name":  "Action Switch",
+                                           "type":  "n8n-nodes-base.switch",
+                                           "typeVersion":  3.2,
+                                           "position":  [
+                                                            900,
+                                                            400
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const d=$input.first().json;\nconst sd=d.scenarioData||{};\nconst names={customer_complaint:\"Xử lý khiếu nại khách hàng\",colleague_conflict:\"Giải quyết mâu thuẫn đồng nghiệp\",manager_feedback:\"Tiếp nhận phản hồi quản lý\",new_employee_onboarding:\"Hội nhập nhân viên mới\",performance_review:\"Đánh giá hiệu suất làm việc\",general_communication:\"Giao tiếp chuyên nghiệp\"};\nconst sn=names[d.scenarioType]||d.scenarioType;\nconst cp=d.companyPolicy?\"\\nBối cảnh chính sách công ty: \"+d.companyPolicy:\"\";\nconst p=\"Sinh 7 câu hỏi đào tạo bằng tiếng Việt CÓ DẤU cho kịch bản: \"+sn+\". Mục tiêu: \"+(sd.objective||\"giao tiếp hiệu quả\")+\".\"+cp+\"\\n5 câu trắc nghiệm + 2 câu tự luận. YÊU CẦU BẮT BUỘC: Tất cả câu hỏi, phương án A/B/C/D và giải thích phải viết tiếng Việt có dấu đầy đủ, không viết không dấu. Trả về JSON MINIFIED trên 1 dòng duy nhất (không xuống dòng, không indent), phương án và explanation ngắn gọn (\u003c12 từ), câu essay CHỈ có id, type, question (không có explanation) để không vượt 1024 tokens:\\n{\\\"questions\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"question\\\":\\\"Câu hỏi?\\\",\\\"options\\\":{\\\"A\\\":\\\"...\\\",\\\"B\\\":\\\"...\\\",\\\"C\\\":\\\"...\\\",\\\"D\\\":\\\"...\\\"},\\\"correct\\\":\\\"B\\\",\\\"explanation\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Mô tả...\\\"},{\\\"id\\\":7,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Nếu...\\\"}]}\";\nreturn[{json:{...d,quizPrompt:p}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "quiz-gen-prompt",
+                                           "name":  "Build Quiz Gen Prompt",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            1100,
+                                                            220
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "aiAgentStarterCallout":  "",
+                                                              "agent":  "toolsAgent",
+                                                              "promptType":  "define",
+                                                              "text":  "={{ $json.quizPrompt }}",
+                                                              "hasOutputParser":  false,
+                                                              "options":  {
+                                                                              "systemMessage":  "Bạn là AI sinh câu hỏi đào tạo nhân sự. Bám sát quy định công ty (phép năm chuẩn 12 ngày/năm, pro-rate năm đầu theo tháng vào làm, không cộng phép thâm niên và không chuyển phép dư sang năm sau). Tất cả câu hỏi, phương án và giải thích phải viết tiếng Việt CÓ DẤU đầy đủ, không viết không dấu. Chỉ trả về JSON thuần minified trên 1 dòng, không markdown.",
+                                                                              "maxIterations":  1
+                                                                          },
+                                                              "credentials":  ""
+                                                          },
+                                           "id":  "quiz-gen-agent",
+                                           "name":  "Quiz Generator Agent",
+                                           "type":  "@n8n/n8n-nodes-langchain.agent",
+                                           "typeVersion":  1.7,
+                                           "position":  [
+                                                            1300,
+                                                            220
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const raw=$input.first().json.output||\"\";\nconst hasVietnameseDiacritics=(s)=\u003e/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(String(s||\"\"));\nconst fallback=[\n{id:1,type:\"mcq\",question:\"Khi khách hàng phản nàn, bước đầu tiên bạn nên:\",options:{A:\"Biện hộ cho công ty\",B:\"Lắng nghe và đồng cảm\",C:\"Chuyển cuộc gọi\",D:\"Yêu cầu bằng chứng\"},correct:\"B\",explanation:\"Lắng nghe là bước quan trọng nhất.\"},\n{id:2,type:\"mcq\",question:\"Câu nào thể hiện sự đồng cảm?\",options:{A:\"Đó không phải lỗi của chúng tôi\",B:\"Tôi hiểu bạn đang thất vọng\",C:\"Bạn cần đọc kỹ điều khoản\",D:\"Chúng tôi đã giải quyết rồi\"},correct:\"B\",explanation:\"Thể hiện hiểu cảm xúc khách.\"},\n{id:3,type:\"mcq\",question:\"Để xác nhận đã hiểu vấn đề, bạn:\",options:{A:\"Gật đầu im lặng\",B:\"Tóm tắt lại vấn đề của khách\",C:\"Hỏi nhiều câu liên tiếp\",D:\"Chờ khách nói xong mới đưa giải pháp\"},correct:\"B\",explanation:\"Tóm tắt giúp xác nhận hiểu đúng.\"},\n{id:4,type:\"mcq\",question:\"Khi không có thẩm quyền, bạn:\",options:{A:\"Từ chối hỗ trợ\",B:\"Hứa hẹn không chắc chắn\",C:\"Leo thang đúng người có thẩm quyền\",D:\"Bỏ qua khiếu nại\"},correct:\"C\",explanation:\"Escalation đúng quy trình là chuyên nghiệp.\"},\n{id:5,type:\"mcq\",question:\"Sau khi giải quyết, bạn nên:\",options:{A:\"Kết thúc ngay\",B:\"Follow-up xác nhận khách hài lòng\",C:\"Viết báo cáo ngay\",D:\"Chờ khách liên hệ lại\"},correct:\"B\",explanation:\"Follow-up thể hiện sự quan tâm.\"},\n{id:6,type:\"essay\",question:\"Mô tả từng bước xử lý khi khách hàng phản nàn đơn hàng đến muộn và sản phẩm bị hỏng.\"},\n{id:7,type:\"essay\",question:\"Nếu khách hàng vẫn không hài lòng sau khi bạn đề xuất giải pháp, bạn sẽ làm gì?\"}\n];\nlet qs=[];\ntry{\n  const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();\n  const p=JSON.parse(c);\n  qs=p.questions||p;\n  if(!Array.isArray(qs)||qs.length===0) throw new Error(\"empty quiz\");\n  const sample=qs.map(function(q){return [q.question].concat(q.options?Object.values(q.options):[]).join(\" \");}).join(\" \");\n  if(!hasVietnameseDiacritics(sample)) throw new Error(\"quiz without Vietnamese diacritics\");\n}catch(e){qs=fallback;}\nconst input=$(\"Build Quiz Gen Prompt\").first().json;\nreturn[{json:{answer:\"Đây là bài kiểm tra đào tạo của bạn:\",questions:qs,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"generate_quiz\"}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "quiz-gen-format",
+                                           "name":  "Format Quiz Output",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            1500,
+                                                            220
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const d=$input.first().json;\nconst answers=d.answers||[];\nconst names={customer_complaint:\"Xử lý khiếu nại khách hàng\",colleague_conflict:\"Giải quyết mâu thuẫn đồng nghiệp\",manager_feedback:\"Tiếp nhận phản hồi quản lý\",new_employee_onboarding:\"Hội nhập nhân viên mới\",performance_review:\"Đánh giá hiệu suất\",general_communication:\"Giao tiếp chuyên nghiệp\"};\nconst sn=names[d.scenarioType]||d.scenarioType;\nconst cp=d.companyPolicy?\"\\nBối cảnh chính sách công ty: \"+d.companyPolicy:\"\";\nconst at=answers.map(function(a){\n  if(a.type===\"mcq\") return \"Câu \"+a.questionId+\" (trắc nghiệm): \"+a.question+\"\\nĐáp án đúng: \"+(a.correctAnswer||\"—\")+\" | Học viên chọn: \"+a.answer;\n  return \"Câu \"+a.questionId+\" (tự luận): \"+a.question+\"\\nBài làm: \"+a.answer;\n}).join(\"\\n---\\n\");\nconst p=\"Chấm bài đào tạo. Kịch bản: \"+sn+\".\"+cp+\"\\n\"+at+\"\\n\\nChấm: MCQ đúng/sai theo đáp án đúng; tự luận 0-10, mỗi tự luận PHẢI chấm theo 4 tiêu chí (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang. YÊU CẦU: Trả về JSON MINIFIED trên 1 dòng (feedback tiếng Việt có dấu, ngắn gọn \u003c15 từ):\\n{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"essay_avg\\\":7.5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";\nreturn[{json:{...d,gradePrompt:p}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "quiz-grade-prompt",
+                                           "name":  "Build Quiz Grade Prompt",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            1100,
+                                                            580
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "aiAgentStarterCallout":  "",
+                                                              "agent":  "toolsAgent",
+                                                              "promptType":  "define",
+                                                              "text":  "={{ $json.gradePrompt }}",
+                                                              "hasOutputParser":  false,
+                                                              "options":  {
+                                                                              "systemMessage":  "Bạn là giám khảo chấm bài đào tạo nhân sự. Bám sát quy định công ty (phép năm chuẩn 12 ngày/năm, pro-rate năm đầu theo tháng vào làm, không cộng phép thâm niên và không chuyển phép dư sang năm sau). Tất cả nhận xét phải viết tiếng Việt CÓ DẤU đầy đủ. Chỉ trả về JSON thuần minified trên 1 dòng, không markdown.",
+                                                                              "maxIterations":  1
+                                                                          },
+                                                              "credentials":  ""
+                                                          },
+                                           "id":  "quiz-grade-agent",
+                                           "name":  "Quiz Grader Agent",
+                                           "type":  "@n8n/n8n-nodes-langchain.agent",
+                                           "typeVersion":  1.7,
+                                           "position":  [
+                                                            1300,
+                                                            580
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const raw=$input.first().json.output||\"\";\nconst input=$(\"Build Quiz Grade Prompt\").first().json;\nconst answers=input.answers||[];\nconst fallbackResults=answers.map(function(a){\n  if(a.type===\"mcq\"){\n    const isCorrect=String(a.answer||\"\").toUpperCase()===String(a.correctAnswer||\"\").toUpperCase();\n    return {id:a.questionId,type:\"mcq\",correct:isCorrect,correct_answer:a.correctAnswer||null,feedback:isCorrect?\"Chính xác.\":\"Đáp án đúng là \"+(a.correctAnswer||\"—\")+\".\"};\n  }\n  return {id:a.questionId,type:\"essay\",score:5,max_score:10,criteria:{chuyen_nghiep:5,dong_cam:5,giai_quyet:5,ro_rang:5},feedback:\"Câu trả lời đã được ghi nhận; AI chưa chấm được chi tiết.\"};\n});\nlet gr;\ntry{\n  const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();\n  gr=JSON.parse(c);\n  if(!Array.isArray(gr.results)||gr.results.length===0) throw new Error(\"empty results\");\n  const hasEssay=gr.results.some(function(r){return r.type===\"essay\";});\n  if(!hasEssay) gr.results=gr.results.concat(fallbackResults.filter(function(r){return r.type===\"essay\";}));\n  gr.results=gr.results.map(function(r){\n    const a=answers.find(function(x){return x.questionId===r.id;});\n    return {...r,...(r.type===\"mcq\"\u0026\u0026!r.correct_answer?{correct_answer:a?a.correctAnswer:null}:{})};\n  });\n  if(typeof gr.essay_avg!==\"number\") gr.essay_avg=5;\n}catch(e){\n  const mcq=fallbackResults.filter(function(r){return r.type===\"mcq\";});\n  const correct=mcq.filter(function(r){return r.correct;}).length;\n  gr={score_percent:Math.round((correct/Math.max(1,mcq.length))*100),correct_count:correct,total_mcq:mcq.length,essay_avg:5,results:fallbackResults,overall_feedback:\"Hệ thống chấm điểm tự động. Phần tự luận tạm tính 5/10 do AI chưa chấm được chi tiết.\"};\n}\nreturn[{json:{...gr,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"submit_quiz\",answer:\"Kết quả: \"+(gr.score_percent||0)+\"% - Đúng \"+(gr.correct_count||0)+\"/\"+(gr.total_mcq||5)+\" MCQ. \"+(gr.overall_feedback||\"\")}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "quiz-grade-format",
+                                           "name":  "Format Grade Output",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            1500,
+                                                            580
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "curlImport":  "",
+                                                              "method":  "POST",
+                                                              "url":  "http://host.docker.internal:3001/api/v1/n8n/chat/session",
+                                                              "authentication":  "genericCredentialType",
+                                                              "genericAuthType":  "httpHeaderAuth",
+                                                              "provideSslCertificates":  false,
+                                                              "sendQuery":  false,
+                                                              "sendHeaders":  false,
+                                                              "sendBody":  true,
+                                                              "contentType":  "json",
+                                                              "specifyBody":  "json",
+                                                              "jsonBody":  "={{ JSON.stringify({ sessionId: $(\"Normalize Input\").first().json.sessionId || null, employeeId: $(\"Normalize Input\").first().json.employeeId || null, type: \"TRAINING\", channel: $(\"Normalize Input\").first().json.channel || \"mobile\", externalId: $(\"Normalize Input\").first().json.employeeId || null }) }}",
+                                                              "options":  {
+
+                                                                          },
+                                                              "infoMessage":  ""
+                                                          },
+                                           "id":  "get-session",
+                                           "name":  "Get/Create Session",
+                                           "type":  "n8n-nodes-base.httpRequest",
+                                           "typeVersion":  4.2,
+                                           "position":  [
+                                                            1100,
+                                                            400
+                                                        ],
+                                           "credentials":  {
+                                                               "httpHeaderAuth":  {
+                                                                                      "id":  "y41wfEp7SW5b1LQ3",
+                                                                                      "name":  "HR API Key Header"
+                                                                                  }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "curlImport":  "",
+                                                              "method":  "POST",
+                                                              "url":  "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+                                                              "authentication":  "genericCredentialType",
+                                                              "genericAuthType":  "httpHeaderAuth",
+                                                              "provideSslCertificates":  false,
+                                                              "sendQuery":  false,
+                                                              "sendHeaders":  false,
+                                                              "sendBody":  true,
+                                                              "contentType":  "json",
+                                                              "specifyBody":  "json",
+                                                              "jsonBody":  "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"user\", content: $(\"Normalize Input\").first().json.maskedMessage, metadata: { intent: \"TRAINING\" } }) }}",
+                                                              "options":  {
+
+                                                                          },
+                                                              "infoMessage":  ""
+                                                          },
+                                           "id":  "save-user-message",
+                                           "name":  "Save User Message",
+                                           "type":  "n8n-nodes-base.httpRequest",
+                                           "typeVersion":  4.2,
+                                           "position":  [
+                                                            1300,
+                                                            250
+                                                        ],
+                                           "credentials":  {
+                                                               "httpHeaderAuth":  {
+                                                                                      "id":  "y41wfEp7SW5b1LQ3",
+                                                                                      "name":  "HR API Key Header"
+                                                                                  }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "curlImport":  "",
+                                                              "method":  "POST",
+                                                              "url":  "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+                                                              "authentication":  "genericCredentialType",
+                                                              "genericAuthType":  "httpHeaderAuth",
+                                                              "provideSslCertificates":  false,
+                                                              "sendQuery":  false,
+                                                              "sendHeaders":  false,
+                                                              "sendBody":  true,
+                                                              "contentType":  "json",
+                                                              "specifyBody":  "json",
+                                                              "jsonBody":  "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.answer, metadata: { intent: \"TRAINING\", scenarioType: $json.scenarioType, quiz: $json.questions } }) }}",
+                                                              "options":  {
+
+                                                                          },
+                                                              "infoMessage":  ""
+                                                          },
+                                           "id":  "save-quiz-assistant-message",
+                                           "name":  "Save Quiz Assistant Message",
+                                           "type":  "n8n-nodes-base.httpRequest",
+                                           "typeVersion":  4.2,
+                                           "position":  [
+                                                            1720,
+                                                            60
+                                                        ],
+                                           "credentials":  {
+                                                               "httpHeaderAuth":  {
+                                                                                      "id":  "y41wfEp7SW5b1LQ3",
+                                                                                      "name":  "HR API Key Header"
+                                                                                  }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "curlImport":  "",
+                                                              "method":  "POST",
+                                                              "url":  "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+                                                              "authentication":  "genericCredentialType",
+                                                              "genericAuthType":  "httpHeaderAuth",
+                                                              "provideSslCertificates":  false,
+                                                              "sendQuery":  false,
+                                                              "sendHeaders":  false,
+                                                              "sendBody":  true,
+                                                              "contentType":  "json",
+                                                              "specifyBody":  "json",
+                                                              "jsonBody":  "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.answer, metadata: { intent: \"TRAINING\", scenarioType: $json.scenarioType, grade: { score_percent: $json.score_percent, correct_count: $json.correct_count, total_mcq: $json.total_mcq, essay_avg: $json.essay_avg, feedback: $json.overall_feedback } } }) }}",
+                                                              "options":  {
+
+                                                                          },
+                                                              "infoMessage":  ""
+                                                          },
+                                           "id":  "save-grade-assistant-message",
+                                           "name":  "Save Grade Assistant Message",
+                                           "type":  "n8n-nodes-base.httpRequest",
+                                           "typeVersion":  4.2,
+                                           "position":  [
+                                                            1720,
+                                                            560
+                                                        ],
+                                           "credentials":  {
+                                                               "httpHeaderAuth":  {
+                                                                                      "id":  "y41wfEp7SW5b1LQ3",
+                                                                                      "name":  "HR API Key Header"
+                                                                                  }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "// Gộp session vừa tạo trở lại item gốc (HTTP node thay item bằng response)\nconst session=$input.first().json;\nconst ls=$(\"Load Scenario\").first().json;\nreturn[{json:{...ls, sessionId:session.sessionId||session.id}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "restore-item",
+                                           "name":  "Restore Item",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            900,
+                                                            250
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const session=$input.first().json;const ls=$(\"Load Scenario\").first().json;const scenario=ls.scenarioData;const ri=$(\"Normalize Input\").first().json;return[{json:{sessionId:session.sessionId||session.id,maskedMessage:ri.maskedMessage,employeeId:ri.employeeId,scenarioRole:scenario.role,scenarioObjective:scenario.objective,scenarioDifficulty:scenario.difficulty,companyPolicy:ls.companyPolicy}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "prep-agent-input",
+                                           "name":  "Prepare Agent Input",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            1300,
+                                                            400
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "aiAgentStarterCallout":  "",
+                                                              "agent":  "toolsAgent",
+                                                              "promptType":  "define",
+                                                              "text":  "={{ $(\"Normalize Input\").first().json.maskedMessage || \"Bat dau tinh huong dao tao\" }}",
+                                                              "hasOutputParser":  false,
+                                                              "options":  {
+                                                                              "systemMessage":  "={{ \"Ban dang dong vai trong kich ban dao tao:\\nVai dien: \" + $json.scenarioRole + \".\\nMuc tieu: \" + $json.scenarioObjective + \".\\nDo kho: \" + $json.scenarioDifficulty + \".\\nBoi canh chinh sach cong ty: \" + ($json.companyPolicy || \"Phep nam 12 ngay/nam, pro-rate nam dau theo thang vao lam, KHONG cong phep tham nien va KHONG chuyen phep du sang nam sau.\") + \"\\n\\nHuong dan:\\n1) Phan ung TU NHIEN theo vai dien (tieng Viet), bam sat quy dinh cong ty neu tinh huong lien quan den nhan su/hoi nhap.\\n2) Sau do CHAM DIEM cau tra loi TRUOC (neu co) theo format:\\n[DANH GIA: chuyen_nghiep=X, dong_cam=X, giai_quyet=X, ro_rang=X, tong=X, nhan_xet=text]\\n\\nX la so tu 0-10. Neu tin nhan dau tien thi khong cham, chi bat dau dong vai.\" }}",
+                                                                              "maxIterations":  3
+                                                                          },
+                                                              "credentials":  ""
+                                                          },
+                                           "id":  "training-agent",
+                                           "name":  "Training Agent",
+                                           "type":  "@n8n/n8n-nodes-langchain.agent",
+                                           "typeVersion":  1.7,
+                                           "position":  [
+                                                            1500,
+                                                            400
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "notice":  "",
+                                                              "model":  "deepseek-flash",
+                                                              "options":  {
+                                                                              "maxTokens":  1024,
+                                                                              "temperature":  0.8
+                                                                          }
+                                                          },
+                                           "id":  "deepseek-training",
+                                           "name":  "DeepSeek Chat",
+                                           "type":  "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+                                           "typeVersion":  1,
+                                           "retryOnFail":  true,
+                                           "maxTries":  3,
+                                           "waitBetweenTries":  2000,
+                                           "position":  [
+                                                            1300,
+                                                            700
+                                                        ],
+                                           "credentials":  {
+                                                               "deepSeekApi":  {
+                                                                                   "id":  "QwonmhnAXcr33Bvm",
+                                                                                   "name":  "DeepSeek account"
+                                                                               }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "notice":  "",
+                                                              "sessionIdType":  "fromInput",
+                                                              "tableName":  "n8n_chat_histories"
+                                                          },
+                                           "id":  "postgres-memory",
+                                           "name":  "Postgres Chat Memory",
+                                           "type":  "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+                                           "typeVersion":  1,
+                                           "position":  [
+                                                            1500,
+                                                            700
+                                                        ],
+                                           "credentials":  {
+                                                               "postgres":  {
+                                                                                "id":  "DImvfbYdTqnryV2B",
+                                                                                "name":  "HR System PostgreSQL"
+                                                                            }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "const output=$input.first().json.output||\"\";const scoreMatch=output.match(/\\[DANH GIA:([^\\]]+)\\]/);let scoring=null;if(scoreMatch){const p=scoreMatch[1];const ex=(k)=\u003e{const m=p.match(new RegExp(k+\"=(\\\\d+(?:\\\\.\\\\d+)?)\"));return m?parseFloat(m[1]):0;};const nx=p.match(/nhan_xet=(.+)/);scoring={scores:{professional:ex(\"chuyen_nghiep\"),empathy:ex(\"dong_cam\"),problem_solving:ex(\"giai_quyet\"),clarity:ex(\"ro_rang\")},total:ex(\"tong\"),feedback:nx?nx[1].trim():\"\"};}const rp=output.replace(/\\[DANH GIA:[^\\]]+\\]/,\"\").trim();const sessionId=$(\"Get/Create Session\").first().json.id;const scenarioType=$(\"Load Scenario\").first().json.scenarioType;return[{json:{roleplayResponse:rp,scoring,sessionId,scenarioType}}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "parse-result",
+                                           "name":  "Parse Result",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            1700,
+                                                            400
+                                                        ]
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "curlImport":  "",
+                                                              "method":  "POST",
+                                                              "url":  "http://host.docker.internal:3001/api/v1/n8n/chat/message",
+                                                              "authentication":  "genericCredentialType",
+                                                              "genericAuthType":  "httpHeaderAuth",
+                                                              "provideSslCertificates":  false,
+                                                              "sendQuery":  false,
+                                                              "sendHeaders":  false,
+                                                              "sendBody":  true,
+                                                              "contentType":  "json",
+                                                              "specifyBody":  "json",
+                                                              "jsonBody":  "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"deepseek-flash\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
+                                                              "options":  {
+
+                                                                          },
+                                                              "infoMessage":  ""
+                                                          },
+                                           "id":  "save-assistant",
+                                           "name":  "Save Assistant Message",
+                                           "type":  "n8n-nodes-base.httpRequest",
+                                           "typeVersion":  4.2,
+                                           "position":  [
+                                                            1900,
+                                                            400
+                                                        ],
+                                           "credentials":  {
+                                                               "httpHeaderAuth":  {
+                                                                                      "id":  "y41wfEp7SW5b1LQ3",
+                                                                                      "name":  "HR API Key Header"
+                                                                                  }
+                                                           }
+                                       },
+                                       {
+                                           "parameters":  {
+                                                              "mode":  "runOnceForAllItems",
+                                                              "language":  "javaScript",
+                                                              "jsCode":  "// Detect branch: quiz / grade / roleplay\nlet out={questions:null,answer:\"\",scoring:null,scenarioType:\"\",sessionId:\"\",intent:\"TRAINING\"};\n// Quiz branch: read questions từ Format Quiz Output\ntry{const fqo=$(\"Format Quiz Output\").first().json;if(fqo\u0026\u0026Array.isArray(fqo.questions)){out.questions=fqo.questions;out.answer=fqo.answer||\"Đây là bài kiểm tra đào tạo của bạn:\";out.scenarioType=fqo.scenarioType||\"\";out.sessionId=fqo.sessionId||\"\";return[{json:out}];}}catch(_){}\n// Grade branch: read result từ Format Grade Output\ntry{const fgo=$(\"Format Grade Output\").first().json;if(fgo\u0026\u0026fgo.score_percent!==undefined){out.answer=fgo.overall_feedback||\"\";out.score_percent=fgo.score_percent;out.correct_count=fgo.correct_count;out.total_mcq=fgo.total_mcq;out.essay_avg=fgo.essay_avg;out.results=fgo.results;out.overall_feedback=fgo.overall_feedback||out.answer;out.scoring={score_percent:fgo.score_percent,correct_count:fgo.correct_count,total_mcq:fgo.total_mcq,essay_avg:fgo.essay_avg,results:fgo.results};out.scenarioType=fgo.scenarioType||\"\";out.sessionId=fgo.sessionId||\"\";return[{json:out}];}}catch(_){}\n// Roleplay branch: read từ Parse Result\ntry{const pr=$(\"Parse Result\").first().json;out.answer=pr.roleplayResponse||\"\";out.scoring=pr.scoring||null;out.scenarioType=pr.scenarioType||\"\";out.sessionId=pr.sessionId||\"\";}catch(_){}\nreturn[{json:out}];",
+                                                              "notice":  ""
+                                                          },
+                                           "id":  "format-training-output",
+                                           "name":  "Format Training Output",
+                                           "type":  "n8n-nodes-base.code",
+                                           "typeVersion":  2,
+                                           "position":  [
+                                                            2100,
+                                                            400
+                                                        ]
+                                       }
+                                   ],
+                         "connections":  {
+                                             "Input from Router":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Normalize Input",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                                             "Training Quiz Webhook":  {
+                                                                           "main":  [
+                                                                                        [
+                                                                                            {
+                                                                                                "node":  "Normalize Input",
+                                                                                                "type":  "main",
+                                                                                                "index":  0
+                                                                                            }
+                                                                                        ]
+                                                                                    ]
+                                                                       },
+                                             "Normalize Input":  {
+                                                                     "main":  [
+                                                                                  [
+                                                                                      {
+                                                                                          "node":  "Load Scenario",
+                                                                                          "type":  "main",
+                                                                                          "index":  0
+                                                                                      }
+                                                                                  ]
+                                                                              ]
+                                                                 },
+                                             "Load Scenario":  {
+                                                                   "main":  [
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Get/Create Session",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ]
+                                                                            ]
+                                                               },
+                                             "Action Switch":  {
+                                                                   "main":  [
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Build Quiz Gen Prompt",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ],
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Build Quiz Grade Prompt",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ],
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Prepare Agent Input",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ]
+                                                                            ]
+                                                               },
+                                             "Build Quiz Gen Prompt":  {
+                                                                           "main":  [
+                                                                                        [
+                                                                                            {
+                                                                                                "node":  "Quiz Generator Agent",
+                                                                                                "type":  "main",
+                                                                                                "index":  0
+                                                                                            }
+                                                                                        ]
+                                                                                    ]
+                                                                       },
+                                             "Quiz Generator Agent":  {
+                                                                          "main":  [
+                                                                                       [
+                                                                                           {
+                                                                                               "node":  "Format Quiz Output",
+                                                                                               "type":  "main",
+                                                                                               "index":  0
+                                                                                           }
+                                                                                       ]
+                                                                                   ]
+                                                                      },
+                                             "Build Quiz Grade Prompt":  {
+                                                                             "main":  [
+                                                                                          [
+                                                                                              {
+                                                                                                  "node":  "Quiz Grader Agent",
+                                                                                                  "type":  "main",
+                                                                                                  "index":  0
+                                                                                              }
+                                                                                          ]
+                                                                                      ]
+                                                                         },
+                                             "Quiz Grader Agent":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Format Grade Output",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                                             "Get/Create Session":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Save User Message",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                                             "Restore Item":  {
+                                                                  "main":  [
+                                                                               [
+                                                                                   {
+                                                                                       "node":  "Action Switch",
+                                                                                       "type":  "main",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ]
+                                                                           ]
+                                                              },
+                                             "Save User Message":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Restore Item",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                                             "Prepare Agent Input":  {
+                                                                         "main":  [
+                                                                                      [
+                                                                                          {
+                                                                                              "node":  "Training Agent",
+                                                                                              "type":  "main",
+                                                                                              "index":  0
+                                                                                          }
+                                                                                      ]
+                                                                                  ]
+                                                                     },
+                                             "Training Agent":  {
+                                                                    "main":  [
+                                                                                 [
+                                                                                     {
+                                                                                         "node":  "Parse Result",
+                                                                                         "type":  "main",
+                                                                                         "index":  0
+                                                                                     }
+                                                                                 ]
+                                                                             ]
+                                                                },
+                                             "Parse Result":  {
+                                                                  "main":  [
+                                                                               [
+                                                                                   {
+                                                                                       "node":  "Save Assistant Message",
+                                                                                       "type":  "main",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ]
+                                                                           ]
+                                                              },
+                                             "Save Assistant Message":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Format Training Output",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        },
+                                             "DeepSeek Chat":  {
+                                                                   "ai_languageModel":  [
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Quiz Generator Agent",
+                                                                                                    "type":  "ai_languageModel",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ],
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Quiz Grader Agent",
+                                                                                                    "type":  "ai_languageModel",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ],
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Training Agent",
+                                                                                                    "type":  "ai_languageModel",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ]
+                                                                                        ]
+                                                               },
+                                             "Postgres Chat Memory":  {
+                                                                          "ai_memory":  [
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Training Agent",
+                                                                                                    "type":  "ai_memory",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ]
+                                                                                        ]
+                                                                      },
+                                             "Format Grade Output":  {
+                                                                         "main":  [
+                                                                                      [
+                                                                                          {
+                                                                                              "node":  "Save Grade Assistant Message",
+                                                                                              "type":  "main",
+                                                                                              "index":  0
+                                                                                          }
+                                                                                      ]
+                                                                                  ]
+                                                                     },
+                                             "Format Quiz Output":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Save Quiz Assistant Message",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                                             "Save Quiz Assistant Message":  {
+                                                                                 "main":  [
+                                                                                              [
+                                                                                                  {
+                                                                                                      "node":  "Format Training Output",
+                                                                                                      "type":  "main",
+                                                                                                      "index":  0
+                                                                                                  }
+                                                                                              ]
+                                                                                          ]
+                                                                             },
+                                             "Save Grade Assistant Message":  {
+                                                                                  "main":  [
+                                                                                               [
+                                                                                                   {
+                                                                                                       "node":  "Format Training Output",
+                                                                                                       "type":  "main",
+                                                                                                       "index":  0
+                                                                                                   }
+                                                                                               ]
+                                                                                           ]
+                                                                              }
+                                         },
+                         "settings":  {
+                                          "executionOrder":  "v1",
+                                          "binaryMode":  "separate"
+                                      },
+                         "nodeGroups":  [
+
+                                        ]
+                     },
+    "customData":  {
+
+                   }
+}

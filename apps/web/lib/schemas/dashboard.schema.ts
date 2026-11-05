@@ -2,6 +2,10 @@ import { z } from 'zod'
 
 export const KpiSchema = z.object({
   totalEmployees: z.number(),
+  /** Hồ sơ đã nghỉ việc (TERMINATED) — không nằm trong totalEmployees */
+  terminatedEmployees: z.number().optional().default(0),
+  /** Tổng hồ sơ = đang làm việc + đã nghỉ việc */
+  totalEmployeeRecords: z.number().optional(),
   todayAttendanceRate: z.number(),
   todayDetail: z.object({ onTime: z.number(), late: z.number(), onLeave: z.number() }),
   monthlyPayrollTotal: z.number(),
@@ -28,6 +32,7 @@ export const PendingLeaveSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   totalDays: z.number(),
+  overtimeHours: z.number().nullable().optional(),
   reason: z.string(),
   status: z.string(),
   employee: z.object({

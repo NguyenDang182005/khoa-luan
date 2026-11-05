@@ -54,15 +54,24 @@ export class TrainingService {
     scenario: string,
   ): Promise<Map<number, string | undefined>> {
     const map = new Map<number, string | undefined>();
-    const msg = await this.prisma.aiChatMessage.findFirst({
+    const msgs = await this.prisma.aiChatMessage.findMany({
       where: {
         role: 'assistant',
-        metadata: { path: ['scenarioType'], equals: scenario },
+        // WF03 lưu scenarioType dạng lowercase (customer_complaint),
+        // còn `scenario` ở đây là enum uppercase (CUSTOMER_COMPLAINT).
+        OR: [
+          { metadata: { path: ['scenarioType'], equals: scenario } },
+          { metadata: { path: ['scenarioType'], equals: scenario.toLowerCase() } },
+        ],
         session: { employeeId: employee.id, type: 'TRAINING' },
       },
       orderBy: { createdAt: 'desc' },
+      take: 20,
       select: { metadata: true },
     });
+    // Message mới nhất có thể là tin "đã chấm xong" (metadata.grade), không chứa quiz.
+    // Tìm ngược về message có metadata.quiz do WF03 stash lúc sinh đề.
+    const msg = msgs.find((m) => Array.isArray((m.metadata as any)?.quiz));
     const quiz = (msg?.metadata as any)?.quiz;
     if (!Array.isArray(quiz)) return map;
     for (const q of quiz) {
@@ -157,6 +166,15 @@ export class TrainingService {
     const webhookUrl = n8nBase.replace(/\/webhook\/chat$/, '/webhook') + '/training-quiz';
     const apiKey = this.config.get<string>('N8N_API_KEY');
 
+    // Đáp án đúng lấy từ bản WF03 đã stash server-side khi sinh bài.
+    // Phải load TRƯỚC khi gọi grader để gửi correctAnswer cho WF03 chấm MCQ.
+    const correctById = await this.loadServerQuizAnswers(employee, scenario);
+    const answersForGrade = answers.map((a) =>
+      a.type === 'mcq' && !a.correctAnswer
+        ? { ...a, correctAnswer: correctById.get(a.questionId) ?? undefined }
+        : a,
+    );
+
     // Gọi WF03 để chấm điểm
     let gradeResult: any;
     try {
@@ -170,7 +188,7 @@ export class TrainingService {
           action: 'submit_quiz',
           scenarioType: scenarioRaw.toLowerCase(),
           employeeId: employee.employeeCode,
-          answers,
+          answers: answersForGrade,
         }),
         signal: AbortSignal.timeout(N8N_QUIZ_TIMEOUT_MS),
       });
@@ -179,10 +197,10 @@ export class TrainingService {
         gradeResult = await resp.json();
       } else {
         // Nếu WF03 lỗi, tự tính điểm từ answers
-        gradeResult = this.fallbackGrade(answers);
+        gradeResult = this.fallbackGrade(answersForGrade);
       }
     } catch {
-      gradeResult = this.fallbackGrade(answers);
+      gradeResult = this.fallbackGrade(answersForGrade);
     }
 
     // Lưu TrainingSession — hỗ trợ cả trường trực tiếp lẫn trường lồng trong scoring (tương thích n8n)
@@ -198,8 +216,6 @@ export class TrainingService {
     // #7: KHÔNG tin correctAnswer do client gửi (nếu tin, người học tự gửi
     // đáp án đúng và luôn 100%). Đáp án đúng lấy từ bản WF03 đã stash server-side
     // khi sinh bài (metadata.quiz của message assistant gần nhất).
-    const correctById = await this.loadServerQuizAnswers(employee, scenario);
-
     // ── Chấm MCQ deterministic phía server ──────────────────────────────────────
     // Đáp án đúng đọc từ DB; nếu câu không có trong DB thì fallback results[] của WF03.
     const mcqIsCorrect = (ans: { type: string; answer: string; questionId: number }): boolean | null => {
@@ -275,6 +291,43 @@ export class TrainingService {
       gradeResult?.answer ||
       '';
 
+    // Chuẩn hoá results cho UI: luôn có đủ câu, kèm correct_answer + feedback.
+    // q.correct bị strip khỏi public quiz để chống tự chấm, nên UI chỉ có thể
+    // hiển thị đáp án đúng từ kết quả submit này.
+    const resultsWithAnswers = answers.map((ans) => {
+      const item: any = rawResults.find((r: any) => r.id === ans.questionId) ?? {};
+      if (ans.type === 'mcq') {
+        const isCorrect = mcqIsCorrect(ans) === true;
+        const correctAnswer =
+          correctById.get(ans.questionId) ?? item.correct_answer ?? ans.correctAnswer ?? null;
+        return {
+          ...item,
+          id: ans.questionId,
+          type: 'mcq',
+          correct: isCorrect,
+          correct_answer: correctAnswer,
+          feedback:
+            item.feedback ||
+            (isCorrect
+              ? 'Chính xác.'
+              : correctAnswer
+                ? `Đáp án đúng là ${correctAnswer}.`
+                : 'Chưa xác định được đáp án.'),
+        };
+      }
+      return {
+        ...item,
+        id: ans.questionId,
+        type: 'essay',
+        score: typeof item.score === 'number' ? item.score : null,
+        max_score: 10,
+        criteria: item.criteria ?? null,
+        feedback:
+          item.feedback ||
+          'Câu trả lời đã được ghi nhận. Hệ thống chưa chấm được chi tiết do lỗi kết nối AI.',
+      };
+    });
+
     const session = await this.prisma.trainingSession.create({
       data: {
         employeeId: employee.id,
@@ -291,7 +344,7 @@ export class TrainingService {
     // Lưu TrainingAttempt cho từng câu (dùng questionId=0 vì câu hỏi do Gemini sinh động)
     const placeholder = await this.ensurePlaceholderQuestion(scenario);
     for (const ans of answers) {
-      const resultItem = rawResults.find((r: any) => r.id === ans.questionId) ?? {};
+      const resultItem = resultsWithAnswers.find((r: any) => r.id === ans.questionId) ?? {};
       await this.prisma.trainingAttempt.create({
         data: {
           sessionId: session.id,
@@ -320,7 +373,7 @@ export class TrainingService {
       correct_count: correctCount,
       total_mcq: totalMcq,
       essay_avg: Math.round(essayAvg * 10) / 10,
-      results: rawResults,
+      results: resultsWithAnswers,
       overall_feedback: overallFeedback,
     };
   }
@@ -402,6 +455,8 @@ export class TrainingService {
   /** GET /training/dashboard/overview — tổng công ty (Admin) */
   async getOverviewDashboard() {
     const employees = await this.prisma.employee.findMany({
+      // Đồng bộ với Dashboard: bỏ hồ sơ đã nghỉ việc khỏi thống kê đào tạo.
+      where: { status: { not: 'TERMINATED' } },
       select: {
         id: true,
         employeeCode: true,

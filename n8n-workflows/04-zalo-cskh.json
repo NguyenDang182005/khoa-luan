@@ -51,7 +51,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// [PII Masking] WF04 — dùng lại đúng regex của WF01 Router (doc 11: CCCD/CMND, SĐT VN, email).\n// Gemini/Chat Memory CHỈ thấy bản masked; bản original vẫn được lưu DB để đối chiếu audit.\nconst p = $input.first().json;\nconst raw = String(p.message || p.originalMessage || \"\");\nconst masked = raw\n  .replace(/\\b(\\d{9}|\\d{12})\\b/g, \"[MASKED_ID]\")\n  .replace(/\\b(0[35789]\\d{8})\\b/g, \"[MASKED_PHONE]\")\n  .replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g, \"[MASKED_EMAIL]\");\nreturn [{ json: { ...p, message: masked, maskedMessage: masked } }];"
+        "jsCode": "// [PII Masking] WF04 — dùng lại đúng regex của WF01 Router (doc 11: CCCD/CMND, SĐT VN, email).\n// LLM/Chat Memory CHỈ thấy bản masked; bản original vẫn được lưu DB để đối chiếu audit.\nconst p = $input.first().json;\nconst raw = String(p.message || p.originalMessage || \"\");\nconst masked = raw\n  .replace(/\\b(\\d{9}|\\d{12})\\b/g, \"[MASKED_ID]\")\n  .replace(/\\b(0[35789]\\d{8})\\b/g, \"[MASKED_PHONE]\")\n  .replace(/[\\w.-]+@[\\w.-]+\\.\\w+/g, \"[MASKED_EMAIL]\");\nreturn [{ json: { ...p, message: masked, maskedMessage: masked } }];"
       },
       "id": "pii-masking-cskh",
       "name": "PII Masking",
@@ -131,31 +131,28 @@
       "position": [
         1120,
         300
-      ],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 2000
+      ]
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
+        "model": "deepseek-flash",
         "options": {
           "temperature": 0.5,
-          "maxOutputTokens": 1024
+          "maxTokens": 1024
         }
       },
-      "id": "gemini-cskh",
-      "name": "Gemini Flash",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "id": "deepseek-cskh",
+      "name": "DeepSeek Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "position": [
         900,
         520
       ],
       "credentials": {
-        "googlePalmApi": {
-          "id": "GijeOpAk3nuWoDHZ",
-          "name": "Gemini 2025"
+        "deepSeekApi": {
+          "id": "QwonmhnAXcr33Bvm",
+          "name": "DeepSeek account"
         }
       },
       "retryOnFail": true,
@@ -204,7 +201,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.answer, metadata: { model: \"gemini-3.1-flash-lite\", escalated: $json.shouldEscalate, escalateReason: $json.escalateReason } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.answer, metadata: { model: \"deepseek-flash\", escalated: $json.shouldEscalate, escalateReason: $json.escalateReason } }) }}",
         "options": {}
       },
       "id": "save-assistant",
@@ -519,7 +516,7 @@
         ]
       ]
     },
-    "Gemini Flash": {
+    "DeepSeek Chat": {
       "ai_languageModel": [
         [
           {

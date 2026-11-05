@@ -1,0 +1,36 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+top to bottom direction
+
+package "Tầng trình bày" {
+  [Next.js 16 Web Portal :3000\nReact 19, Tailwind CSS, shadcn/ui] as WEB
+  [Slack channel\nmô phỏng kênh Zalo OA] as SL
+}
+package "Tầng ứng dụng" {
+  [NestJS 11 REST API :3001\n/api/v1, JWT, RBAC, Throttler] as API
+  [Socket.IO Gateway\nnamespace /notifications] as WS
+}
+package "Tầng điều phối AI" {
+  [n8n :5678\nWF01 đến WF04] as N8N
+}
+package "Tầng dữ liệu" {
+  database "PostgreSQL 16\n+ pgvector :5432" as PG
+}
+cloud "Dịch vụ bên ngoài" {
+  [DeepSeek API\ndeepseek-flash] as DS
+  [Google AI Studio\ngemini-embedding-001] as EXT
+  [Firebase Authentication] as FB
+}
+
+WEB --> API : REST + Bearer JWT
+WEB <--> WS : WebSocket
+WEB --> FB : OAuth popup
+SL <--> API : Bolt Socket Mode,\nWeb API
+API --> FB : verifyIdToken
+API <--> N8N : webhook / HTTP tools\n(x-api-key)
+API --> PG : Prisma ORM
+N8N --> PG : Postgres Chat Memory
+N8N --> DS : sinh văn bản
+API --> EXT : embedContent
+@enduml

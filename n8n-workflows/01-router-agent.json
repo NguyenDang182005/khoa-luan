@@ -40,7 +40,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $input.first().json;\n// Chuẩn hóa (25/09): lowercase → bỏ dấu (NFD strip) → đ→d ⇒ match 1 bộ từ khóa không dấu duy nhất\n// Cải thiện: tin lẫn lộn dấu (\"Lương thang 8 của tôi?\") và không dấu đều khớp.\nconst raw = (data.maskedMessage || '').toLowerCase();\nconst msg = raw.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/đ/g, 'd');\n\nconst isHR = /luong|phep|ngay nghi|xin nghi|nghi phep|nghi om|nghi viec|nghi bu|nghi le|nghi che do|nghi khong luong|hop dong|bhxh|bhyt|bhtn|cham cong|bao hiem|thue tncn|tang luong|giam tru|bac luong|he so|thai san|phuc loi|tien thuong|luong thuong|thuong tet|thuong thang|thuong nong|khen thuong|thu nhap|khau tru|cong so|bang luong|phu cap|quy dinh|chinh sach|noi quy|thu viec|di muon|ve som|che do|tro cap|thoi viec|dong phuc|cong tac|nghi mat|kham suc khoe|sa thai|duoi viec|overtime/.test(msg)\n  || /(?:^|[^\\p{L}\\p{N}])nghi(?=[^\\p{L}\\p{N}]|$)/u.test(msg);\n\nconst isQuizRequest = /bai test|bai kiem tra|lam test|quiz|trac nghiem|bai thi|kiem tra ky nang|bat dau dao tao|bat dau bai test|bat dau bai kiem tra|bat dau kiem tra/.test(msg);\n\n// 25/09: ĐÃ BỎ từ trần \"kiem tra\"/\"kiểm tra\" — \"kiểm tra đơn hàng\" (CSKH) bị nhầm TRAINING.\n// Giữ các cụm an toàn: bai kiem tra, kiem tra ky nang, bài kiểm tra, kiểm tra kỹ năng.\nconst isTraining = /training|dao tao|role.?play|kich ban|luyen tap|tinh huong|ky nang giao tiep|ky nang|roleplay|tap duot|bai test|bai kiem tra|lam test|quiz|trac nghiem|bai thi/.test(msg);\n\n// 25/09: Bồi thêm từ khóa TMĐT & Escalation CSKH — \"kiem tra don hang\", \"boi thuong\", \"loi he thong\" → CSKH.\nconst isCSKH = /khieu nai|khach hang|san pham|cskh|phan nan|dich vu|cham soc khach|ho tro khach|complain|don hang|giao hang|van don|doi tra|hoan tien|bao hanh|sai mau|thieu hang|boi thuong|loi he thong|gap giam doc|gap lanh dao|techhrm|goi basic|goi pro|goi enterprise/.test(msg);\n\nlet intent = 'OTHER';\nif (data.action === 'generate_quiz' || data.action === 'submit_quiz' || data.scenarioType || data.sessionType === 'TRAINING') intent = 'TRAINING';\nelse if (data.sessionType === 'CSKH' || data.channel === 'zalo') intent = 'CSKH';\nelse if (isHR) intent = 'HR_QA';\nelse if (isTraining) intent = 'TRAINING';\nelse if (isCSKH) intent = 'CSKH';\nelse if (data.sessionType && ['HR_QA', 'TRAINING', 'CSKH'].includes(data.sessionType)) {\n  intent = data.sessionType;\n}\n\n// Tự động set action='generate_quiz' khi user nhắn từ khóa quiz/test\nconst action = data.action || (intent === 'TRAINING' && isQuizRequest ? 'generate_quiz' : null);\n\nreturn [{ json: { ...data, intent, action } }];"
+        "jsCode": "const data = $input.first().json;\n// Chuẩn hóa (25/09): lowercase → bỏ dấu (NFD strip) → đ→d ⇒ match 1 bộ từ khóa không dấu duy nhất\n// Cải thiện: tin lẫn lộn dấu (\"Lương thang 8 của tôi?\") và không dấu đều khớp.\nconst raw = (data.maskedMessage || '').toLowerCase();\nconst msg = raw.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/đ/g, 'd');\n\nconst isHR = /luong|phep|ngay nghi|xin nghi|nghi phep|nghi om|nghi viec|nghi bu|nghi le|nghi che do|nghi khong luong|hop dong|bhxh|bhyt|bhtn|cham cong|bao hiem|thue tncn|tang luong|giam tru|bac luong|he so|thai san|phuc loi|tien thuong|luong thuong|thuong tet|thuong thang|thuong nong|khen thuong|thu nhap|khau tru|cong so|bang luong|phu cap|quy dinh|chinh sach|noi quy|thu viec|di muon|ve som|che do|tro cap|thoi viec|dong phuc|cong tac|nghi mat|kham suc khoe|sa thai|duoi viec|overtime|phong ban|truong phong|quan ly truc tiep|nhan su|ma so thue|thue thu nhap|gio lam|lich lam|ca lam|tham nien|nghi huu|ky luat|danh gia nang luc/.test(msg)\n  || /(?:^|[^\\p{L}\\p{N}])nghi(?=[^\\p{L}\\p{N}]|$)/u.test(msg);\n\nconst isQuizRequest = /bai test|bai kiem tra|lam test|quiz|trac nghiem|bai thi|kiem tra ky nang|bat dau dao tao|bat dau bai test|bat dau bai kiem tra|bat dau kiem tra/.test(msg);\n\n// 25/09: ĐÃ BỎ từ trần \"kiem tra\"/\"kiểm tra\" — \"kiểm tra đơn hàng\" (CSKH) bị nhầm TRAINING.\n// Giữ các cụm an toàn: bai kiem tra, kiem tra ky nang, bài kiểm tra, kiểm tra kỹ năng.\nconst isTraining = /training|dao tao|role.?play|kich ban|luyen tap|tinh huong|ky nang giao tiep|ky nang|roleplay|tap duot|bai test|bai kiem tra|lam test|quiz|trac nghiem|bai thi/.test(msg);\n\n// 25/09: Bồi thêm từ khóa TMĐT & Escalation CSKH — \"kiem tra don hang\", \"boi thuong\", \"loi he thong\" → CSKH.\nconst isCSKH = /khieu nai|khach hang|san pham|cskh|phan nan|dich vu|cham soc khach|ho tro khach|complain|don hang|giao hang|van don|doi tra|hoan tien|bao hanh|sai mau|thieu hang|boi thuong|loi he thong|gap giam doc|gap lanh dao|techhrm|goi basic|goi pro|goi enterprise/.test(msg);\n\nlet intent = 'OTHER';\nif (data.action === 'generate_quiz' || data.action === 'submit_quiz' || data.scenarioType || data.sessionType === 'TRAINING') intent = 'TRAINING';\nelse if (data.sessionType === 'CSKH' || data.channel === 'zalo') intent = 'CSKH';\n// 03/11: portal đã chọn module Nhân sự → tôn trọng lựa chọn, không để từ khóa CSKH (\"khách hàng\", \"dịch vụ\") kéo sang agent khác\nelse if (data.sessionType === 'HR_QA') intent = 'HR_QA';\nelse if (isHR) intent = 'HR_QA';\nelse if (isTraining) intent = 'TRAINING';\nelse if (isCSKH) intent = 'CSKH';\nelse if (data.sessionType && ['HR_QA', 'TRAINING', 'CSKH'].includes(data.sessionType)) {\n  intent = data.sessionType;\n}\n\n// Tự động set action='generate_quiz' khi user nhắn từ khóa quiz/test\nconst action = data.action || (intent === 'TRAINING' && isQuizRequest ? 'generate_quiz' : null);\n\nreturn [{ json: { ...data, intent, action } }];"
       },
       "id": "parse-intent",
       "name": "Parse Intent",
@@ -169,7 +169,8 @@
       "position": [
         1120,
         120
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -188,7 +189,8 @@
       "position": [
         1120,
         260
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -207,7 +209,8 @@
       "position": [
         1120,
         400
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -221,6 +224,19 @@
       "position": [
         1360,
         300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sub-workflow lỗi (LLM quá tải/timeout) → vẫn trả JSON { answer } để portal hiển thị thay vì body rỗng\nconst intent = $('Parse Intent').first().json.intent;\nconst err = $input.first().json.error;\nreturn [{ json: { answer: '⚠️ Hệ thống AI đang bận hoặc quá tải. Vui lòng thử lại sau 1–2 phút.', intent, error: true, errorMessage: typeof err === 'string' ? err : err?.message ?? 'unknown' } }];"
+      },
+      "id": "agent-error-fallback",
+      "name": "Agent Error Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        520
       ]
     }
   ],
@@ -310,6 +326,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Agent Error Fallback",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -321,10 +344,35 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Agent Error Fallback",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Execute CSKH Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond Chat Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent Error Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Error Fallback": {
       "main": [
         [
           {

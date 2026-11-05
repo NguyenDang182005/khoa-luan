@@ -1,0 +1,130 @@
+{
+  "login": {
+    "forgot": true,
+    "demoEmails": [
+      "Quản trị viênhr-admin@company.com",
+      "hr-admin@company.com",
+      "Nhân viênemployee1@company.com",
+      "employee1@company.com"
+    ]
+  },
+  "dashboard": {
+    "cards": [],
+    "donut": [
+      "30nhân sự",
+      "0%",
+      "0 ₫",
+      "42.9%",
+      "30",
+      "30%",
+      "9",
+      "17%",
+      "5",
+      "30%",
+      "9",
+      "10%",
+      "3",
+      "13%",
+      "4",
+      "2 đơn",
+      "1 ngày",
+      "1 ngày",
+      "80",
+      "65",
+      "41",
+      "8 chuyển người",
+      "186 lượt"
+    ],
+    "hasPrefixCurrency": false,
+    "text": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nNhân sự đang làm việc\n\n30nhân sự\n\nKhông gồm hồ sơ đã nghỉ việc\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n0 ₫\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm côn"
+  },
+  "search": {
+    "text": "Esc Kết quả Nguyễn Văn Dang EMP0031 · Information Technology Nguyễn Khánh Linh EMP009 · Chăm sóc khách hàng Nguyễn Thị HR Admin EMP006 · Human Resources Nguyễn Văn An EMP003 · Information Technology",
+    "buttons": [
+      "Nguyễn Văn Dang EMP0031 · Information Technology",
+      "Nguyễn Khánh Linh EMP009 · Chăm sóc khách hàng",
+      "Nguyễn Thị HR Admin EMP006 · Human Resources",
+      "Nguyễn Văn An EMP003 · Information Technology"
+    ]
+  },
+  "searchPicked": true,
+  "employeesFiltered": {
+    "searchValue": "Nguyễn Văn Dang",
+    "text": "Hồ sơ nhân sự Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập Danh sách nhân sự (1) Duyệt đơn Lộ trình hội nhập Tất cả phòng ban Chăm sóc khách hàng Human Resources Information Technology Kinh doanh Thiết kế 1 nhân sự Xuất Excel Thêm nhân viên Nhân viên Email Phòng ban Chức danh Trạng thái Ngày vào Thao tác VD Nguyễn Văn Dang EMP003"
+  },
+  "employees1024": {
+    "mainClient": 784,
+    "mainScroll": 784,
+    "tableW": 734,
+    "bodyOverflow": false,
+    "addButtonVisible": true
+  },
+  "employees375": {
+    "tableW": null,
+    "visibleHeaders": [],
+    "bodyOverflow": false
+  },
+  "payroll": {
+    "text": "Bảng lương & thuế Tính từ hợp đồng và dữ liệu chấm công, theo Luật Lao động Việt Nam Xem quy chế lương Xuất Excel (CSV) Tính lương Kỳ lương Tháng 1 Tháng 2 Tháng 3 Tháng 4 Tháng 5 Tháng 6 Tháng 7 Tháng 8 Tháng 9 Tháng 10 Tháng 11 Tháng 12 Năm 2025 Năm 2026 Năm 2027 Kỳ 11/2026 · 0 bản ghi Chưa có bảng lương kỳ này — nhấn “Tính lương” để khởi tạo. Tổng gross 0 ₫ Lương thực tế + OT + phụ cấp + thưởng Khấu trừ 0 ₫ BHXH + BHYT + BHTN 10.5% trên lương BH Thuế TNCN 0 ₫ Biểu thuế 5 bậc (từ 01/7/2026) Th",
+    "hasPrefixCurrency": false
+  },
+  "calcOpened": true,
+  "ai": {
+    "text": "AI Multi-Agents Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động Giám sát trực tiếp Số liệu làm mới tự động mỗi 30 giây. Router & Privacy Agent WF01 Rule-based, không dùng LLM • Phân loại ý định & PII Masking Kiểm tra kết nối Tỷ lệ thành công",
+    "sendInsideComposer": false,
+    "sendBox": null
+  },
+  "cskh": {
+    "rawStars": 32,
+    "strong": 5,
+    "sample": " liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo "
+  },
+  "pii": {
+    "rows": 20,
+    "firstRowText": "17:34 03/11/2026 CSKH Zalo guest AI / Bot -- Chào bạn, cảm ơn bạn đã liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùn",
+    "firstRowHeight": 105
+  },
+  "portal": {
+    "ariaNow": "11",
+    "ariaMax": "12",
+    "fillWidth": 287,
+    "barWidth": 313,
+    "greeting": "Xin chào, Admin"
+  },
+  "leaveModal": {
+    "open": false
+  },
+  "leaveOpen": true,
+  "settings": {
+    "hasOldHint": false,
+    "hasNewHint": true,
+    "text": "Cài đặt hệ thống\n\nCấu hình vận hành, nhân sự, bảo mật và AI Agent — dành cho quản trị viên.\n\nLương & thuế\nVùng chấm công\nTích hợp\nPhép năm\nBảo mật & phiên\nAI Agent\nNhật ký thay đổi\nLương & thuế\n\nBHXH, thuế, hệ số OT theo năm\n\nCấu hình lương & thuế (theo năm)\n\nTỷ lệ bảo hiểm, mức giảm trừ gia cảnh và"
+  },
+  "myTraining": {
+    "cta": [
+      "Bắt đầu đánh giá mới"
+    ]
+  },
+  "startTraining": {
+    "clicked": true,
+    "header": "AI Multi-Agents HR Policy Q&A Agent Hỏi đáp ngày phép, bảo hiểm, lương Training & Onboarding Agent Luyện tập 2 chiều & chấm điểm tự luận Training & Onboarding Agent deepseek-flash • Dữ liệu cá nhân đư"
+  },
+  "mobileFab": {
+    "z": "20",
+    "box": {
+      "x": 318,
+      "y": 772,
+      "width": 56,
+      "height": 56,
+      "top": 772,
+      "right": 374,
+      "bottom": 828,
+      "left": 318
+    }
+  },
+  "mobileNav": {
+    "fabZ": "20",
+    "overlayZ": "30"
+  },
+  "errors": []
+}

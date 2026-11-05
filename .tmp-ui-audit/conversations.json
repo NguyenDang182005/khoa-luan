@@ -1,0 +1,187 @@
+﻿[
+    {
+        "id":  "cmw0jclq1000vtljkn5tte3cx",
+        "externalId":  "guest",
+        "escalated":  true,
+        "lastMessage":  "Chào bạn, cảm ơn bạn đã liên hệ TechHRM!\n\n**Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùng thử, TechHRM có 30 ngày miễn phí, không cần thẻ tín dụng.\n\n**Về việc bị trừ tiền 2 lần:** Đây là vấn đề thanh toán nghiêm trọng, ảnh hưởng trực tiếp đến quyền lợi của bạn. Tôi rất xin lỗi vì sự bất tiện này. Trường hợp này vượt phạm vi tôi có thể xử lý ngay, nên tôi sẽ chuyển đến bộ phận phụ trách để kiểm tra giao dịch và hỗ trợ hoàn tiền cho bạn.\n\nTrong lúc chờ, bạn có thể liên hệ trực tiếp để được xử lý nhanh:\n- Email: **support@techhrm.vn**\n- Hotline: **1800-1234** (8h–18h, T2–T6)\n\nBạn vui lòng chuẩn bị mã giao dịch/sao kê ngân hàng để bộ phận hỗ trợ đối chiếu nhanh hơn nhé.",
+        "lastMessageAt":  "2026-11-03T10:34:53.581Z",
+        "messageCount":  4,
+        "metadata":  {
+                         "model":  "deepseek-flash",
+                         "escalated":  true,
+                         "escalateReason":  "Khách hàng bị trừ tiền 2 lần khi thanh toán gói Pro, yêu cầu kiểm tra giao dịch và hoàn tiền"
+                     }
+    },
+    {
+        "id":  "cmvbr9m570011tld4ni3210c3",
+        "externalId":  "U0B6GMBMSUX",
+        "escalated":  false,
+        "lastMessage":  "hello",
+        "lastMessageAt":  "2026-10-17T02:08:55.476Z",
+        "messageCount":  3,
+        "metadata":  {
+                         "note":  "human_takeover",
+                         "sender":  "human"
+                     }
+    },
+    {
+        "id":  "cmuhqb29l0005tlkgjn7cs37u",
+        "externalId":  "U0B6GMBMSUX",
+        "escalated":  true,
+        "lastMessage":  "hello",
+        "lastMessageAt":  "2026-10-17T02:08:34.473Z",
+        "messageCount":  8,
+        "metadata":  {
+                         "note":  "human_takeover",
+                         "sender":  "human"
+                     }
+    },
+    {
+        "id":  "cmv7mbm4a000ptla0z7swkw9e",
+        "externalId":  "guest",
+        "escalated":  true,
+        "lastMessage":  "Chào bạn, tôi rất tiếc khi biết bạn đang gặp trải nghiệm không tốt liên quan đến dịch vụ của TechHRM.\n\nVì TechHRM là phần mềm SaaS (Cloud-based), trường hợp \"đơn hàng trễ\" có thể liên quan đến việc kích hoạt tài khoản hoặc triển khai gói dịch vụ. Để tôi có thể hỗ trợ bạn xử lý ngay, bạn vui lòng cung cấp mã đơn hàng hoặc thông tin tài khoản đăng ký.\n\nBạn cũng có thể liên hệ trực tiếp với bộ phận hỗ trợ kỹ thuật qua email **support@techhrm.vn** hoặc hotline **1800-1234** (8h-18h, T2-T6) để được ưu tiên kiểm tra.\n\nNếu vấn đề của bạn liên quan đến khiếu nại nghiêm trọng về dịch vụ hoặc lỗi hệ thống khiến bạn không thể sử dụng phần mềm, tôi sẽ chuyển tiếp yêu cầu của bạn đến bộ phận quản lý để giải quyết thỏa đáng.",
+        "lastMessageAt":  "2026-10-14T04:51:42.543Z",
+        "messageCount":  5,
+        "metadata":  {
+                         "model":  "gemini-3.1-flash-lite",
+                         "escalated":  true,
+                         "escalateReason":  "Khách hàng khiếu nại về dịch vụ/đơn hàng trễ cần sự can thiệp từ bộ phận quản lý để đảm bảo quyền lợi."
+                     }
+    },
+    {
+        "id":  "cmu4xv9c1000dtlr8t2cs3vfu",
+        "externalId":  "guest",
+        "escalated":  false,
+        "lastMessage":  "Chào anh/chị,\n\nTôi rất lấy làm tiếc khi sản phẩm của anh/chị gặp phải tình trạng hư hỏng. Thay mặt công ty, tôi thành thật xin lỗi vì sự bất tiện này đã ảnh hưởng đến trải nghiệm của anh/chị.\n\nĐể tôi có thể hỗ trợ anh/chị kiểm tra và tìm giải pháp tốt nhất, anh/chị vui lòng cung cấp thêm một vài thông tin chi tiết sau nhé:\n*   Tên sản phẩm và mã đơn hàng (nếu có).\n*   Mô tả cụ thể về tình trạng hư hỏng.\n*   Nếu tiện, anh/chị có thể gửi kèm hình ảnh hoặc video về sản phẩm bị lỗi không ạ?\n\nKhi có đủ thông tin, tôi sẽ nhanh chóng xem xét và hướng dẫn anh/chị các bước tiếp theo về việc đổi trả hoặc bảo hành sản phẩm theo đúng chính sách của công ty.\n\nCảm ơn anh/chị đã liên hệ. Chúng tôi sẽ nỗ lực giải quyết vấn đề này một cách nhanh chóng và hiệu quả nhất.",
+        "lastMessageAt":  "2026-09-17T03:04:16.880Z",
+        "messageCount":  8,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "escalated":  false,
+                         "escalateReason":  null
+                     }
+    },
+    {
+        "id":  "cmu78j1tx0001tl9kxstqsj40",
+        "externalId":  "U0B6GMBMSUX",
+        "escalated":  true,
+        "lastMessage":  "Chào bạn, cảm ơn bạn đã cung cấp thông tin.\n\nTôi đã ghi nhận số điện thoại **[MASKED_PHONE]** của bạn vào hệ thống. Bộ phận kinh doanh của TechHRM sẽ liên hệ với bạn trong thời gian sớm nhất (trong khung giờ làm việc 8h-18h, từ Thứ 2 đến Thứ 6) để tư vấn chi tiết hơn về gói Pro cũng như các chính sách ưu đãi dành riêng cho doanh nghiệp của bạn.\n\nNếu bạn cần hỗ trợ gấp hoặc có thêm câu hỏi nào khác, bạn có thể chủ động liên hệ với chúng tôi qua hotline **1800-1234** hoặc email **support@techhrm.vn**.\n\nChúc bạn một ngày làm việc hiệu quả!",
+        "lastMessageAt":  "2026-09-25T08:23:11.720Z",
+        "messageCount":  16,
+        "metadata":  {
+                         "model":  "gemini-3.1-flash-lite",
+                         "escalated":  false,
+                         "escalateReason":  null
+                     }
+    },
+    {
+        "id":  "cmub3gtwn001ztlkkjskazkpe",
+        "externalId":  "test_cskh_escalate_user",
+        "escalated":  true,
+        "lastMessage":  "hello",
+        "lastMessageAt":  "2026-09-25T07:01:16.202Z",
+        "messageCount":  3,
+        "metadata":  {
+                         "note":  "human_takeover",
+                         "sender":  "human"
+                     }
+    },
+    {
+        "id":  "cmub3g7ql001ttlkk4xo31ya6",
+        "externalId":  "test_cskh_user_01",
+        "escalated":  false,
+        "lastMessage":  "Chào bạn, cảm ơn bạn đã quan tâm đến TechHRM!\n\nGói **Basic** của chúng tôi có mức phí là **500.000đ/tháng**. Gói này hỗ trợ tối đa 50 nhân viên, bao gồm các tính năng thiết yếu như chấm công GPS Geofencing và tính lương tự động (thuế TNCN, BHXH/BHYT/BHTN).\n\nBạn có thể trải nghiệm toàn bộ tính năng của TechHRM hoàn toàn miễn phí trong **30 ngày** mà không cần thẻ tín dụng. Hệ thống của chúng tôi là nền tảng cloud-based, bạn có thể truy cập ngay qua trình duyệt hoặc ứng dụng di động mà không cần cài đặt phức tạp.\n\nNếu cần tư vấn thêm hoặc hỗ trợ kỹ thuật, bạn vui lòng liên hệ qua:\n- Email: support@techhrm.vn\n- Hotline: 1800-1234 (8h-18h, T2-T6)\n\nRất hy vọng được đồng hành cùng doanh nghiệp của bạn!",
+        "lastMessageAt":  "2026-09-21T10:20:08.393Z",
+        "messageCount":  2,
+        "metadata":  {
+                         "model":  "gemini-3.1-flash-lite",
+                         "escalated":  false,
+                         "escalateReason":  null
+                     }
+    },
+    {
+        "id":  "cmu5arlad0001tlhcckubvd93",
+        "externalId":  "U0B6GMBMSUX",
+        "escalated":  true,
+        "lastMessage":  "Chào bạn,\n\nGói **Pro** của TechHRM có giá là **1.200.000đ/tháng**.\n\nGói này phù hợp cho doanh nghiệp có quy mô **tối đa 200 nhân viên**, bao gồm:\n- **Đầy đủ tính năng:** Quản lý nhân sự, chấm công GPS Geofencing, tính lương tự động (thuế TNCN 7 bậc, BHXH/BHYT/BHTN) và báo cáo phân tích.\n- **Tính năng nâng cao:** Đào tạo AI role-play.\n\nĐặc biệt, TechHRM có chương trình **dùng thử miễn phí 30 ngày** (không cần thẻ tín dụng) để bạn trải nghiệm trọn vẹn các tính năng của gói Pro. \n\nNếu cần hỗ trợ thêm thông tin, bạn cứ nhắn cho mình nhé!",
+        "lastMessageAt":  "2026-09-17T10:21:47.593Z",
+        "messageCount":  14,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "escalated":  false,
+                         "escalateReason":  null
+                     }
+    },
+    {
+        "id":  "cmu2e6up9023otlj8cdjxct0l",
+        "externalId":  "U0SLACK77",
+        "escalated":  true,
+        "lastMessage":  "Dạ, việc này nằm ngoài phạm vi xử lý của em. Em đã ghi nhận và chuyển ngay cho bộ phận có thẩm quyền liên hệ hỗ trợ anh trong thời gian sớm nhất ạ. [CAN_ESCALATE: Khách yêu cầu bồi thường đơn quà Tết trễ giao, nguy cơ mất hợp đồng đối tác lớn]",
+        "lastMessageAt":  "2026-09-07T05:02:00.000Z",
+        "messageCount":  4,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "intent":  "CSKH",
+                         "summary":  "Khách đặt 5 hộp quà Tết từ đầu tháng chưa được giao, hotline tự ngắt. Khách rất tức giận, yêu cầu gặp người có thẩm quyền ngay vì nguy cơ mất hợp đồng đối tác. Ưu tiên xử lý trong giờ hành chính hôm nay: xác nhận tồn kho, phương án giao khẩn và bồi thường.",
+                         "escalated":  true,
+                         "latency_ms":  420,
+                         "escalateReason":  "Khách yêu cầu bồi thường đơn quà Tết trễ giao, nguy cơ mất hợp đồng đối tác lớn"
+                     }
+    },
+    {
+        "id":  "cmu5eecrz0007tl4gu5v1wg2d",
+        "externalId":  "diag-pii-test-user",
+        "escalated":  false,
+        "lastMessage":  "Chào bạn, gói **Pro** của TechHRM có giá là **1.200.000đ/tháng**.\n\nGói này dành cho doanh nghiệp có quy mô tối đa **200 nhân viên**, bao gồm đầy đủ các tính năng:\n- Quản lý nhân sự \u0026 Báo cáo phân tích.\n- Chấm công GPS Geofencing.\n- Tính lương tự động (đúng chuẩn thuế TNCN 7 bậc, BHXH/BHYT/BHTN).\n- Tính năng nổi bật: **Đào tạo AI role-play**.\n\nHiện tại, bạn có thể **dùng thử miễn phí 30 ngày** hoàn toàn không cần thẻ tín dụng. Bộ phận tư vấn của TechHRM sẽ sớm",
+        "lastMessageAt":  "2026-09-17T10:59:08.219Z",
+        "messageCount":  4,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "escalated":  false,
+                         "escalateReason":  null
+                     }
+    },
+    {
+        "id":  "cmu2e6upj023ytlj83my4cpn0",
+        "externalId":  "U0SLACK42",
+        "escalated":  true,
+        "lastMessage":  "Dạ, yêu cầu đổi hàng hoàn chỉnh và bồi thường vượt mức ủy quyền của em nên em chuyển trường hợp này cho bộ phận CSKH cấp cao xử lý ngay ạ. [CAN_ESCALATE: Khiếu nại hàng lỗi + thiếu phụ kiện, khách đe dọa khiếu nại lên cơ quan quản lý]",
+        "lastMessageAt":  "2026-09-07T05:30:00.000Z",
+        "messageCount":  4,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "intent":  "CSKH",
+                         "summary":  "Đơn #10198 giao thiếu phụ kiện, vỏ hộp rách; khách đã gửi ảnh. Yêu cầu đổi hàng hoàn chỉnh trong tuần, giọng điệu gay gắt, có nguy cơ khiếu nại công khai. SĐT khách đã được PII masking trong luồng AI; nhân viên xem bản gốc qua Slack/Zalo.",
+                         "escalated":  true,
+                         "latency_ms":  390,
+                         "escalateReason":  "Khiếu nại hàng lỗi + thiếu phụ kiện, khách đe dọa khiếu nại lên cơ quan quản lý"
+                     }
+    },
+    {
+        "id":  "cmu2e6up4023itlj8zf6k8rr0",
+        "externalId":  "U0DEMO02",
+        "escalated":  false,
+        "lastMessage":  "Dạ đơn #10245 của anh/chị đang trong quá trình vận chuyển, dự kiến giao trong hôm nay hoặc sáng mai ạ. Anh/chị có thể theo dõi trạng thái đơn qua link vận đơn bên em gửi kèm tin nhắn xác nhận ạ.",
+        "lastMessageAt":  "2026-09-07T04:34:00.000Z",
+        "messageCount":  2,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "intent":  "CSKH",
+                         "latency_ms":  310
+                     }
+    },
+    {
+        "id":  "cmu2e6uot0238tlj84u7cgiv3",
+        "externalId":  "U0DEMO01",
+        "escalated":  false,
+        "lastMessage":  "Dạ không có gì ạ, anh/chị cứ nhắn tin bất cứ khi nào cần hỗ trợ. Chúc anh/chị một ngày tốt lành ạ! ❤️",
+        "lastMessageAt":  "2026-09-07T04:20:00.000Z",
+        "messageCount":  4,
+        "metadata":  {
+                         "model":  "gemini-2.5-flash",
+                         "intent":  "CSKH",
+                         "latency_ms":  190
+                     }
+    }
+]

@@ -1,0 +1,112 @@
+' Phong cách chung kiểu Visual Paradigm cho mọi sơ đồ báo cáo
+!pragma layout smetana
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam roundCorner 12
+skinparam ArrowColor #333333
+skinparam ArrowFontSize 12
+skinparam ArrowThickness 1.1
+skinparam linetype ortho
+skinparam padding 2
+skinparam nodesep 40
+skinparam ranksep 45
+
+' Activity
+skinparam activity {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+  BorderThickness 1.2
+  DiamondBackgroundColor #FFFFE6
+  DiamondBorderColor #8C7B3E
+  StartColor #000000
+  EndColor #000000
+  BarColor #000000
+}
+skinparam swimlane {
+  BorderColor #555555
+  TitleFontStyle bold
+  TitleFontSize 13
+}
+skinparam partition {
+  BorderColor #555555
+  BackgroundColor #FFFFFF
+}
+
+' State
+skinparam state {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+  StartColor #000000
+  EndColor #000000
+  FontStyle bold
+}
+
+' Sequence
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFE6
+  ParticipantBorderColor #8C7B3E
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #000000
+  LifeLineBorderColor #777777
+  LifeLineBackgroundColor #F2E9C0
+  GroupBorderColor #555555
+  GroupBackgroundColor #F2F2F2
+  GroupHeaderFontStyle bold
+  BoxBorderColor #555555
+  MessageAlign left
+}
+skinparam maxMessageSize 260
+
+' Class / ERD
+skinparam class {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+  HeaderBackgroundColor #F2E9C0
+  AttributeFontSize 12
+}
+skinparam stereotypeCBackgroundColor #F2E9C0
+
+' Component / Deployment
+skinparam component {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+}
+skinparam node {
+  BackgroundColor #F7F7F7
+  BorderColor #555555
+}
+skinparam database {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+}
+skinparam rectangle {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+  FontStyle bold
+}
+skinparam cloud {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+}
+skinparam interface {
+  BackgroundColor #FFFFE6
+  BorderColor #8C7B3E
+}
+
+' Note
+skinparam note {
+  BackgroundColor #FFFFFF
+  BorderColor #8C7B3E
+  FontSize 12
+}
+hide stereotype

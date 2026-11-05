@@ -1,0 +1,967 @@
+{
+  "startedAt": "2026-11-04T05:10:58.503Z",
+  "steps": [
+    {
+      "name": "01-login",
+      "at": "2026-11-04T05:11:01.011Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "login",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Đăng nhập",
+      "mainText": "HR Multi-Agent\nĐăng nhập\n\nQuản trị nhân sự và trợ lý AI cho doanh nghiệp của bạn.\n\nTiếp tục với Google\nTiếp tục với Facebook\nhoặc\nEmail công việc\nMật khẩu\nNhớ đăng nhập trong 30 ngày\nĐăng nhập\n\nTài khoản mẫu\n\nQuản trị viên\nhr-admin@company.com\nNhân viên\nemployee1@company.com",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 9,
+      "unnamed": 1,
+      "buttons": [
+        {
+          "t": "Tiếp tục với Google",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp tục với Facebook",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Hiện mật khẩu"
+        },
+        {
+          "t": "Đăng nhập",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Quản trị viên hr-admin@company.com",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Nhân viên employee1@company.com",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "label": "login-body-bg",
+      "bg": "rgb(247, 248, 250)"
+    },
+    {
+      "name": "02-dashboard",
+      "at": "2026-11-04T05:11:34.447Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "dashboard",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "03-search-modal",
+      "at": "2026-11-04T05:11:35.102Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "search-modal-visible",
+      "searchVisible": false
+    },
+    {
+      "name": "05-dashboard-leave-modal",
+      "at": "2026-11-04T05:11:36.865Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "dashboard-leave-modal-opened",
+      "openedLeave": false
+    },
+    {
+      "label": "nav-employees",
+      "ok": false
+    },
+    {
+      "name": "06-employees",
+      "at": "2026-11-04T05:11:40.287Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "employees",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "08-employees-profile-drawer",
+      "at": "2026-11-04T05:11:41.597Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "employee-row-opened",
+      "rowOpened": false
+    },
+    {
+      "name": "09-employees-leave-tab",
+      "at": "2026-11-04T05:11:43.620Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "leave-tab-opened",
+      "tabLeave": false
+    },
+    {
+      "label": "nav-payroll",
+      "ok": false
+    },
+    {
+      "name": "10-payroll",
+      "at": "2026-11-04T05:11:46.975Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "payroll",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "11-payroll-policy-dialog",
+      "at": "2026-11-04T05:11:47.971Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "payroll-policy-opened",
+      "policyOpened": false
+    },
+    {
+      "label": "nav-ai",
+      "ok": false
+    },
+    {
+      "name": "12-ai-agents",
+      "at": "2026-11-04T05:11:51.985Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "ai-agents",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "13-ai-wf02",
+      "at": "2026-11-04T05:11:53.281Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "wf02-selected",
+      "wf02": false
+    },
+    {
+      "name": "14-ai-specs",
+      "at": "2026-11-04T05:11:54.193Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "specs-tab",
+      "specsTab": false
+    },
+    {
+      "label": "nav-cskh",
+      "ok": false
+    },
+    {
+      "name": "15-cskh",
+      "at": "2026-11-04T05:11:57.510Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "cskh",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "16-cskh-filter",
+      "at": "2026-11-04T05:11:58.217Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "cskh-filter",
+      "conv": false
+    },
+    {
+      "label": "nav-training",
+      "ok": false
+    },
+    {
+      "name": "17-training",
+      "at": "2026-11-04T05:12:01.251Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "training",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "label": "nav-portal",
+      "ok": false
+    },
+    {
+      "name": "18-portal-admin",
+      "at": "2026-11-04T05:12:04.581Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "portal-admin",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "19-portal-leave-modal",
+      "at": "2026-11-04T05:12:05.585Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "portal-leave-modal",
+      "leaveModal": false
+    },
+    {
+      "label": "nav-settings",
+      "ok": false
+    },
+    {
+      "name": "20-settings",
+      "at": "2026-11-04T05:12:09.338Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "settings",
+      "title": "HR Multi-Agent Platform",
+      "h1": "Bảng điều hành",
+      "mainText": "Bảng điều hành\n\nTình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ.\n\nTháng 11/2026\nRealtime\n\nTổng quân số\n\n30nhân sự\n\nĐang quản lý trong hệ thống\n\nTỷ lệ đi làm hôm nay\n\n0%\n\n0 đúng giờ · 0 đi muộn · 0 nghỉ phép\n\nQuỹ lương tháng\n\n₫0\n\nTổng thực lĩnh, mọi trạng thái\n\nAI tự giải quyết\n\n42.9%\n\n198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày)\n\nXu hướng chấm công\n\nSố nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày\n\nĐúng giờ\nĐi muộn\nNghỉ phép\n\nChưa có dữ liệu chấm công\n\nDữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ.\n\nPhân bổ nhân lực\n\nCơ cấu theo phòng ban\n\n31\nnhân sự\nHuman Resources\n16%\n5\nInformation Technology\n29%\n9\nKinh doanh\n10%\n3\nChăm sóc khách hàng\n29%\n9\nThiết kế\n16%\n5\nĐơn chờ duyệt\n\nCần HR Admin hoặc quản lý trực tiếp xử lý\n\n2 đơn\nHO\n\nHoàng Minh Tuấn · Chăm sóc khách hàng\n\nNghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày\n\nĐau bụng đi khám, có giấy báo của phòng khám\n\nXem & duyệt\nLÝ\n\nLý Gia Hân · Thiết kế\n\nViệc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày\n\nViệc gia đình khẩn cần xử lý trong ngày\n\nXem & duyệt\nHoạt động AI\n\nThống kê theo từng agent\n\nĐang kết nối\nWF02\n\nHR Q&A\n\nTrả lời chính sách nội bộ\n\n80\n\n18 giờ trước\n\nWF03\n\nTraining\n\nĐào tạo & kiểm tra kiến thức\n\n65\n\n18 giờ trước\n\nWF04\n\nCSKH Zalo\n\nChăm sóc khách hàng Zalo\n\n41\n\n18 giờ trước\n\n8 chuyển người\nTổng phản hồi AI\n186 lượt",
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "scrollWidth": 1440,
+      "overflowX": false,
+      "interactive": 15,
+      "unnamed": 0,
+      "buttons": [
+        {
+          "t": "Bảng điều hành",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Hồ sơ nhân sự",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Bảng lương & thuế",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Trợ lý AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Tiếp quản CSKH",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Đào tạo & Radar AI",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cổng nhân viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Cài đặt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Thu gọn",
+          "title": null,
+          "aria": "Thu gọn thanh bên"
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Mở menu điều hướng"
+        },
+        {
+          "t": "Tìm kiếm nhanh Ctrl K",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "",
+          "title": null,
+          "aria": "Tìm kiếm nhanh"
+        },
+        {
+          "t": "HA Nguyễn Thị HR Admin Quản trị viên",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        },
+        {
+          "t": "Xem & duyệt",
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    {
+      "name": "21-settings-integrations",
+      "at": "2026-11-04T05:12:10.638Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "settings-integrations",
+      "integrations": false
+    },
+    {
+      "name": "22-settings-security",
+      "at": "2026-11-04T05:12:11.957Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "settings-security",
+      "security": false
+    },
+    {
+      "name": "23-logout-login",
+      "at": "2026-11-04T05:12:13.859Z",
+      "url": "http://localhost:3000/"
+    },
+    {
+      "label": "logout",
+      "logout": false
+    }
+  ],
+  "console": [],
+  "requestsFailed": [],
+  "error": "Error: No element found for selector: input[type=\"email\"]\n    at assert (file:///C:/Users/Admin/Documents/admin/khoa-luan/scripts/diag-browser/node_modules/puppeteer-core/lib/puppeteer/util/assert.js:15:15)\n    at CdpFrame.type (file:///C:/Users/Admin/Documents/admin/khoa-luan/scripts/diag-browser/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:887:17)\n    at async main (C:\\Users\\Admin\\Documents\\admin\\khoa-luan\\scripts\\diag-browser\\ux-audit.cjs:293:3)"
+}

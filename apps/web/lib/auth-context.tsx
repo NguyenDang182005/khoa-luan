@@ -98,6 +98,9 @@ interface AuthResponseData {
 }
 
 function saveSession(user: AuthUser, token: string, refreshToken: string, rememberMe: boolean) {
+  // Xóa phiên cũ ở CẢ hai storage: client.ts đọc localStorage trước, token cũ sót lại
+  // ở đó sẽ đè phiên mới trong sessionStorage (UI hiện admin nhưng API nhận user cũ → 403)
+  clearSession()
   if (rememberMe) {
     localStorage.setItem("hr_auth_user", JSON.stringify(user))
     localStorage.setItem("hr_auth_token", token)

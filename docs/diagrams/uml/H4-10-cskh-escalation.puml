@@ -1,0 +1,46 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+actor "Khách hàng" as K
+participant "Slack" as S
+participant "NestJS\nSlackService" as N
+participant "n8n WF04" as C
+participant "DeepSeek" as G
+participant "NestJS\nAiContextService" as A
+participant "Admin Portal" as P
+K -> S : Nhắn tin
+S -> N : Sự kiện message (Socket Mode)
+activate N
+N -> C : POST /webhook/zalo-webhook
+activate C
+C -> C : Che PII, lấy phiên CSKH
+C -> G : Câu hỏi và lịch sử hội thoại
+activate G
+G --> C : Trả lời, có thể kèm thẻ CAN_ESCALATE
+deactivate G
+C -> A : POST /n8n/outbound-reply
+activate A
+A -> S : chat.postMessage vào thread
+deactivate A
+opt Cần leo thang
+  C -> A : POST /n8n/escalate
+  activate A
+  A -> A : isActive = false, escalatedAt = now
+  A -> A : Tạo Notification cho từng ADMIN
+  A -> P : WebSocket notification:new\n(room user:<adminId> và admin)
+  deactivate A
+  P -> P : Hiện cảnh báo, mở Tiếp quản CSKH
+  P -> A : GET /agents/escalation-queue
+  activate A
+  A --> P : Danh sách phiên đã leo thang
+  deactivate A
+  P -> A : POST /agents/chat-session/:id/reply
+  activate A
+  A -> S : Nhân viên trả lời khách trong thread
+  deactivate A
+end
+deactivate C
+deactivate N
+note over A, P : Cron 00:00 giờ Việt Nam bật lại bot\ncho các phiên CSKH đã leo thang
+@enduml

@@ -9,13 +9,14 @@ import {
   Loader2,
   FileText,
   ShieldCheck,
+  ArrowRight,
 } from "lucide-react"
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
 import { leaveApi } from "@/lib/api/leave.api"
-import { leaveTypeLabel } from "@/lib/utils"
+import { apiErrorMessage, leaveTypeLabel, requestDurationLabel } from "@/lib/utils"
 
 export interface LeaveDetailItem {
   id: string
@@ -23,6 +24,7 @@ export interface LeaveDetailItem {
   startDate: string
   endDate: string
   totalDays: number
+  overtimeHours?: number | null
   reason: string
   status: string
   rejectionReason?: string | null
@@ -70,6 +72,7 @@ export function LeaveDetailModal({
   const [showRejectInput, setShowRejectInput] = React.useState(false)
   const [rejectReason, setRejectReason] = React.useState("")
   const [isProcessing, setIsProcessing] = React.useState(false)
+  const [actionError, setActionError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!leave || !isOpen) {
@@ -78,8 +81,10 @@ export function LeaveDetailModal({
       setRejectReason("")
       return
     }
+    setActionError(null)
 
-    if (leave.employee.id) {
+    // Chỉ đơn phép năm mới trừ vào quỹ phép năm → các loại khác không cần tải
+    if (leave.employee.id && leave.type === "ANNUAL") {
       setLoadingBalance(true)
       const currentYear = new Date().getFullYear()
       leaveApi
@@ -96,9 +101,12 @@ export function LeaveDetailModal({
 
   const handleApprove = async () => {
     setIsProcessing(true)
+    setActionError(null)
     try {
       await onApprove(leave.id)
       onClose()
+    } catch (e) {
+      setActionError(apiErrorMessage(e, "Phê duyệt thất bại. Vui lòng thử lại."))
     } finally {
       setIsProcessing(false)
     }
@@ -110,21 +118,24 @@ export function LeaveDetailModal({
       return
     }
     setIsProcessing(true)
+    setActionError(null)
     try {
       await onReject(leave.id, rejectReason.trim())
       onClose()
+    } catch (e) {
+      setActionError(apiErrorMessage(e, "Từ chối thất bại. Vui lòng thử lại."))
     } finally {
       setIsProcessing(false)
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} className="max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} className="max-w-[560px]">
       {/* Header */}
-      <DialogHeader className="border-b border-border pb-3 pr-6">
-        <div className="flex items-center justify-between">
-          <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-            <FileText className="size-4 text-primary" /> Chi Tiết Đơn Xin Nghỉ Phép
+      <DialogHeader className="border-b border-border pb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="size-5 text-primary" /> Chi tiết đơn
           </DialogTitle>
           <Badge
             variant={
@@ -134,27 +145,26 @@ export function LeaveDetailModal({
                 ? "destructive"
                 : "warning"
             }
-            className="text-xs gap-1"
           >
-            {leave.status === "APPROVED" && <CheckCircle2 className="size-3" />}
-            {leave.status === "REJECTED" && <XCircle className="size-3" />}
-            {leave.status === "PENDING" && <Clock className="size-3" />}
+            {leave.status === "APPROVED" && <CheckCircle2 />}
+            {leave.status === "REJECTED" && <XCircle />}
+            {leave.status === "PENDING" && <Clock />}
             {leave.status === "APPROVED"
-              ? "Đã Duyệt"
+              ? "Đã duyệt"
               : leave.status === "REJECTED"
-              ? "Từ Chối"
-              : "Chờ Duyệt"}
+              ? "Từ chối"
+              : "Chờ duyệt"}
           </Badge>
         </div>
-        <DialogDescription className="text-xs text-muted-foreground mt-1">
+        <DialogDescription className="tabular">
           Đơn nộp ngày {formatDateVN(leave.createdAt || leave.startDate)}
         </DialogDescription>
       </DialogHeader>
 
       {/* Body Content */}
-      <div className="mt-4 flex flex-col gap-4 text-xs">
+      <div className="mt-5 flex flex-col gap-4 text-body-sm">
         {/* Khối 1: Thông tin nhân sự */}
-        <div className="rounded-xl border border-border bg-muted/20 p-3.5 flex items-center gap-3">
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-sunken p-4">
           <Avatar
             initials={leave.employee.fullName
               .split(" ")
@@ -162,59 +172,58 @@ export function LeaveDetailModal({
               .map((w) => w[0])
               .join("")
               .toUpperCase()}
-            className="size-11 bg-primary/20 text-primary font-bold text-sm border border-primary/30"
+            className="size-10 bg-primary-tint text-body-sm text-accent-foreground"
           />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-foreground truncate">{leave.employee.fullName}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-0.5 text-muted-foreground text-[11px]">
-              <span>Mã NV: <strong className="text-foreground font-mono">{leave.employee.employeeCode}</strong></span>
-              <span>•</span>
-              <span>Phòng: <strong className="text-foreground">{leave.employee.department?.name || "—"}</strong></span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-body font-semibold text-foreground">{leave.employee.fullName}</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
+              <span>Mã NV: <span className="font-mono font-medium text-foreground">{leave.employee.employeeCode}</span></span>
+              <span aria-hidden>•</span>
+              <span>Phòng: <span className="font-medium text-foreground">{leave.employee.department?.name || "—"}</span></span>
             </div>
           </div>
         </div>
 
         {/* Khối 2: Chi tiết kỳ nghỉ */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-border bg-card p-3">
-            <span className="text-muted-foreground text-[11px] block">Loại nghỉ phép</span>
-            <Badge variant="outline" className="mt-1 text-xs font-semibold border-primary/40 text-primary">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-border p-3">
+            <span className="block text-caption text-muted-foreground">Loại đơn</span>
+            <Badge variant="default" className="mt-1.5">
               {leaveTypeLabel(leave.type)}
             </Badge>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-3">
-            <span className="text-muted-foreground text-[11px] block">Tổng số ngày nghỉ</span>
-            <p className="mt-1 text-base font-bold text-foreground">
-              {leave.totalDays} <span className="text-xs font-normal text-muted-foreground">ngày</span>
-            </p>
+          <div className="rounded-lg border border-border p-3">
+            <span className="block text-caption text-muted-foreground">Thời lượng</span>
+            <p className="tabular mt-1 text-h3 font-semibold text-foreground">{requestDurationLabel(leave)}</p>
           </div>
         </div>
 
         {/* Thời gian nghỉ */}
-        <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
           <div>
-            <span className="text-muted-foreground text-[11px]">Từ ngày</span>
-            <p className="font-bold text-foreground mt-0.5">{formatDateVN(leave.startDate)}</p>
+            <span className="text-caption text-muted-foreground">Từ ngày</span>
+            <p className="tabular mt-0.5 font-semibold text-foreground">{formatDateVN(leave.startDate)}</p>
           </div>
-          <span className="text-muted-foreground text-sm font-bold">→</span>
+          <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
           <div className="text-right">
-            <span className="text-muted-foreground text-[11px]">Đến ngày</span>
-            <p className="font-bold text-foreground mt-0.5">{formatDateVN(leave.endDate)}</p>
+            <span className="text-caption text-muted-foreground">Đến ngày</span>
+            <p className="tabular mt-0.5 font-semibold text-foreground">{formatDateVN(leave.endDate)}</p>
           </div>
         </div>
 
-        {/* Phép năm còn lại */}
-        <div className="rounded-xl border border-agent-teal/30 bg-agent-teal/5 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-agent-teal">
-            <ShieldCheck className="size-4" />
-            <span className="font-semibold">Quỹ phép năm của nhân viên</span>
+        {/* Phép năm còn lại — chỉ liên quan đơn phép năm */}
+        {leave.type === "ANNUAL" && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-info/20 bg-info-tint p-3">
+          <div className="flex items-center gap-2 text-info">
+            <ShieldCheck className="size-4 shrink-0" />
+            <span className="font-medium">Quỹ phép năm của nhân viên</span>
           </div>
           <div>
             {loadingBalance ? (
-              <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
             ) : balance ? (
-              <span className="font-bold text-foreground">
+              <span className="tabular font-semibold text-foreground">
                 {balance.remainingDays} / {balance.totalDays} ngày còn lại
               </span>
             ) : (
@@ -222,105 +231,83 @@ export function LeaveDetailModal({
             )}
           </div>
         </div>
+        )}
 
         {/* Lý do nghỉ */}
-        <div className="rounded-xl border border-border bg-muted/10 p-3">
-          <span className="text-muted-foreground text-[11px] font-semibold block mb-1">
-            Lý do xin nghỉ phép
-          </span>
-          <p className="text-foreground leading-relaxed italic bg-background/50 p-2.5 rounded-lg border border-border/50">
-            &ldquo;{leave.reason}&rdquo;
+        <div>
+          <span className="mb-1.5 block text-caption font-medium text-muted-foreground">Lý do</span>
+          <p className="rounded-lg border border-border bg-sunken p-3 leading-relaxed text-foreground">
+            {leave.reason}
           </p>
         </div>
 
         {/* Người duyệt / Lý do từ chối nếu có */}
         {leave.approvedBy && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-[11px] text-emerald-400">
-            ✓ Phê duyệt bởi: <strong>{leave.approvedBy.fullName}</strong>
+          <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success-tint p-3 text-success">
+            <CheckCircle2 className="size-4 shrink-0" />
+            <span>Phê duyệt bởi: <strong className="font-semibold">{leave.approvedBy.fullName}</strong></span>
           </div>
         )}
 
         {leave.rejectionReason && (
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-[11px] text-rose-400">
-            ✕ Lý do từ chối: <strong>{leave.rejectionReason}</strong>
+          <div className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-tint p-3 text-danger">
+            <XCircle className="mt-0.5 size-4 shrink-0" />
+            <span>Lý do từ chối: <strong className="font-semibold">{leave.rejectionReason}</strong></span>
           </div>
         )}
 
         {/* Vùng nhập lý do khi bấm từ chối */}
         {showRejectInput && (
-          <div className="flex flex-col gap-2 rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 animate-in fade-in">
-            <label className="font-semibold text-rose-400 flex items-center gap-1.5">
-              <AlertTriangle className="size-3.5" /> Nhập lý do từ chối đơn
+          <div className="flex flex-col gap-2 animate-in fade-in">
+            <label htmlFor="leave-reject-reason" className="flex items-center gap-1.5 text-body-sm font-medium text-foreground">
+              <AlertTriangle className="size-4 text-danger" /> Nhập lý do từ chối đơn
             </label>
             <textarea
-              rows={2}
+              id="leave-reject-reason"
+              rows={3}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Ghi rõ lý do từ chối để gửi thông báo đến nhân viên..."
-              className="w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-rose-500"
+              className="w-full rounded-md border border-input bg-card px-3 py-2 text-body text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-subtle-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20"
             />
           </div>
         )}
       </div>
 
       {/* Footer Actions */}
-      <DialogFooter className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-border pt-3">
+      {actionError && (
+        <p className="mt-4 flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-tint px-3 py-2 text-body-sm text-danger">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {actionError}
+        </p>
+      )}
+      <DialogFooter className="border-t border-border pt-4">
         {!showRejectInput ? (
           <>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={onClose}
-              disabled={isProcessing}
-            >
+            <Button variant="outline" onClick={onClose} disabled={isProcessing}>
               Đóng
             </Button>
 
             {isPending && (
               <>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs text-destructive hover:bg-destructive/10"
-                  onClick={() => setShowRejectInput(true)}
-                  disabled={isProcessing}
-                >
-                  Từ Chối
+                <Button variant="destructive" onClick={() => setShowRejectInput(true)} disabled={isProcessing}>
+                  Từ chối
                 </Button>
 
-                <Button
-                  size="sm"
-                  className="text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                  onClick={handleApprove}
-                  disabled={isProcessing}
-                >
-                  {isProcessing && <Loader2 className="size-3.5 animate-spin" />}
-                  Phê Duyệt Đơn
+                <Button onClick={handleApprove} disabled={isProcessing}>
+                  {isProcessing && <Loader2 className="size-4 animate-spin" />}
+                  Duyệt
                 </Button>
               </>
             )}
           </>
         ) : (
           <>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={() => setShowRejectInput(false)}
-              disabled={isProcessing}
-            >
+            <Button variant="outline" onClick={() => setShowRejectInput(false)} disabled={isProcessing}>
               Hủy từ chối
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="text-xs gap-1.5"
-              onClick={handleReject}
-              disabled={isProcessing || !rejectReason.trim()}
-            >
-              {isProcessing && <Loader2 className="size-3.5 animate-spin" />}
-              Xác Nhận Từ Chối
+            <Button variant="destructive" onClick={handleReject} disabled={isProcessing || !rejectReason.trim()}>
+              {isProcessing && <Loader2 className="size-4 animate-spin" />}
+              Xác nhận từ chối
             </Button>
           </>
         )}

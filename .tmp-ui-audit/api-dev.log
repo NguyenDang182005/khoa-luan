@@ -1,0 +1,535 @@
+
+> api@0.1.0 dev C:\Users\Admin\Documents\admin\khoa-luan\apps\api
+> nest start --watch
+
+[2J[3J[H[[90m9:44:08 AM[0m] Starting compilation in watch mode...
+
+[[90m9:44:17 AM[0m] Found 0 errors. Watching for file changes.
+
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [NestFactory] Starting Nest application...
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] PrismaModule dependencies initialized +56ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] PassportModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] ConfigHostModule dependencies initialized +5ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] ThrottlerModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] DiscoveryModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] ConfigModule dependencies initialized +3ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] ConfigModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] ScheduleModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] SlackModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] AppModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] JwtModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] OnboardingModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] UsersModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] DepartmentsModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] AttendanceModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] LeaveModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] ContractsModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] DashboardModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] KnowledgeModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] SalaryConfigModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] EmployeesModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] SettingsModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] TrainingModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] PayrollModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] AiContextModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] NotificationsModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] AuthModule dependencies initialized +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [InstanceLoader] AgentsModule dependencies initialized +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [WebSocketsController] NotificationsGateway subscribed to the "join-admin" message +65ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] AuthController {/api/v1/auth}: +2ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/login, POST} route +2ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/firebase, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/profile, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/change-password, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/logout, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] UsersController {/api/v1/users}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/users, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/users/:id, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] EmployeesController {/api/v1/employees}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/by-code/:code, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/status, PATCH} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/account, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/reset-password, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] SettingsController {/api/v1/settings}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/geofence, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/geofence, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/integrations, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/leave-policy, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/leave-policy, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/security-policy, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/security-policy, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions/:id, DELETE} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions/revoke-others, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/login-history, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai-config, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai-config, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai/test-connection, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays/:id, DELETE} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/audit-log, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] DepartmentsController {/api/v1/departments}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/departments, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/departments/:id, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] PositionsController {/api/v1/positions}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/positions, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] AttendanceController {/api/v1/attendance}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/employee/:employeeId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/report/:employeeId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/check-in, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/check-out, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/record, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] LeaveController {/api/v1/leave}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/balance/:employeeId, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/approve, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/reject, PATCH} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/cancel, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] PayrollController {/api/v1/payroll}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/me, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/employee/:employeeId, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/preview/:employeeId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/generate/:employeeId, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/generate-bulk, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/approve-bulk, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/paid-bulk, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/adjust, PATCH} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/approve, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/paid, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] ContractsController {/api/v1/contracts}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/active/:employeeId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id/deactivate, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] SalaryConfigController {/api/v1/salary-config}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config/current, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] OnboardingController {/api/v1/onboarding}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks/:id, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks/:id, DELETE} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress/:employeeId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress/:employeeId/:taskId, PATCH} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/assign/:employeeId, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] AiContextController {/api/v1/n8n}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/employee-context/:employeeId, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/payroll-context/:employeeId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/session, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/message, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/history/:sessionId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/escalate, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/session/:sessionId/reactivate, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/outbound-reply, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] NotificationsController {/api/v1/notifications}: +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/my, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/:id/read, PATCH} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/read-all, PATCH} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/send, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] DashboardController {/api/v1/dashboard}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/kpis, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/attendance-chart, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/department-distribution, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/pending-leaves, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/ai-activity, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] AgentsController {/api/v1/agents}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/performance, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] PortalAgentsController {/api/v1/agents}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/latest/:type, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/renew, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/intent-stats, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/conversations, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/escalation-queue, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-history/:sessionId, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/reactivate, POST} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/deactivate, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/reply, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/pii-audit, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/onboarding/my, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] TrainingController {/api/v1/training}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/questions, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/my-sessions, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/sessions, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/sessions/:id/attempts, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/analytics, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/submit, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/dashboard/me, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/training/dashboard/overview, GET} route +1ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RoutesResolver] KnowledgeController {/api/v1/n8n}: +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/knowledge-search, GET} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/knowledge-search, POST} route +0ms
+[Nest] 20684  - 11/05/2026, 9:44:20 AM     LOG [FirebaseAdminService] Firebase Admin SDK initialized (project: login-4f723)
+[Nest] 20684  - 11/05/2026, 9:44:21 AM     LOG [SlackService] ✅ Slack Socket Mode client đã kết nối
+[Nest] 20684  - 11/05/2026, 9:44:21 AM     LOG [NestApplication] Nest application successfully started +1ms
+🚀 HR System API is running on: http://localhost:3001/api/v1
+📖 API Documentation: http://localhost:3001/docs
+🔌 WebSocket: ws://localhost:3001/notifications
+[2J[3J[H[[90m9:45:02 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m9:45:03 AM[0m] Found 0 errors. Watching for file changes.
+
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [NestFactory] Starting Nest application...
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] PrismaModule dependencies initialized +24ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] PassportModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] ConfigHostModule dependencies initialized +3ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] ThrottlerModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] DiscoveryModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] ConfigModule dependencies initialized +2ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] ConfigModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] ScheduleModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] SlackModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] AppModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] JwtModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] OnboardingModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] UsersModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] DepartmentsModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] AttendanceModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] LeaveModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] ContractsModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] DashboardModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] KnowledgeModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] SalaryConfigModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] EmployeesModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] SettingsModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] TrainingModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] PayrollModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] AiContextModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] NotificationsModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] AuthModule dependencies initialized +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [InstanceLoader] AgentsModule dependencies initialized +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [WebSocketsController] NotificationsGateway subscribed to the "join-admin" message +43ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] AuthController {/api/v1/auth}: +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/login, POST} route +2ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/firebase, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/profile, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/change-password, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/logout, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] UsersController {/api/v1/users}: +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/users, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/users/:id, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] EmployeesController {/api/v1/employees}: +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/by-code/:code, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/status, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/account, PATCH} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/reset-password, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] SettingsController {/api/v1/settings}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/geofence, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/geofence, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/integrations, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/leave-policy, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/leave-policy, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/security-policy, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/security-policy, PATCH} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions/:id, DELETE} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions/revoke-others, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/login-history, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai-config, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai-config, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai/test-connection, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays/:id, DELETE} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/audit-log, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] DepartmentsController {/api/v1/departments}: +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/departments, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/departments/:id, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] PositionsController {/api/v1/positions}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/positions, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] AttendanceController {/api/v1/attendance}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/employee/:employeeId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/report/:employeeId, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/check-in, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/check-out, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/record, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] LeaveController {/api/v1/leave}: +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/balance/:employeeId, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/approve, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/reject, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/cancel, PATCH} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] PayrollController {/api/v1/payroll}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/me, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/employee/:employeeId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/preview/:employeeId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/generate/:employeeId, POST} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/generate-bulk, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/approve-bulk, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/paid-bulk, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/adjust, PATCH} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/approve, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/paid, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] ContractsController {/api/v1/contracts}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/active/:employeeId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts, POST} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id/deactivate, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] SalaryConfigController {/api/v1/salary-config}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config/current, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] OnboardingController {/api/v1/onboarding}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks, POST} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks/:id, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks/:id, DELETE} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress/:employeeId, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress/:employeeId/:taskId, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/assign/:employeeId, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] AiContextController {/api/v1/n8n}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/employee-context/:employeeId, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/payroll-context/:employeeId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/session, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/message, POST} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/history/:sessionId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/escalate, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/session/:sessionId/reactivate, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/outbound-reply, POST} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] NotificationsController {/api/v1/notifications}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/my, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/:id/read, PATCH} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/read-all, PATCH} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/send, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] DashboardController {/api/v1/dashboard}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/kpis, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/attendance-chart, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/department-distribution, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/pending-leaves, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/ai-activity, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] AgentsController {/api/v1/agents}: +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/performance, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] PortalAgentsController {/api/v1/agents}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/latest/:type, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/renew, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/intent-stats, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/conversations, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/escalation-queue, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-history/:sessionId, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/reactivate, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/deactivate, POST} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/reply, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/pii-audit, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/onboarding/my, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] TrainingController {/api/v1/training}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/questions, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/my-sessions, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/sessions, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/sessions/:id/attempts, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/analytics, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/submit, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/dashboard/me, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/training/dashboard/overview, GET} route +1ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RoutesResolver] KnowledgeController {/api/v1/n8n}: +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/knowledge-search, GET} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/knowledge-search, POST} route +0ms
+[Nest] 10464  - 11/05/2026, 9:45:05 AM     LOG [FirebaseAdminService] Firebase Admin SDK initialized (project: login-4f723)
+[Nest] 10464  - 11/05/2026, 9:45:06 AM     LOG [SlackService] ✅ Slack Socket Mode client đã kết nối
+[Nest] 10464  - 11/05/2026, 9:45:06 AM     LOG [NestApplication] Nest application successfully started +1ms
+🚀 HR System API is running on: http://localhost:3001/api/v1
+📖 API Documentation: http://localhost:3001/docs
+🔌 WebSocket: ws://localhost:3001/notifications
+[2J[3J[H[[90m9:45:13 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m9:45:14 AM[0m] Found 0 errors. Watching for file changes.
+
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [NestFactory] Starting Nest application...
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] PrismaModule dependencies initialized +38ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] PassportModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] ConfigHostModule dependencies initialized +3ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] ThrottlerModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] DiscoveryModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] ConfigModule dependencies initialized +2ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] ConfigModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] ScheduleModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] SlackModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] AppModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] JwtModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] OnboardingModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] UsersModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] DepartmentsModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] AttendanceModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] LeaveModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] ContractsModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] DashboardModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] KnowledgeModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] SalaryConfigModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] EmployeesModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] SettingsModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] TrainingModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] PayrollModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] AiContextModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] NotificationsModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] AuthModule dependencies initialized +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [InstanceLoader] AgentsModule dependencies initialized +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [WebSocketsController] NotificationsGateway subscribed to the "join-admin" message +43ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] AuthController {/api/v1/auth}: +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/login, POST} route +2ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/firebase, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/profile, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/change-password, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/auth/logout, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] UsersController {/api/v1/users}: +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/users, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/users/:id, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] EmployeesController {/api/v1/employees}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/by-code/:code, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/status, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/account, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/employees/:id/reset-password, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] SettingsController {/api/v1/settings}: +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/geofence, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/geofence, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/integrations, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/leave-policy, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/leave-policy, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/security-policy, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/security-policy, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions/:id, DELETE} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/sessions/revoke-others, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/login-history, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai-config, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai-config, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/ai/test-connection, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/holidays/:id, DELETE} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/settings/audit-log, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] DepartmentsController {/api/v1/departments}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/departments, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/departments/:id, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] PositionsController {/api/v1/positions}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/positions, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] AttendanceController {/api/v1/attendance}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/employee/:employeeId, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/report/:employeeId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/check-in, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/check-out, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/attendance/record, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] LeaveController {/api/v1/leave}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/balance/:employeeId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/approve, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/reject, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/leave/:id/cancel, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] PayrollController {/api/v1/payroll}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/me, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/employee/:employeeId, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/preview/:employeeId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/generate/:employeeId, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/generate-bulk, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/approve-bulk, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/paid-bulk, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/adjust, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/approve, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/payroll/:id/paid, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] ContractsController {/api/v1/contracts}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/active/:employeeId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id, PATCH} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/contracts/:id/deactivate, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] SalaryConfigController {/api/v1/salary-config}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config/current, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/salary-config, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] OnboardingController {/api/v1/onboarding}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks/:id, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/tasks/:id, DELETE} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress/:employeeId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/progress/:employeeId/:taskId, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/onboarding/assign/:employeeId, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] AiContextController {/api/v1/n8n}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/employee-context/:employeeId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/payroll-context/:employeeId, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/session, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/message, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/history/:sessionId, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/escalate, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/chat/session/:sessionId/reactivate, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/outbound-reply, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] NotificationsController {/api/v1/notifications}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/my, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/:id/read, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/read-all, PATCH} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/notifications/send, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] DashboardController {/api/v1/dashboard}: +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/kpis, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/attendance-chart, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/department-distribution, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/pending-leaves, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/dashboard/ai-activity, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] AgentsController {/api/v1/agents}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/performance, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] PortalAgentsController {/api/v1/agents}: +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/latest/:type, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/renew, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/intent-stats, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/conversations, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/escalation-queue, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-history/:sessionId, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/reactivate, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/deactivate, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/chat-session/:id/reply, POST} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/pii-audit, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/agents/onboarding/my, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] TrainingController {/api/v1/training}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/questions, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/my-sessions, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/sessions, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/sessions/:id/attempts, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/analytics, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/submit, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/dashboard/me, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/training/dashboard/overview, GET} route +1ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RoutesResolver] KnowledgeController {/api/v1/n8n}: +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/knowledge-search, GET} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [RouterExplorer] Mapped {/api/v1/n8n/knowledge-search, POST} route +0ms
+[Nest] 23296  - 11/05/2026, 9:45:16 AM     LOG [FirebaseAdminService] Firebase Admin SDK initialized (project: login-4f723)
+[Nest] 23296  - 11/05/2026, 9:45:17 AM     LOG [SlackService] ✅ Slack Socket Mode client đã kết nối
+[Nest] 23296  - 11/05/2026, 9:45:17 AM     LOG [NestApplication] Nest application successfully started +1ms
+🚀 HR System API is running on: http://localhost:3001/api/v1
+📖 API Documentation: http://localhost:3001/docs
+🔌 WebSocket: ws://localhost:3001/notifications

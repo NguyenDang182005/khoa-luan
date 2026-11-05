@@ -1,0 +1,45 @@
+@startuml
+!include _style.iuml
+start
+if (Nguồn gọi?) then (từ WF01)
+  :Execute Workflow Trigger;
+else (gọi trực tiếp)
+  :Webhook POST /training-quiz
+  (x-api-key);
+endif
+:Normalize Input + PII Masking;
+:Load Scenario
+(6 kịch bản + chính sách công ty);
+:Lấy hoặc tạo phiên TRAINING;
+:Lưu tin nhắn đã che PII;
+switch (Action?)
+case (generate_quiz)
+  :Build Quiz Gen Prompt
+  (5 MCQ + 2 tự luận);
+  :Quiz Generator Agent
+  (maxIterations = 1);
+  :Parse JSON
+  (lỗi, rỗng hoặc không dấu tiếng Việt
+  → dùng bộ câu hỏi dự phòng);
+  :Lưu quiz vào metadata;
+case (submit_quiz)
+  :Build Quiz Grade Prompt
+  (chỉ 2 câu tự luận, 4 tiêu chí 0–10);
+  :Quiz Grader Agent
+  (maxIterations = 1);
+  :Format Grade Output
+  • MCQ: so answer với correctAnswer bằng code
+  • Tự luận: parse JSON, lỗi thì mỗi câu 5/10
+  • score = 0,5 × %MCQ + 0,5 × điểm tự luận × 10;
+  :Lưu kết quả chấm;
+case (khác: role-play)
+  :Prepare Agent Input;
+  :Training Agent + Memory
+  (maxIterations = 3);
+  :Parse Result
+  (tách thẻ DANH GIA);
+  :Lưu điểm role-play;
+endswitch
+:Format Training Output;
+stop
+@enduml

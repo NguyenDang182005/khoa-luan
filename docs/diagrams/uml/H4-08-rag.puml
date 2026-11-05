@@ -1,0 +1,26 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+participant "WF02\nHR Agent" as H
+participant "NestJS\nKnowledgeService" as K
+participant "Gemini\nEmbedding API" as G
+database "policy_chunks" as DB
+activate H
+H -> K : GET /n8n/knowledge-search?query=...&topK=3
+activate K
+K -> G : embedContent (gemini-embedding-001, 768 chiều)
+activate G
+G --> K : Vector câu hỏi
+deactivate G
+alt Đã cài pgvector
+  K -> DB : ORDER BY khoảng cách cosine\n(chỉ mục HNSW), LIMIT k
+else Chưa cài pgvector
+  K -> DB : Đọc embedding_json
+  K -> K : Tính cosine similarity trong Node.js
+end
+K --> H : top-k đoạn chính sách (docTitle, score)
+deactivate K
+H -> H : Đưa ngữ cảnh vào prompt,\ntrả lời có trích nguồn
+deactivate H
+@enduml

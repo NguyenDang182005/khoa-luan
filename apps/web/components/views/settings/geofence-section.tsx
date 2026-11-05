@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { MapPin, Loader2 } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,8 +64,8 @@ export function GeofenceSection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <MapPin className="size-4 text-agent-teal" /> Vùng Chấm Công (Geofence)
+        <CardTitle className="flex items-center gap-2">
+          <MapPin className="size-4 text-primary" /> Vùng chấm công (geofence)
         </CardTitle>
         <CardDescription>
           Nhân viên chỉ check-in/out được khi GPS của họ nằm trong bán kính này quanh văn phòng.
@@ -73,63 +73,90 @@ export function GeofenceSection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
       </CardHeader>
       <CardContent>
         {!geofence ? (
-          <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="flex h-16 items-center justify-center gap-2 text-body-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Đang tải...
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="text-[11px] font-semibold text-muted-foreground">Tên văn phòng</label>
+                <label htmlFor="geo-name" className="text-body-sm font-medium text-secondary-foreground">
+                  Tên văn phòng
+                </label>
                 <Input
+                  id="geo-name"
                   value={geofence.name}
                   onChange={(e) => setGeofence({ ...geofence, name: e.target.value })}
-                  className="mt-1 h-8 text-xs"
+                  className="mt-1.5"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Vĩ độ (lat)</label>
+                <label htmlFor="geo-lat" className="text-body-sm font-medium text-secondary-foreground">
+                  Vĩ độ (lat)
+                </label>
                 <Input
+                  id="geo-lat"
                   type="number"
                   step="0.0001"
                   value={String(geofence.lat)}
                   onChange={(e) => setGeofence({ ...geofence, lat: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
+                  className="mt-1.5 tabular"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Kinh độ (lng)</label>
+                <label htmlFor="geo-lng" className="text-body-sm font-medium text-secondary-foreground">
+                  Kinh độ (lng)
+                </label>
                 <Input
+                  id="geo-lng"
                   type="number"
                   step="0.0001"
                   value={String(geofence.lng)}
                   onChange={(e) => setGeofence({ ...geofence, lng: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
+                  className="mt-1.5 tabular"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Bán kính cho phép (m)</label>
+                <label htmlFor="geo-radius" className="text-body-sm font-medium text-secondary-foreground">
+                  Bán kính cho phép (m)
+                </label>
                 <Input
+                  id="geo-radius"
                   type="number"
                   min={20}
                   max={5000}
                   value={String(geofence.radiusM)}
                   onChange={(e) => setGeofence({ ...geofence, radiusM: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
+                  className="mt-1.5 tabular"
                 />
+                <p className="mt-1 text-caption text-muted-foreground">Từ 20 đến 5000 m.</p>
               </div>
             </div>
-            {msg && <p className="mt-3 text-[11px] text-emerald-400">{msg}</p>}
-            {error && <p className="mt-3 text-[11px] text-agent-coral">{error}</p>}
-            <div className="mt-3 flex items-center gap-3">
-              <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Vùng Chấm Công
-              </Button>
-              {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
-            </div>
+            {msg && (
+              <p className="mt-4 flex items-center gap-1.5 text-body-sm text-success">
+                <CheckCircle2 className="size-4 shrink-0" /> {msg}
+              </p>
+            )}
+            {error && (
+              <p className="mt-4 flex items-center gap-1.5 text-body-sm text-danger">
+                <AlertTriangle className="size-4 shrink-0" /> {error}
+              </p>
+            )}
           </>
         )}
       </CardContent>
+      {geofence && (
+        <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 rounded-b-lg border-t border-border bg-card px-5 py-4 sm:px-6">
+          {dirty && (
+            <span className="mr-auto flex items-center gap-1.5 text-body-sm text-warning">
+              <span className="size-2 rounded-full bg-warning" aria-hidden="true" /> Có thay đổi chưa lưu
+            </span>
+          )}
+          <Button onClick={save} disabled={busy || !dirty}>
+            {busy && <Loader2 className="size-4 animate-spin" />} Lưu thay đổi
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

@@ -5,7 +5,7 @@ flowchart TD
   S --> B{"Is Bot Active?"}
   B -->|"false"| MU["Save Message (Bot Muted)<br/>chỉ lưu tin, không gọi AI"]
   B -->|"true"| U["Lưu tin nhắn khách"]
-  U --> AG["CSKH Agent<br/>Gemini, temperature 0.5<br/>Memory 20 lượt"]
+  U --> AG["CSKH Agent<br/>DeepSeek, temperature 0.5<br/>Memory 20 lượt"]
   AG --> PO["Parse CSKH Output<br/>regex [CAN_ESCALATE: lý do]"]
   PO --> SV["Lưu câu trả lời"]
   PO --> OR["POST /n8n/outbound-reply<br/>gửi vào Slack thread"]

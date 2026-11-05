@@ -1,0 +1,107 @@
+@startuml
+!include _style.iuml
+skinparam linetype ortho
+hide circle
+hide methods
+skinparam nodesep 60
+skinparam ranksep 70
+
+entity USER {
+  * id : string <<PK>>
+  --
+  email : string <<UK>>
+  role : UserRole
+  failedLoginAttempts : int
+  lockedUntil : datetime
+}
+entity REFRESH_TOKEN
+entity NOTIFICATION
+entity LOGIN_HISTORY
+entity SETTINGS_AUDIT_LOG
+entity DEPARTMENT
+entity POSITION
+entity EMPLOYEE {
+  * id : string <<PK>>
+  --
+  employeeCode : string <<UK>>
+  userId : string <<FK>>
+  departmentId : string <<FK>>
+  positionId : string <<FK>>
+  status : EmploymentStatus
+  dependents : int
+}
+entity ATTENDANCE {
+  employeeId : string <<FK>>
+  date : date
+  status : AttendanceStatus
+  workDays : float
+  overtime : float
+  dayType : AttendanceDayType
+}
+entity LEAVE_REQUEST {
+  employeeId : string <<FK>>
+  type : LeaveType
+  totalDays : float
+  status : LeaveStatus
+  approvedById : string <<FK>>
+}
+entity CONTRACT {
+  contractNumber : string <<UK>>
+  type : ContractType
+  baseSalary : float
+  allowances : float
+}
+entity PAYROLL {
+  employeeId : string <<FK>>
+  month : int
+  year : int
+  bhxh : float
+  tax : float
+  netSalary : float
+  status : PayrollStatus
+}
+entity ONBOARDING_TASK
+entity ONBOARDING_PROGRESS
+entity TRAINING_SESSION {
+  scenario : TrainingScenario
+  quizScore : float
+  aiScore : json
+  totalScore : float
+}
+entity TRAINING_ATTEMPT
+entity AI_CHAT_SESSION {
+  * id : string <<PK>>
+  --
+  type : ChatSessionType
+  channel : string
+  isActive : boolean
+  escalatedAt : datetime
+}
+entity AI_CHAT_MESSAGE {
+  sessionId : string <<FK>>
+  role : string
+  content : text
+  metadata : json
+}
+
+USER ||--o| EMPLOYEE : liên kết
+USER ||--o{ REFRESH_TOKEN : phiên
+USER ||--o{ NOTIFICATION : nhận
+USER |o--o{ LOGIN_HISTORY : ghi
+USER |o--o{ SETTINGS_AUDIT_LOG : thay đổi
+DEPARTMENT |o--o{ DEPARTMENT : cấp trên
+DEPARTMENT ||--o{ POSITION : có
+DEPARTMENT ||--o{ EMPLOYEE : gồm
+POSITION ||--o{ EMPLOYEE : đảm nhiệm
+EMPLOYEE |o--o{ EMPLOYEE : quản lý
+EMPLOYEE ||--o{ ATTENDANCE : chấm công
+EMPLOYEE ||--o{ LEAVE_REQUEST : gửi, duyệt
+EMPLOYEE ||--o{ CONTRACT : ký
+EMPLOYEE ||--o{ PAYROLL : nhận
+EMPLOYEE ||--o{ ONBOARDING_PROGRESS : thực hiện
+ONBOARDING_TASK ||--o{ ONBOARDING_PROGRESS : theo dõi
+EMPLOYEE ||--o{ TRAINING_SESSION : tham gia
+TRAINING_SESSION ||--o{ TRAINING_ATTEMPT : gồm
+EMPLOYEE |o--o{ AI_CHAT_SESSION : trò chuyện
+AI_CHAT_SESSION ||--o{ AI_CHAT_MESSAGE : chứa
+@enduml

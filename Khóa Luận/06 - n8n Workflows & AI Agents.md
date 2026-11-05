@@ -1,7 +1,7 @@
 ---
-tags: [khoa-luan, n8n, ai-agents, workflow, gemini, zalo, gemini-3.1-flash-lite, rag, quiz, training, adr, slack]
+tags: [khoa-luan, n8n, ai-agents, workflow, deepseek, zalo, gemini-embedding, rag, quiz, training, adr, slack]
 created: 2026-09-04
-updated: 2026-10-17
+updated: 2026-11-03
 ---
 
 # 🤖 n8n Workflows & AI Agents
@@ -9,7 +9,10 @@ updated: 2026-10-17
 ## Tổng Quan
 
 **n8n** là nền tảng điều phối (orchestration) kết nối các AI Agent, chạy qua **Docker** tại `http://localhost:5678`.
-Hệ thống sử dụng mô hình **Google Gemini 3.1 Flash Lite** (`models/gemini-3.1-flash-lite`) cho các sub-agent WF02/03/04, với tham số `maxOutputTokens: 1024`.
+Hệ thống sử dụng mô hình **DeepSeek `deepseek-flash`** (node `DeepSeek Chat`, credential `DeepSeek account`) cho các sub-agent WF02/03/04, với `maxTokens: 1024`. RAG vẫn dùng **`gemini-embedding-001`**.
+
+> [!IMPORTANT]
+> **03/11/2026 — chuyển từ Gemini sang DeepSeek:** Gemini 3.1 Flash Lite trả 503 "high demand" và bị giới hạn request/ngày. Các mục bên dưới còn nhắc `gemini-3.1-flash-lite` là lịch sử trước ngày này. Chi tiết: [[33 - Chuyển AI Agent Sang DeepSeek & Rà Soát Logic UI (03-11-2026)]].
 
 > [!NOTE]
 > **WF01 Router Agent — 0 LLM call (refactor 17/09):**
@@ -17,7 +20,7 @@ Hệ thống sử dụng mô hình **Google Gemini 3.1 Flash Lite** (`models/gem
 > Nhánh `OTHER` trả **static message** hướng dẫn người dùng chọn đúng module — không tốn LLM call, không rò PII.
 
 > [!NOTE]
-> **Lựa chọn mô hình `gemini-3.1-flash-lite` (cập nhật 21/09):** 500 requests/ngày (15 RPM), phản hồi siêu tốc (~1-2s), hỗ trợ đầy đủ Tool Calling và vượt trội hạn mức so với các bản Flash 20 RPD.
+> **(Lịch sử) Lựa chọn mô hình `gemini-3.1-flash-lite` (cập nhật 21/09, thay bằng DeepSeek từ 03/11):** 500 requests/ngày (15 RPM), phản hồi siêu tốc (~1-2s), hỗ trợ đầy đủ Tool Calling và vượt trội hạn mức so với các bản Flash 20 RPD.
 
 Thư mục lưu trữ: `n8n-workflows/` — gồm **5 workflows JSON** đã được cấu hình credentials và published lên n8n.
 
@@ -61,7 +64,7 @@ graph TD
 ## Workflow 02 — HR Q&A Agent 💼
 
 - **Kích hoạt:** `Execute Workflow Trigger` từ WF01
-- **Model:** `models/gemini-3.1-flash-lite` (Temperature: 0.3, **maxIterations: 3**)
+- **Model:** `deepseek-flash` (từ 03/11; trước đó `models/gemini-3.1-flash-lite`) (Temperature: 0.3, **maxIterations: 3**)
 - **Bộ nhớ:** `Postgres Chat Memory` bảng `n8n_chat_histories`
 - **AI Tools:** `GetEmployeeContext`, `GetPayrollContext`, `SearchPolicyKnowledge` (RAG `policy_chunks`)
 
@@ -101,7 +104,7 @@ Trigger B (Webhook /training-quiz) ┘                                          
 
 ### Thông Số Kỹ Thuật
 
-- **Model:** `models/gemini-3.1-flash-lite` — **3 nodes Gemini riêng biệt** (Gemini Gen, Gemini Grade, Gemini Roleplay)
+- **Model:** `deepseek-flash` (từ 03/11; trước đó `models/gemini-3.1-flash-lite`) — bản live 03/11 dùng **1 node `DeepSeek Chat`** nối vào cả 3 agent (Quiz Generator, Quiz Grader, Training) và chạy bình thường; tài liệu cũ ghi 3 node Gemini riêng biệt
 - **Webhook mode:** `responseMode: 'lastNode'`
 - **maxIterations:** Quiz agents = 1, Training roleplay = 3
 
@@ -133,7 +136,7 @@ Trigger B (Webhook /training-quiz) ┘                                          
 
 - **Kích hoạt:** NestJS SlackModule (Bolt Socket Mode) — KHÔNG qua Zalo Webhook trực tiếp
 - **Transport thực tế:** Khách chat Slack channel `#demo` → NestJS Bolt → WF04 webhook
-- **Model:** `models/gemini-3.1-flash-lite` (Temperature: 0.5, maxIterations: 3)
+- **Model:** `deepseek-flash` (từ 03/11; trước đó `models/gemini-3.1-flash-lite`) (Temperature: 0.5, maxIterations: 3)
 - **Bộ nhớ:** `Postgres Chat Memory` bảng `n8n_chat_histories`
 
 ### Nodes quan trọng (17/09)
@@ -142,7 +145,7 @@ Trigger B (Webhook /training-quiz) ┘                                          
 | Input from Router | Nhận payload `slackChannel` + `threadTs` từ NestJS |
 | Get/Create CSKH Session | Tạo/lấy session, trả `isActive` |
 | Is Bot Active? (IF) | `isActive=false` → dừng, không reply |
-| CSKH Agent | Gemini 3.1 Flash Lite với system prompt TechHRM |
+| CSKH Agent | DeepSeek `deepseek-flash` với system prompt TechHRM |
 | Should Escalate? | Phát hiện `[CAN_ESCALATE:]` tag |
 | Escalate to Admin | POST `/n8n/escalate` → NestJS → WebSocket portal |
 | Send Reply Outbound | POST `/ai-context/outbound-reply` với `slackChannel`+`threadTs` |

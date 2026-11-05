@@ -1,22 +1,38 @@
 "use client"
 
 import * as React from "react"
-import { Sparkles, LogOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ChevronDown, ChevronRight, LogOut, Menu, Search } from "lucide-react"
 import { Avatar } from "@/components/ui/avatar"
 import type { AuthUser } from "@/lib/auth-context"
 
 interface AppHeaderProps {
   user: AuthUser
+  groupLabel?: string
+  pageLabel: string
   onLogout: () => void
   onOpenSearch: () => void
+  onOpenMenu: () => void
 }
 
-export function AppHeader({ user, onLogout, onOpenSearch }: AppHeaderProps) {
-  const roleBadgeColor =
-    user.role === "ADMIN"
-      ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-      : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+export function AppHeader({ user, groupLabel, pageLabel, onLogout, onOpenSearch, onOpenMenu }: AppHeaderProps) {
+  const [menuOpen, setMenuOpen] = React.useState(false)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false)
+    }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [menuOpen])
 
   const userInitials = user.employee?.fullName
     ? user.employee.fullName
@@ -26,45 +42,85 @@ export function AppHeader({ user, onLogout, onOpenSearch }: AppHeaderProps) {
         .join("")
         .toUpperCase()
     : "AD"
+  const roleLabel = user.role === "ADMIN" ? "Quản trị viên" : user.role === "EMPLOYEE" ? "Nhân viên" : user.role
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-shell px-4 z-20">
-      <div className="flex items-center gap-3">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md">
-          <Sparkles className="size-4" />
-        </div>
-        <div>
-          <p className="text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5">
-            HR Multi-Agent Platform
-            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-mono text-primary font-bold">Enterprise</span>
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">NestJS 11 • n8n • Gemini 3.1 Flash Lite</p>
-        </div>
-      </div>
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-shell px-4 lg:px-8">
+      <button
+        type="button"
+        onClick={onOpenMenu}
+        aria-label="Mở menu điều hướng"
+        className="inline-flex size-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+      >
+        <Menu className="size-5" />
+      </button>
 
-      <div className="flex items-center gap-3">
-        <div className="hidden lg:flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-          <span className="text-[11px] font-medium text-foreground">API :3001</span>
-          <span className="text-muted-foreground/40">•</span>
-          <span className="text-[11px] font-medium text-foreground">n8n :5678</span>
-        </div>
+      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-body-sm">
+        {groupLabel && (
+          <>
+            <span className="hidden whitespace-nowrap text-muted-foreground lg:inline">{groupLabel}</span>
+            <ChevronRight className="hidden size-4 text-subtle-foreground lg:inline" />
+          </>
+        )}
+        <span className="truncate font-medium text-foreground" aria-current="page">{pageLabel}</span>
+      </nav>
 
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
         {user.role !== "EMPLOYEE" && (
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex h-8 gap-2 border-border bg-muted/40 text-xs text-muted-foreground" onClick={onOpenSearch}>
-            Tìm kiếm nhanh
-            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-[9px] font-mono">Ctrl+K</kbd>
-          </Button>
+          <>
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="hidden h-9 w-[240px] items-center gap-2 rounded-md border border-input bg-card px-3 text-body-sm text-subtle-foreground transition-colors hover:bg-sunken lg:flex xl:w-[320px]"
+            >
+              <Search className="size-4" />
+              Tìm kiếm nhanh
+              <kbd className="ml-auto rounded-sm border border-border bg-muted px-1.5 font-mono text-micro text-muted-foreground">Ctrl K</kbd>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              aria-label="Tìm kiếm nhanh"
+              className="inline-flex size-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+            >
+              <Search className="size-5" />
+            </button>
+          </>
         )}
 
-        <div className="flex items-center gap-2 pl-2 border-l border-border">
-          <Avatar initials={userInitials} className="size-8 bg-primary/20 text-primary border border-primary/30" />
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-foreground leading-tight">{user.employee?.fullName || user.email}</span>
-            <span className={`text-[9px] font-mono px-1 py-0.5 rounded-sm border inline-block w-fit mt-0.5 ${roleBadgeColor}`}>{user.role}</span>
-          </div>
-          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 ml-1" title="Đăng xuất" onClick={onLogout}>
-            <LogOut className="size-4" />
-          </Button>
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className="flex h-10 items-center gap-2.5 rounded-md pl-1 pr-2 transition-colors hover:bg-muted"
+          >
+            <Avatar initials={userInitials} className="bg-primary-tint text-accent-foreground" />
+            <span className="hidden text-left leading-tight lg:block">
+              <span className="block max-w-40 truncate text-body-sm font-semibold text-foreground">{user.employee?.fullName || user.email}</span>
+              <span className="block text-caption text-muted-foreground">{roleLabel}</span>
+            </span>
+            <ChevronDown className="hidden size-4 text-muted-foreground sm:block" />
+          </button>
+          {menuOpen && (
+            <div role="menu" className="absolute right-0 z-50 mt-2 w-60 rounded-lg border border-border bg-popover p-1.5 shadow-pop animate-in fade-in-0 zoom-in-95 duration-150">
+              <div className="px-3 py-2">
+                <p className="truncate text-body-sm font-semibold text-foreground">{user.employee?.fullName || user.email}</p>
+                <p className="truncate text-caption text-muted-foreground">{user.email}</p>
+              </div>
+              <div className="my-1 h-px bg-border" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={onLogout}
+                className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-body-sm font-medium text-danger transition-colors hover:bg-danger-tint"
+              >
+                <LogOut className="size-4" />
+                Đăng xuất
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

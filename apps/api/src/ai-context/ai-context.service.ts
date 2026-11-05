@@ -298,6 +298,13 @@ export class AiContextService {
     content: string;
     metadata?: object;
   }) {
+    // Dữ liệu test/ingest sai charset thường tới dưới dạng U+FFFD (�).
+    // Log để lần ra nguồn gửi, không chặn chat (tránh làm hỏng luồng WF02–WF04).
+    if (dto.content.includes('\uFFFD')) {
+      this.logger.warn(
+        `[encoding] Tin nhắn ${dto.role} của session ${dto.sessionId} chứa U+FFFD — kiểm tra charset nguồn gửi.`,
+      );
+    }
     // 1. Persist message
     const message = await this.prisma.aiChatMessage.create({
       data: {

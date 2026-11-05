@@ -1,35 +1,40 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { PlugZap, Loader2, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react"
+import { PlugZap, Loader2, AlertTriangle, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { settingsApi } from "@/lib/api/settings.api"
 import type { IntegrationStatus } from "@/lib/schemas/settings.schema"
 
-function StatusBadge({ status }: { status: IntegrationStatus["status"] }) {
-  if (status === "ok") return <Badge variant="success">Hoạt động</Badge>
-  if (status === "error") return <Badge variant="coral">Lỗi</Badge>
-  return <Badge variant="warning">Chưa cấu hình</Badge>
-}
-
-function StatusIcon({ status }: { status: IntegrationStatus["status"] }) {
-  if (status === "ok") return <CheckCircle2 className="size-4 text-emerald-400" />
-  if (status === "error") return <AlertTriangle className="size-4 text-agent-coral" />
-  return <HelpCircle className="size-4 text-agent-amber" />
+function StatusDot({ status }: { status: IntegrationStatus["status"] }) {
+  const { dot, text, label } =
+    status === "ok"
+      ? { dot: "bg-success", text: "text-success", label: "Hoạt động" }
+      : status === "error"
+        ? { dot: "bg-danger", text: "text-danger", label: "Lỗi" }
+        : { dot: "bg-warning", text: "text-warning", label: "Chưa cấu hình" }
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-caption font-medium ${text}`}>
+      <span className={`size-2 rounded-full ${dot}`} aria-hidden="true" />
+      {label}
+    </span>
+  )
 }
 
 export function IntegrationsSection() {
   const [integrations, setIntegrations] = useState<Awaited<ReturnType<typeof settingsApi.getIntegrations>> | null>(null)
   const [pinging, setPinging] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setPinging(true)
+    setLoadError(null)
     try {
       setIntegrations(await settingsApi.getIntegrations())
     } catch (e) {
       console.error(e)
+      setLoadError("Không lấy được trạng thái tích hợp.")
     } finally {
       setPinging(false)
     }
@@ -42,41 +47,53 @@ export function IntegrationsSection() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <PlugZap className="size-4 text-agent-teal" /> Trạng Thái Tích Hợp
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <PlugZap className="size-4 text-primary" /> Trạng thái tích hợp
             </CardTitle>
-            <CardDescription>
-              Ping thật từng dịch vụ: PostgreSQL, n8n (/healthz), Slack (auth.test) và Gemini API.
+            <CardDescription className="mt-1">
+              Kiểm tra kết nối thật tới từng dịch vụ: PostgreSQL, n8n (/healthz), Slack (auth.test) và Gemini (embedding).
             </CardDescription>
           </div>
-          <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={load} disabled={pinging}>
-            {pinging && <Loader2 className="size-3.5 animate-spin" />} Kiểm Tra Lại
+          <Button size="sm" variant="outline" className="shrink-0" onClick={load} disabled={pinging}>
+            {pinging ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />} Kiểm tra
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {!integrations ? (
-          <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" /> Đang ping các dịch vụ...
+        {loadError ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/20 bg-danger-tint px-4 py-3 text-body-sm text-danger">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="size-4 shrink-0" /> {loadError}
+            </span>
+            <Button size="sm" variant="outline" onClick={load} disabled={pinging}>
+              Thử lại
+            </Button>
+          </div>
+        ) : !integrations ? (
+          <div aria-label="Đang kiểm tra các dịch vụ...">
+            <p className="mb-3 flex items-center gap-2 text-body-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Đang kiểm tra kết nối tới các dịch vụ…
+            </p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="skeleton h-[88px] rounded-lg" />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {integrations.items.map((item) => (
-              <div key={item.key} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 p-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <StatusIcon status={item.status} />
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground">{item.name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{item.detail ?? "--"}</p>
-                  </div>
+              <div key={item.key} className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <StatusDot status={item.status} />
                 </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  {item.latencyMs !== null && (
-                    <span className="font-mono text-[11px] text-muted-foreground">{item.latencyMs}ms</span>
-                  )}
-                  <StatusBadge status={item.status} />
+                <div className="min-w-0">
+                  <p className="text-body font-semibold text-foreground">{item.name}</p>
+                  <p className="truncate text-body-sm text-muted-foreground" title={item.detail ?? undefined}>
+                    {item.detail ?? "--"}
+                  </p>
                 </div>
               </div>
             ))}

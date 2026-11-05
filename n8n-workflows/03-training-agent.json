@@ -54,7 +54,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input=$input.first().json;const st=input.scenarioType||\"general_communication\";const companyPolicy=\"Chinh sach cong ty: Gio lam viec T2-T6 (8:00-17:30, nghi trua 12:00-13:30), cham cong GPS ban kinh van phong. Thu viec toi da 60 ngay (huong 85% luong). Phep nam chuan 12 ngay/nam duong lich (nhan vien moi vao lam trong nam tinh theo ty le so thang lam viec thuc te pro-rate, KHONG ap dung bat ky co che cong them ngay phep nao: KHONG cong phep tham nien, KHONG chuyen phep du nam truoc sang nam sau). BHXH 8%, BHYT 1.5%, BHTN 1%. OT ngay thuong x1.5, cuoi tuan x2.0, le tet x3.0. Bao mat PII: khong chia se CCCD, SDT, luong cua dong nghiep.\";const scenarios={customer_complaint:{role:\"khach hang kho tinh phan nan ve dich vu cham tre\",objective:\"xu ly khieu nai, de xuat giai phap, giu chan khach hang\",difficulty:\"cao\"},colleague_conflict:{role:\"dong nghiep co mau thuan phan cong cong viec\",objective:\"giai quyet mau thuan, duy tri quan he chuyen nghiep\",difficulty:\"trung binh\"},manager_feedback:{role:\"manager feedback hieu suat thap va deadline tre\",objective:\"tiep nhan feedback tich cuc, lap ke hoach cai thien cu the\",difficulty:\"trung binh\"},new_employee_onboarding:{role:\"nhan vien moi tuan dau tien can huong dan lam quen moi truong va chinh sach nhan su (nghi phep 12 ngay/nam pro-rate khong cong phep tham nien va khong chuyen phep du, cham cong GPS, thu viec, BHXH)\",objective:\"hoa nhap nhanh, hieu ro quy dinh cong ty va ky vong cong viec\",difficulty:\"thap\"},performance_review:{role:\"HR danh gia hieu suat quy, thao luan muc tieu SMART\",objective:\"danh gia trung thuc, thiet lap muc tieu ro rang, dong thuan\",difficulty:\"cao\"},general_communication:{role:\"doi tac trong cuoc hop dam phan hop dong dich vu\",objective:\"giao tiep hieu qua, dat thoa thuan co loi cho ca hai\",difficulty:\"trung binh\"}};const sd=scenarios[st]||scenarios.general_communication;return[{json:{...input,scenarioType:st,scenarioData:sd,companyPolicy}}];"
+        "jsCode": "const input=$input.first().json;\nconst st=input.scenarioType||\"general_communication\";\nconst companyPolicy=\"Chính sách công ty: Giờ làm việc T2–T6 (8:00–17:30, nghỉ trưa 12:00–13:30), chấm công GPS bán kính văn phòng. Thử việc tối đa 60 ngày (hưởng 85% lương). Phép năm chuẩn 12 ngày/năm dương lịch (nhân viên mới vào làm trong năm tính theo tỷ lệ số tháng làm việc thực tế pro-rate, KHÔNG áp dụng bất kỳ cơ chế cộng thêm ngày phép nào: KHÔNG cộng phép thâm niên, KHÔNG chuyển phép dư năm trước sang năm sau). BHXH 8%, BHYT 1.5%, BHTN 1%. OT ngày thường x1.5, cuối tuần x2.0, lễ tết x3.0. Bảo mật PII: không chia sẻ CCCD, SĐT, lương của đồng nghiệp.\";\nconst scenarios={customer_complaint:{role:\"khách hàng khó tính phàn nàn về dịch vụ chậm trễ\",objective:\"xử lý khiếu nại, đề xuất giải pháp, giữ chân khách hàng\",difficulty:\"cao\"},colleague_conflict:{role:\"đồng nghiệp có mâu thuẫn phân công công việc\",objective:\"giải quyết mâu thuẫn, duy trì quan hệ chuyên nghiệp\",difficulty:\"trung bình\"},manager_feedback:{role:\"quản lý phản hồi về hiệu suất thấp và deadline trễ\",objective:\"tiếp nhận phản hồi tích cực, lập kế hoạch cải thiện cụ thể\",difficulty:\"trung bình\"},new_employee_onboarding:{role:\"nhân viên mới tuần đầu tiên cần hướng dẫn làm quen môi trường và chính sách nhân sự (nghỉ phép 12 ngày/năm pro-rate, không cộng phép thâm niên và không chuyển phép dư, chấm công GPS, thử việc, BHXH)\",objective:\"hòa nhập nhanh, hiểu rõ quy định công ty và kỳ vọng công việc\",difficulty:\"thấp\"},performance_review:{role:\"HR đánh giá hiệu suất quý, thảo luận mục tiêu SMART\",objective:\"đánh giá trung thực, thiết lập mục tiêu rõ ràng, đồng thuận\",difficulty:\"cao\"},general_communication:{role:\"đối tác trong cuộc họp đàm phán hợp đồng dịch vụ\",objective:\"giao tiếp hiệu quả, đạt thỏa thuận có lợi cho cả hai\",difficulty:\"trung bình\"}};\nconst sd=scenarios[st]||scenarios.general_communication;\nreturn[{json:{...input,scenarioType:st,scenarioData:sd,companyPolicy}}];"
       },
       "id": "load-scenario",
       "name": "Load Scenario",
@@ -132,7 +132,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d=$input.first().json;const sd=d.scenarioData||{};const names={customer_complaint:\"Xu ly khieu nai khach hang\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat lam viec\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const cp=d.companyPolicy?\"\\nBoi canh chinh sach cong ty: \"+d.companyPolicy:\"\";const p=\"Sinh 7 cau hoi dao tao tieng Viet cho kich ban: \"+sn+\". Muc tieu: \"+(sd.objective||\"giao tiep hieu qua\")+\".\"+cp+\"\\n5 MCQ + 2 tu luan. YEU CAU BAT BUOC: Tra ve JSON MINIFIED tren 1 dong duy nhat (khong xuong dong, khong indent), phuong an va explanation ngan gon (<12 tu), cau essay CHI co id, type, question (khong co explanation) de khong vuot 1024 tokens:\\n{\\\"questions\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"question\\\":\\\"Q?\\\",\\\"options\\\":{\\\"A\\\":\\\"a\\\",\\\"B\\\":\\\"b\\\",\\\"C\\\":\\\"c\\\",\\\"D\\\":\\\"d\\\"},\\\"correct\\\":\\\"B\\\",\\\"explanation\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Mo ta...\\\"},{\\\"id\\\":7,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Neu...\\\"}]}\";return[{json:{...d,quizPrompt:p}}];"
+        "jsCode": "const d=$input.first().json;\nconst sd=d.scenarioData||{};\nconst names={customer_complaint:\"Xử lý khiếu nại khách hàng\",colleague_conflict:\"Giải quyết mâu thuẫn đồng nghiệp\",manager_feedback:\"Tiếp nhận phản hồi quản lý\",new_employee_onboarding:\"Hội nhập nhân viên mới\",performance_review:\"Đánh giá hiệu suất làm việc\",general_communication:\"Giao tiếp chuyên nghiệp\"};\nconst sn=names[d.scenarioType]||d.scenarioType;\nconst cp=d.companyPolicy?\"\\nBối cảnh chính sách công ty: \"+d.companyPolicy:\"\";\nconst p=\"Sinh 7 câu hỏi đào tạo bằng tiếng Việt CÓ DẤU cho kịch bản: \"+sn+\". Mục tiêu: \"+(sd.objective||\"giao tiếp hiệu quả\")+\".\"+cp+\"\\n5 câu trắc nghiệm + 2 câu tự luận. YÊU CẦU BẮT BUỘC: Tất cả câu hỏi, phương án A/B/C/D và giải thích phải viết tiếng Việt có dấu đầy đủ, không viết không dấu. Trả về JSON MINIFIED trên 1 dòng duy nhất (không xuống dòng, không indent), phương án và explanation ngắn gọn (<12 từ), câu essay CHỈ có id, type, question (không có explanation) để không vượt 1024 tokens:\\n{\\\"questions\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"question\\\":\\\"Câu hỏi?\\\",\\\"options\\\":{\\\"A\\\":\\\"...\\\",\\\"B\\\":\\\"...\\\",\\\"C\\\":\\\"...\\\",\\\"D\\\":\\\"...\\\"},\\\"correct\\\":\\\"B\\\",\\\"explanation\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Mô tả...\\\"},{\\\"id\\\":7,\\\"type\\\":\\\"essay\\\",\\\"question\\\":\\\"Nếu...\\\"}]}\";\nreturn[{json:{...d,quizPrompt:p}}];"
       },
       "id": "quiz-gen-prompt",
       "name": "Build Quiz Gen Prompt",
@@ -149,7 +149,7 @@
         "text": "={{ $json.quizPrompt }}",
         "options": {
           "maxIterations": 1,
-          "systemMessage": "Ban la AI sinh cau hoi dao tao nhan su. Bam sat quy dinh cong ty (phep nam chuan 12 ngay/nam, pro-rate nam dau theo thang vao lam, khong cong phep tham nien va khong chuyen phep du sang nam sau). Chi tra ve JSON thuan minified tren 1 dong, khong markdown."
+          "systemMessage": "Bạn là AI sinh câu hỏi đào tạo nhân sự. Bám sát quy định công ty (phép năm chuẩn 12 ngày/năm, pro-rate năm đầu theo tháng vào làm, không cộng phép thâm niên và không chuyển phép dư sang năm sau). Tất cả câu hỏi, phương án và giải thích phải viết tiếng Việt CÓ DẤU đầy đủ, không viết không dấu. Chỉ trả về JSON thuần minified trên 1 dòng, không markdown."
         }
       },
       "id": "quiz-gen-agent",
@@ -159,14 +159,11 @@
       "position": [
         1300,
         220
-      ],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 2000
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const raw=$input.first().json.output||\"\";let qs=[];try{const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();const p=JSON.parse(c);qs=p.questions||p;}catch(e){qs=[{id:1,type:\"mcq\",question:\"Khi khach hang phan nan, buoc dau tien ban nen:\",options:{A:\"Bien ho cho cong ty\",B:\"Lang nghe va dong cam\",C:\"Chuyen cuoc goi\",D:\"Yeu cau bang chung\"},correct:\"B\",explanation:\"Lang nghe la buoc quan trong nhat.\"},{id:2,type:\"mcq\",question:\"Cau nao the hien su dong cam?\",options:{A:\"Do khong phai loi chung toi\",B:\"Toi hieu ban dang that vong\",C:\"Ban can doc ky dieu khoan\",D:\"Chung toi da giai quyet roi\"},correct:\"B\",explanation:\"The hien hieu cam xuc khach.\"},{id:3,type:\"mcq\",question:\"De xac nhan da hieu van de, ban:\",options:{A:\"Gat dau im lang\",B:\"Tom tat lai van de cua khach\",C:\"Hoi nhieu cau lien tiep\",D:\"Cho khach noi xong moi dua giai phap\"},correct:\"B\",explanation:\"Tom tat giup xac nhan hieu dung.\"},{id:4,type:\"mcq\",question:\"Khi khong co tham quyen, ban:\",options:{A:\"Tu choi ho tro\",B:\"Hua hen khong chac chan\",C:\"Leo thang dung nguoi co tham quyen\",D:\"Bo qua khieu nai\"},correct:\"C\",explanation:\"Escalation dung quy trinh la chuyen nghiep.\"},{id:5,type:\"mcq\",question:\"Sau khi giai quyet, ban nen:\",options:{A:\"Ket thuc ngay\",B:\"Follow-up xac nhan khach hai long\",C:\"Viet bao cao ngay\",D:\"Cho khach lien he lai\"},correct:\"B\",explanation:\"Follow-up the hien su quan tam.\"},{id:6,type:\"essay\",question:\"Mo ta tung buoc xu ly khi khach hang phan nan don hang den muon va san pham bi hong.\"},{id:7,type:\"essay\",question:\"Neu khach hang van khong hai long sau khi ban de xuat giai phap, ban se lam gi?\"}];}const input=$(\"Build Quiz Gen Prompt\").first().json;return[{json:{answer:\"Day la bai kiem tra dao tao cua ban:\",questions:qs,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"generate_quiz\"}}];"
+        "jsCode": "const raw=$input.first().json.output||\"\";\nconst hasVietnameseDiacritics=(s)=>/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(String(s||\"\"));\nconst fallback=[\n{id:1,type:\"mcq\",question:\"Khi khách hàng phản nàn, bước đầu tiên bạn nên:\",options:{A:\"Biện hộ cho công ty\",B:\"Lắng nghe và đồng cảm\",C:\"Chuyển cuộc gọi\",D:\"Yêu cầu bằng chứng\"},correct:\"B\",explanation:\"Lắng nghe là bước quan trọng nhất.\"},\n{id:2,type:\"mcq\",question:\"Câu nào thể hiện sự đồng cảm?\",options:{A:\"Đó không phải lỗi của chúng tôi\",B:\"Tôi hiểu bạn đang thất vọng\",C:\"Bạn cần đọc kỹ điều khoản\",D:\"Chúng tôi đã giải quyết rồi\"},correct:\"B\",explanation:\"Thể hiện hiểu cảm xúc khách.\"},\n{id:3,type:\"mcq\",question:\"Để xác nhận đã hiểu vấn đề, bạn:\",options:{A:\"Gật đầu im lặng\",B:\"Tóm tắt lại vấn đề của khách\",C:\"Hỏi nhiều câu liên tiếp\",D:\"Chờ khách nói xong mới đưa giải pháp\"},correct:\"B\",explanation:\"Tóm tắt giúp xác nhận hiểu đúng.\"},\n{id:4,type:\"mcq\",question:\"Khi không có thẩm quyền, bạn:\",options:{A:\"Từ chối hỗ trợ\",B:\"Hứa hẹn không chắc chắn\",C:\"Leo thang đúng người có thẩm quyền\",D:\"Bỏ qua khiếu nại\"},correct:\"C\",explanation:\"Escalation đúng quy trình là chuyên nghiệp.\"},\n{id:5,type:\"mcq\",question:\"Sau khi giải quyết, bạn nên:\",options:{A:\"Kết thúc ngay\",B:\"Follow-up xác nhận khách hài lòng\",C:\"Viết báo cáo ngay\",D:\"Chờ khách liên hệ lại\"},correct:\"B\",explanation:\"Follow-up thể hiện sự quan tâm.\"},\n{id:6,type:\"essay\",question:\"Mô tả từng bước xử lý khi khách hàng phản nàn đơn hàng đến muộn và sản phẩm bị hỏng.\"},\n{id:7,type:\"essay\",question:\"Nếu khách hàng vẫn không hài lòng sau khi bạn đề xuất giải pháp, bạn sẽ làm gì?\"}\n];\nlet qs=[];\ntry{\n  const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();\n  const p=JSON.parse(c);\n  qs=p.questions||p;\n  if(!Array.isArray(qs)||qs.length===0) throw new Error(\"empty quiz\");\n  const sample=qs.map(function(q){return [q.question].concat(q.options?Object.values(q.options):[]).join(\" \");}).join(\" \");\n  if(!hasVietnameseDiacritics(sample)) throw new Error(\"quiz without Vietnamese diacritics\");\n}catch(e){qs=fallback;}\nconst input=$(\"Build Quiz Gen Prompt\").first().json;\nreturn[{json:{answer:\"Đây là bài kiểm tra đào tạo của bạn:\",questions:qs,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"generate_quiz\"}}];"
       },
       "id": "quiz-gen-format",
       "name": "Format Quiz Output",
@@ -179,7 +176,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d=$input.first().json;const answers=d.answers||[];const names={customer_complaint:\"Xu ly khieu nai KH\",colleague_conflict:\"Giai quyet mau thuan dong nghiep\",manager_feedback:\"Tiep nhan phan hoi quan ly\",new_employee_onboarding:\"Hoi nhap nhan vien moi\",performance_review:\"Danh gia hieu suat\",general_communication:\"Giao tiep chuyen nghiep\"};const sn=names[d.scenarioType]||d.scenarioType;const cp=d.companyPolicy?\"\\nBoi canh chinh sach cong ty: \"+d.companyPolicy:\"\";const at=answers.map(function(a){if(a.type===\"mcq\")return\"Cau \"+a.questionId+\" MCQ: \"+a.question+\"\\nDung: \"+a.correctAnswer+\" | HV: \"+a.answer;return\"Cau \"+a.questionId+\" TuLuan: \"+a.question+\"\\nTL: \"+a.answer;}).join(\"\\n---\\n\");const p=\"Cham bai dao tao. Kich ban: \"+sn+\".\"+cp+\"\\n\"+at+\"\\n\\nCham: MCQ dung/sai theo correctAnswer; TuLuan 0-10, moi TuLuan PHAI cham theo 4 tieu chi (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang. YEU CAU: Tra ve JSON MINIFIED tren 1 dong (feedback ngan gon <15 tu):\\n{\\\"score_percent\\\":71,\\\"correct_count\\\":4,\\\"total_mcq\\\":5,\\\"results\\\":[{\\\"id\\\":1,\\\"type\\\":\\\"mcq\\\",\\\"correct\\\":true,\\\"correct_answer\\\":\\\"B\\\",\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";return[{json:{...d,gradePrompt:p}}];"
+        "jsCode": "const d=$input.first().json;\nconst answers=d.answers||[];\nconst essays=answers.filter(function(a){return a.type===\"essay\";});\nconst names={customer_complaint:\"Xử lý khiếu nại khách hàng\",colleague_conflict:\"Giải quyết mâu thuẫn đồng nghiệp\",manager_feedback:\"Tiếp nhận phản hồi quản lý\",new_employee_onboarding:\"Hội nhập nhân viên mới\",performance_review:\"Đánh giá hiệu suất\",general_communication:\"Giao tiếp chuyên nghiệp\"};\nconst sn=names[d.scenarioType]||d.scenarioType;\nconst cp=d.companyPolicy?\"\\nBối cảnh chính sách công ty: \"+d.companyPolicy:\"\";\nconst at=essays.map(function(a){return \"Câu \"+a.questionId+\" (tự luận): \"+a.question+\"\\nBài làm: \"+a.answer;}).join(\"\\n---\\n\");\nconst p=\"Chấm 2 câu tự luận của bài đào tạo. Kịch bản: \"+sn+\".\"+cp+\"\\n\"+at+\"\\n\\nChấm mỗi câu 0-10 theo 4 tiêu chí (thang 0-10): chuyen_nghiep, dong_cam, giai_quyet, ro_rang. KHÔNG chấm trắc nghiệm (hệ thống tự chấm). Tất cả nhận xét phải viết tiếng Việt CÓ DẤU đầy đủ. Trả về JSON MINIFIED trên 1 dòng, feedback ngắn gọn (<20 từ):\\n{\\\"results\\\":[{\\\"id\\\":6,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7.5,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":8,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":8},\\\"feedback\\\":\\\"...\\\"},{\\\"id\\\":7,\\\"type\\\":\\\"essay\\\",\\\"score\\\":7,\\\"max_score\\\":10,\\\"criteria\\\":{\\\"chuyen_nghiep\\\":7,\\\"dong_cam\\\":7,\\\"giai_quyet\\\":7,\\\"ro_rang\\\":7},\\\"feedback\\\":\\\"...\\\"}],\\\"overall_feedback\\\":\\\"...\\\"}\";\nreturn[{json:{...d,gradePrompt:p}}];"
       },
       "id": "quiz-grade-prompt",
       "name": "Build Quiz Grade Prompt",
@@ -196,7 +193,7 @@
         "text": "={{ $json.gradePrompt }}",
         "options": {
           "maxIterations": 1,
-          "systemMessage": "Ban la giam khao cham bai dao tao nhan su. Bam sat quy dinh cong ty (phep nam chuan 12 ngay/nam, pro-rate nam dau theo thang vao lam, khong cong phep tham nien va khong chuyen phep du sang nam sau). Chi tra ve JSON thuan minified tren 1 dong, khong markdown."
+          "systemMessage": "Bạn là giám khảo chấm 2 câu tự luận của bài đào tạo nhân sự. Chỉ chấm tự luận, KHÔNG chấm trắc nghiệm. Bám sát quy định công ty (phép năm chuẩn 12 ngày/năm, pro-rate năm đầu, không cộng phép thâm niên, không chuyển phép dư). Tất cả nhận xét phải viết tiếng Việt CÓ DẤU đầy đủ. Chỉ trả về JSON thuần minified trên 1 dòng, không markdown."
         }
       },
       "id": "quiz-grade-agent",
@@ -206,14 +203,11 @@
       "position": [
         1300,
         580
-      ],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 2000
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const raw=$input.first().json.output||\"\";let gr;try{const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();gr=JSON.parse(c);}catch(e){gr={score_percent:60,correct_count:3,total_mcq:5,results:[],overall_feedback:\"He thong cham diem tu dong.\"};}const input=$(\"Build Quiz Grade Prompt\").first().json;return[{json:{...gr,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"submit_quiz\",answer:\"Ket qua: \"+(gr.score_percent||0)+\"% - Dung \"+(gr.correct_count||0)+\"/\"+(gr.total_mcq||5)+\" MCQ. \"+(gr.overall_feedback||\"\")}}];"
+        "jsCode": "const raw=$input.first().json.output||\"\";\nconst input=$(\"Build Quiz Grade Prompt\").first().json;\nconst answers=input.answers||[];\nconst mcqResults=answers.filter(function(a){return a.type===\"mcq\";}).map(function(a){\n  const isCorrect=String(a.answer||\"\").toUpperCase()===String(a.correctAnswer||\"\").toUpperCase();\n  return {id:a.questionId,type:\"mcq\",correct:isCorrect,correct_answer:a.correctAnswer||null,feedback:isCorrect?\"Chính xác.\":\"Đáp án đúng là \"+(a.correctAnswer||\"—\")+\".\"};\n});\nconst essayFallback=answers.filter(function(a){return a.type===\"essay\";}).map(function(a){\n  return {id:a.questionId,type:\"essay\",score:5,max_score:10,criteria:{chuyen_nghiep:5,dong_cam:5,giai_quyet:5,ro_rang:5},feedback:\"Câu trả lời đã được ghi nhận; AI chưa chấm được chi tiết.\"};\n});\nfunction finalize(gr){\n  const parsed=Array.isArray(gr.results)?gr.results.filter(function(r){return r.type===\"essay\";}):[];\n  const essays=essayFallback.map(function(fb){\n    const r=parsed.find(function(x){return x.id===fb.id;});\n    return r?{...fb,...r,type:\"essay\"}:fb;\n  });\n  const essayAvg=essays.length?essays.reduce(function(s,r){return s+(typeof r.score===\"number\"?r.score:0);},0)/essays.length:0;\n  const correct=mcqResults.filter(function(r){return r.correct;}).length;\n  const total=mcqResults.length;\n  return {...gr,results:mcqResults.concat(essays),correct_count:correct,total_mcq:total,essay_avg:Math.round(essayAvg*10)/10,score_percent:Math.round((correct/Math.max(1,total))*100*0.5+essayAvg*10*0.5),overall_feedback:gr.overall_feedback||\"Đã chấm xong bài đào tạo.\"};\n}\nlet gr;\ntry{\n  const c=raw.replace(/```json\\n?/g,\"\").replace(/```/g,\"\").trim();\n  gr=JSON.parse(c);\n  if(!Array.isArray(gr.results)||gr.results.length===0) throw new Error(\"empty results\");\n  gr=finalize(gr);\n}catch(e){\n  gr=finalize({results:essayFallback,overall_feedback:\"Hệ thống chấm điểm tự động. Phần tự luận tạm tính 5/10 do AI chưa chấm được chi tiết.\"});\n}\nreturn[{json:{...gr,scenarioType:input.scenarioType,sessionId:input.sessionId,employeeId:input.employeeId,intent:\"TRAINING\",action:\"submit_quiz\",answer:\"Kết quả: \"+(gr.score_percent||0)+\"% - Đúng \"+(gr.correct_count||0)+\"/\"+(gr.total_mcq||5)+\" MCQ. \"+(gr.overall_feedback||\"\")}}];"
       },
       "id": "quiz-grade-format",
       "name": "Format Grade Output",
@@ -371,22 +365,19 @@
       "position": [
         1500,
         400
-      ],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 2000
+      ]
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
+        "model": "deepseek-flash",
         "options": {
           "temperature": 0.8,
-          "maxOutputTokens": 1024
+          "maxTokens": 1024
         }
       },
-      "id": "gemini-training",
-      "name": "Gemini Flash",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "id": "deepseek-training",
+      "name": "DeepSeek Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "retryOnFail": true,
       "maxTries": 3,
@@ -396,9 +387,9 @@
         700
       ],
       "credentials": {
-        "googlePalmApi": {
-          "id": "GijeOpAk3nuWoDHZ",
-          "name": "Gemini 2025"
+        "deepSeekApi": {
+          "id": "QwonmhnAXcr33Bvm",
+          "name": "DeepSeek account"
         }
       }
     },
@@ -444,7 +435,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"gemini-3.1-flash-lite\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"deepseek-flash\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
         "options": {}
       },
       "id": "save-assistant",
@@ -667,7 +658,7 @@
         ]
       ]
     },
-    "Gemini Flash": {
+    "DeepSeek Chat": {
       "ai_languageModel": [
         [
           {
@@ -1056,24 +1047,24 @@
       },
       {
         "parameters": {
-          "modelName": "models/gemini-3.1-flash-lite",
+          "model": "deepseek-flash",
           "options": {
             "temperature": 0.8,
-            "maxOutputTokens": 1024
+            "maxTokens": 1024
           }
         },
-        "id": "gemini-training",
-        "name": "Gemini Flash",
-        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "id": "deepseek-training",
+        "name": "DeepSeek Chat",
+        "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
         "typeVersion": 1,
         "position": [
           1300,
           700
         ],
         "credentials": {
-          "googlePalmApi": {
-            "id": "saU5RHwXIHvauhiS",
-            "name": "Google Gemini(PaLM) Api account"
+          "deepSeekApi": {
+            "id": "QwonmhnAXcr33Bvm",
+            "name": "DeepSeek account"
           }
         }
       },
@@ -1119,7 +1110,7 @@
           "genericAuthType": "httpHeaderAuth",
           "sendBody": true,
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"gemini-3.1-flash-lite\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
+          "jsonBody": "={{ JSON.stringify({ sessionId: $json.sessionId, role: \"assistant\", content: $json.roleplayResponse, metadata: { model: \"deepseek-flash\", scenarioType: $json.scenarioType, scoring: $json.scoring } }) }}",
           "options": {}
         },
         "id": "save-assistant",
@@ -1320,7 +1311,7 @@
           ]
         ]
       },
-      "Gemini Flash": {
+      "DeepSeek Chat": {
         "ai_languageModel": [
           [
             {

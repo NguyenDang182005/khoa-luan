@@ -11,7 +11,7 @@ export const attendanceApi = {
   },
   // employeeId do server lấy từ JWT — web không gửi (không chấm hộ người khác).
   // Server kiểm tra lại geofence từ lat/lng — client chỉ báo lỗi sớm.
-  checkIn: async (lat: number, lng: number): Promise<AttendanceRecord> => {
+  checkIn: async (lat?: number, lng?: number): Promise<AttendanceRecord> => {
     const { data } = await apiClient.post('/attendance/check-in', { lat, lng })
     return AttendanceRecordSchema.parse(data)
   },

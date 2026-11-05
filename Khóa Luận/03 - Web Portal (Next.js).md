@@ -1,7 +1,7 @@
 ---
 tags: [khoa-luan, frontend, nextjs, web, admin-portal, status-completed]
 created: 2026-09-04
-updated: 2026-09-23
+updated: 2026-11-04
 status: completed
 ---
 
@@ -14,7 +14,7 @@ status: completed
 | **Framework** | Next.js 16.3 (React 19, Turbopack) |
 | **Port** | **3000** (`http://localhost:3000`) |
 | **Path** | `apps/web/` |
-| **Styling** | Tailwind CSS v4 (`@theme inline`, OKLCH Color Palette) |
+| **Styling** | Tailwind CSS v4 (`@theme inline`), **light theme** từ 04/11/2026 — token xem [[34 - Redesign Giao Diện Light Theme & Rà Soát UX Nhân Viên (04-11-2026)]] |
 | **UI Components** | shadcn/ui (style `base-nova` trên nền `@base-ui/react`) |
 | **Charts** | Recharts (AreaChart, PieChart, RadarChart) |
 | **Data Tables** | TanStack Table v8 |
@@ -24,7 +24,16 @@ status: completed
 
 ---
 
-## 🏛️ Bố Cục Điều Hướng 4 Tầng (Multi-tier Enterprise Shell)
+## 🏛️ Bố Cục Điều Hướng (từ 04/11/2026)
+
+1. **Sidebar 240px có nhãn chữ**, chia nhóm (Tổng quan / Nhân sự / Vận hành AI / Phát triển / Cá nhân / Hệ thống); thu gọn 72px; dưới 1024px thành drawer. Nhân viên chỉ thấy nhóm "Của tôi" (Cổng nhân viên, Kết quả đào tạo, Trợ lý AI).
+2. **Header 64px:** breadcrumb, tìm kiếm nhanh Ctrl/⌘K, menu người dùng (Đăng xuất).
+3. **Vùng nội dung:** `max-w-[1440px]`, padding 16/24/32; màn Trợ lý AI full-bleed.
+
+> [!NOTE]
+> Bố cục cũ bên dưới (dark, icon rail) đã được thay thế — giữ lại để tham khảo lịch sử.
+
+### Bố cục cũ (đến 03/11/2026)
 
 1. **Top Shell Header (`h-14`):** Brand Logo, Global Search `⌘K`, trạng thái API/n8n, chuyển vai trò Admin↔ESS, WebSocket bell.
 2. **Left Icon Rail (`w-16`):** 7 phân hệ icon-only.
@@ -63,7 +72,7 @@ status: completed
 - Spider Chart 4 cánh, Hybrid Assessment (trắcnghiệm + tự luận AI), bảng xếp hạng.
 
 ### 7. 👤 Cổng Nhân Viên ESS (`employee-portal-view.tsx`)
-- Check-in/out GPS 200m, widget phép năm, nộp đơn nghỉ, phiếu lương Accordion.
+- Check-in/out GPS 200m (**03/11/2026: đang mock — mọi vị trí đều được**, cờ `NEXT_PUBLIC_GEOFENCE_MOCK` / `ATTENDANCE_GEOFENCE_MOCK`, xem [[33 - Chuyển AI Agent Sang DeepSeek & Rà Soát Logic UI (03-11-2026)]]), widget phép năm, nút **Tạo Đơn Mới** (nghỉ phép / OT / đi muộn / công tác), phiếu lương Accordion.
 - **Floating HR AI Assistant** 24/7.
 - **[23/09] `MonthlyTimesheetStrip` → Lịch Chấm Công Tháng kiểu Cuốn Lịch:**
   - Full-month grid 7 cột (T2 → CN) hiển thị cả tháng.
@@ -150,6 +159,14 @@ status: completed
 | `training-analytics-view.tsx` | Admin Training Analytics | Radar chart, bảng xếp hạng, thống kê theo phòng ban |
 | `settings-view.tsx` | 7 mục sidebar | Xem chi tiết trên |
 
+### Cập nhật 05-11-2026
+
+- Đối chiếu 36 GET endpoint với DB: 31 hồ sơ = 30 đang làm việc + 1 TERMINATED; dashboard hiển thị 31/30/1.
+- Sửa encoding 6 tin `ai_chat_messages` + 3 `n8n_chat_histories`; thêm `RichText` cho chat và cảnh báo U+FFFD phía API.
+- Tinh chỉnh toolbar bảng lương, composer chat (2 dòng, không cuộn ngang) và density toàn giao diện.
+- Sửa quiz WF03: câu hỏi tiếng Việt có dấu, đáp án đúng + nhận xét tự luận hiển thị đầy đủ.
+- Chi tiết: [[35 - Audit Số Liệu, Sửa Encoding & Tinh Chỉnh Density (05-11-2026)]] | [[36 - Sửa Quiz Đào Tạo Tiếng Việt & Chấm Tự Luận (05-11-2026)]]
+
 ### Liên kết bổ sung
 
-*Xem thêm:* [[30 - Business Logic & ADR Alignment (Verified 17-10-2026)]] | [[06 - n8n Workflows & AI Agents]]
+*Xem thêm:* [[30 - Business Logic & ADR Alignment (Verified 17-10-2026)]] | [[06 - n8n Workflows & AI Agents]] | [[34 - Redesign Giao Diện Light Theme & Rà Soát UX Nhân Viên (04-11-2026)]] | [[35 - Audit Số Liệu, Sửa Encoding & Tinh Chỉnh Density (05-11-2026)]] | [[36 - Sửa Quiz Đào Tạo Tiếng Việt & Chấm Tự Luận (05-11-2026)]]

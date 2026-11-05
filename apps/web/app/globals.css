@@ -16,19 +16,36 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sunken: var(--surface-sunken);
 
-  /* Enterprise Shell & Layout Colors */
+  /* Trạng thái — chỉ dùng cho trạng thái, luôn kèm nhãn/icon */
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+  --color-ai: var(--ai);
+  --color-ai-tint: var(--ai-tint);
+
+  /* Shell */
   --color-shell: var(--shell);
   --color-rail: var(--rail);
   --color-sidebar: var(--sidebar);
@@ -39,7 +56,15 @@
   --color-chat: var(--chat);
   --color-composer: var(--composer);
 
-  /* AI Multi-Agent Semantic Tokens */
+  /* AI Multi-Agent — wf01..04 là tên chuẩn; teal/blue/amber/coral giữ để tương thích */
+  --color-agent-wf01: var(--agent-wf01);
+  --color-agent-wf01-tint: var(--agent-wf01-tint);
+  --color-agent-wf02: var(--agent-wf02);
+  --color-agent-wf02-tint: var(--agent-wf02-tint);
+  --color-agent-wf03: var(--agent-wf03);
+  --color-agent-wf03-tint: var(--agent-wf03-tint);
+  --color-agent-wf04: var(--agent-wf04);
+  --color-agent-wf04-tint: var(--agent-wf04-tint);
   --color-agent-teal: var(--agent-teal);
   --color-agent-blue: var(--agent-blue);
   --color-agent-amber: var(--agent-amber);
@@ -47,19 +72,125 @@
   --color-avatar-sand: var(--avatar-sand);
 
   /* Charts */
+  --color-chart-grid: var(--chart-grid);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  /* card 12 · input/button 8 · tag 6 · modal 16 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-xl: 16px;
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-pop: var(--shadow-pop);
+  --shadow-modal: var(--shadow-modal);
+
+  /* Thang chữ gọn: Display 28 · H1 22 · H2 18 · H3 15 · Body 14 · Body-sm 13 · Caption 12 · Micro 11 */
+  --text-display: 28px;
+  --text-display--line-height: 34px;
+  --text-h1: 22px;
+  --text-h1--line-height: 30px;
+  --text-h2: 18px;
+  --text-h2--line-height: 26px;
+  --text-h3: 15px;
+  --text-h3--line-height: 22px;
+  --text-body: 14px;
+  --text-body--line-height: 22px;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 20px;
+  --text-caption: 12px;
+  --text-caption--line-height: 18px;
+  --text-micro: 11px;
+  --text-micro--line-height: 16px;
 }
 
 :root {
+  color-scheme: light;
+  --background: #F7F8FA;
+  --foreground: #101828;
+  --card: #FFFFFF;
+  --card-foreground: #101828;
+  --popover: #FFFFFF;
+  --popover-foreground: #101828;
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #1D4ED8;
+  --primary-tint: #EFF4FF;
+  --secondary: #F2F4F7;
+  --secondary-foreground: #344054;
+  --muted: #F2F4F7;
+  --muted-foreground: #667085;
+  --subtle-foreground: #98A2B3;
+  --accent: #EFF4FF;
+  --accent-foreground: #1D4ED8;
+  --destructive: #B42318;
+  --destructive-foreground: #FFFFFF;
+  --border: #E4E7EC;
+  --border-subtle: #F2F4F7;
+  --input: #D0D5DD;
+  --ring: #2563EB;
+  --surface-sunken: #F9FAFB;
+
+  --success: #067647;
+  --success-tint: #ECFDF3;
+  --warning: #B54708;
+  --warning-tint: #FFFAEB;
+  --danger: #B42318;
+  --danger-tint: #FEF3F2;
+  --info: #026AA2;
+  --info-tint: #F0F9FF;
+  --ai: #7C3AED;
+  --ai-tint: #F5F3FF;
+
+  /* Shell */
+  --shell: #FFFFFF;
+  --rail: #FFFFFF;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #344054;
+  --sidebar-accent: #EFF4FF;
+  --sidebar-accent-foreground: #1D4ED8;
+  --sidebar-border: #E4E7EC;
+  --chat: #F7F8FA;
+  --composer: #FFFFFF;
+
+  /* Agent: WF01 Router · WF02 HR QA · WF03 Training · WF04 CSKH */
+  --agent-wf01: #7C3AED;
+  --agent-wf01-tint: #F5F3FF;
+  --agent-wf02: #2563EB;
+  --agent-wf02-tint: #EFF4FF;
+  --agent-wf03: #B54708;
+  --agent-wf03-tint: #FFFAEB;
+  --agent-wf04: #C01048;
+  --agent-wf04-tint: #FFF1F3;
+  --agent-teal: var(--agent-wf01);
+  --agent-blue: var(--agent-wf02);
+  --agent-amber: var(--agent-wf03);
+  --agent-coral: var(--agent-wf04);
+  --avatar-sand: #F2F4F7;
+
+  /* Charts */
+  --chart-grid: #EAECF0;
+  --chart-1: #2563EB;
+  --chart-2: #0E9384;
+  --chart-3: #DC6803;
+  --chart-4: #7C3AED;
+  --chart-5: #C01048;
+
+  --radius: 12px;
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-pop: 0 12px 24px -4px rgba(16, 24, 40, 0.12);
+  --shadow-modal: 0 20px 48px -12px rgba(16, 24, 40, 0.18);
+  --overlay: rgba(16, 24, 40, 0.4);
+}
+
+/* Dark theme cũ — giữ lại cho phase sau, hiện không bật ở đâu */
+.dark {
   color-scheme: dark;
   --background: oklch(0.12 0.018 250);
   --foreground: oklch(0.94 0.015 235);
@@ -80,8 +211,6 @@
   --border: oklch(0.26 0.028 250);
   --input: oklch(0.25 0.028 250);
   --ring: oklch(0.68 0.18 260);
-
-  /* Enterprise Layout */
   --shell: oklch(0.105 0.018 250);
   --rail: oklch(0.09 0.016 250);
   --sidebar: oklch(0.135 0.02 250);
@@ -91,22 +220,6 @@
   --sidebar-border: oklch(0.24 0.025 250);
   --chat: oklch(0.125 0.018 250);
   --composer: oklch(0.16 0.022 250);
-
-  /* Agent Semantic Colors */
-  --agent-teal: oklch(0.75 0.14 180);
-  --agent-blue: oklch(0.72 0.15 245);
-  --agent-amber: oklch(0.78 0.15 82);
-  --agent-coral: oklch(0.70 0.18 28);
-  --avatar-sand: oklch(0.78 0.09 75);
-
-  /* Charts */
-  --chart-1: oklch(0.68 0.18 260);
-  --chart-2: oklch(0.75 0.14 180);
-  --chart-3: oklch(0.78 0.15 82);
-  --chart-4: oklch(0.70 0.18 28);
-  --chart-5: oklch(0.65 0.12 310);
-
-  --radius: 0.65rem;
 }
 
 @layer base {
@@ -119,10 +232,58 @@
     max-width: 100vw;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground text-body antialiased;
     overflow-x: hidden;
   }
-  button, textarea, input {
+  button, textarea, input, select {
     font: inherit;
+  }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  /* lucide stroke 1.75 cho toàn app */
+  svg.lucide {
+    stroke-width: 1.75;
+  }
+  ::placeholder {
+    color: var(--subtle-foreground);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-muted;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    animation: skeleton-shimmer 1.4s infinite;
+  }
+}
+
+/* iOS tự zoom khi focus ô nhập < 16px — giữ 16px trên mobile.
+   Đặt ngoài @layer để thắng các class text-* của Tailwind. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]), textarea, select {
+    font-size: 16px;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
   }
 }

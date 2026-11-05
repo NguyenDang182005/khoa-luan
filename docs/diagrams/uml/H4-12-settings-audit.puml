@@ -1,0 +1,28 @@
+@startuml
+!include _style.iuml
+start
+:ADMIN mở settings-view
+(7 mục cấu hình);
+switch (Thao tác?)
+case (geofence, nghỉ phép,\nbảo mật, AI Agent)
+  :PATCH /settings/... tới SettingsService;
+  :ensureDefault
+  (bản ghi đơn id = default);
+  :Cập nhật cấu hình;
+  :SettingsAuditService.logChanges
+  so sánh giá trị cũ và mới;
+  :Ghi bảng settings_audit_logs;
+case (ngày lễ)
+  :POST / DELETE /settings/holidays;
+  :Ghi 1 dòng nhật ký (logAction);
+case (cấu hình lương)
+  :POST /salary-config
+  (1 bản ghi cho mỗi năm);
+case (kiểm tra tích hợp)
+  :GET /settings/integrations;
+  :PostgreSQL SELECT 1, n8n /healthz,
+  Slack auth.test, Gemini (thông tin model);
+endswitch
+:Hiển thị kết quả cho ADMIN;
+stop
+@enduml

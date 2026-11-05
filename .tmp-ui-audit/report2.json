@@ -1,0 +1,1614 @@
+{
+  "startedAt": "2026-11-04T05:13:26.356Z",
+  "steps": [
+    {
+      "type": "shot",
+      "name": "01-login",
+      "at": "2026-11-04T05:13:28.639Z"
+    },
+    {
+      "type": "snap",
+      "label": "login",
+      "h1": "Đăng nhập",
+      "headings": [
+        "Đăng nhập"
+      ],
+      "buttons": [
+        "Tiếp tục với Google",
+        "Tiếp tục với Facebook",
+        "Hiện mật khẩu",
+        "Đăng nhập",
+        "Quản trị viên hr-admin@company.com",
+        "Nhân viên employee1@company.com"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 814,
+        "client": 814
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 1,
+      "mainText": "HR Multi-Agent Đăng nhập Quản trị nhân sự và trợ lý AI cho doanh nghiệp của bạn. Tiếp tục với Google Tiếp tục với Facebook hoặc Email công việc Mật khẩu Nhớ đăng nhập trong 30 ngày Đăng nhập Tài khoản mẫu Quản trị viên hr-admin@company.com Nhân viên employee1@company.com"
+    },
+    {
+      "type": "shot",
+      "name": "02-dashboard-top",
+      "at": "2026-11-04T05:13:32.835Z"
+    },
+    {
+      "type": "snap",
+      "label": "dashboard-top",
+      "h1": "Bảng điều hành",
+      "headings": [
+        "Bảng điều hành",
+        "Xu hướng chấm công",
+        "Phân bổ nhân lực",
+        "Đơn chờ duyệt",
+        "Hoạt động AI"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Xem & duyệt",
+        "Xem & duyệt"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [
+        "Chưa có dữ liệu chấm công"
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 1216,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Bảng điều hành Tình hình nhân sự, chấm công, quỹ lương và hoạt động AI trong kỳ. Tháng 11/2026 Realtime Tổng quân số 30nhân sự Đang quản lý trong hệ thống Tỷ lệ đi làm hôm nay 0% 0 đúng giờ · 0 đi muộn · 0 nghỉ phép Quỹ lương tháng ₫0 Tổng thực lĩnh, mọi trạng thái AI tự giải quyết 42.9% 198 câu hỏi · 8 ca chuyển người · 3 agent hoạt động (7 ngày) Xu hướng chấm công Số nhân sự đúng giờ, đi muộn và nghỉ phép mỗi ngày Đúng giờ Đi muộn Nghỉ phép Chưa có dữ liệu chấm công Dữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ. Phân bổ nhân lực Cơ cấu theo phòng ban 31 nhân sự Human Resources 16% 5 Information Technology 29% 9 Kinh doanh 10% 3 Chăm sóc khách hàng 29% 9 Thiết kế 16% 5 Đơn chờ duyệt Cần HR Admin hoặc quản lý trực tiếp xử lý 2 đơn HO Hoàng Minh Tuấn · Chăm sóc khách hàng Nghỉ ốm · 10/09/2026 → 10/09/2026 · 1 ngày Đau bụng đi khám, có giấy báo của phòng khám Xem & duyệt LÝ Lý Gia Hân · Thiết kế Việc khẩn · 11/09/2026 → 11/09/2026 · 1 ngày Việc gia đình khẩn cần xử lý trong ngày Xem & duyệt Hoạt động AI Thống kê theo từng agent Đang kết nối WF02 HR Q&A Trả lời chính sách nội bộ 80 18 giờ trước WF03 Training Đào tạo & kiểm tra kiến thức 65 18 giờ trước WF04 CSKH Zalo Chăm sóc khách hàng Zalo 41 18 giờ trước 8 chuyển người Tổng phản hồi AI 186 lượt"
+    },
+    {
+      "type": "kpi-cards",
+      "cards": []
+    },
+    {
+      "type": "shot",
+      "name": "03-dashboard-mid",
+      "at": "2026-11-04T05:13:33.541Z"
+    },
+    {
+      "type": "shot",
+      "name": "04-dashboard-bottom",
+      "at": "2026-11-04T05:13:34.262Z"
+    },
+    {
+      "type": "shot",
+      "name": "05-search-modal",
+      "at": "2026-11-04T05:13:35.509Z"
+    },
+    {
+      "type": "shot",
+      "name": "06-search-results",
+      "at": "2026-11-04T05:13:36.553Z"
+    },
+    {
+      "type": "shot",
+      "name": "07-leave-modal",
+      "at": "2026-11-04T05:13:38.483Z"
+    },
+    {
+      "type": "action",
+      "label": "open-pending-leave",
+      "ok": true
+    },
+    {
+      "type": "action",
+      "label": "nav-employees",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "08-employees-top",
+      "at": "2026-11-04T05:13:41.255Z"
+    },
+    {
+      "type": "snap",
+      "label": "employees-top",
+      "h1": "Hồ sơ nhân sự",
+      "headings": [
+        "Hồ sơ nhân sự"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Danh sách nhân sự (31)",
+        "Duyệt đơn",
+        "Lộ trình hội nhập",
+        "Xuất Excel",
+        "Thêm nhân viên",
+        "Xem hồ sơ Nguyễn Văn Dang",
+        "Xem hồ sơ Ninh Thị Diễm My",
+        "Xem hồ sơ Ông Thanh Tùng",
+        "Xem hồ sơ Lại Thị Kim Chi",
+        "Xem hồ sơ Vương Quốc Huy",
+        "Xem hồ sơ Đinh Thị Thanh Hà",
+        "Xem hồ sơ Seo Văn Trường",
+        "Xem hồ sơ Mạc Thị Hạnh",
+        "Xem hồ sơ Dương Văn Phiệt",
+        "Xem hồ sơ Cao Thị Mỹ Duyên",
+        "Trang trước",
+        "Trang sau"
+      ],
+      "tableHeaders": [
+        "Nhân viên",
+        "Email",
+        "Phòng ban",
+        "Chức danh",
+        "Trạng thái",
+        "Ngày vào",
+        "Thao tác"
+      ],
+      "rowCount": 10,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 916,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Hồ sơ nhân sự Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập Danh sách nhân sự (31) Duyệt đơn Lộ trình hội nhập Tất cả phòng ban Chăm sóc khách hàng Human Resources Information Technology Kinh doanh Thiết kế 31 nhân sự Xuất Excel Thêm nhân viên Nhân viên Email Phòng ban Chức danh Trạng thái Ngày vào Thao tác VD Nguyễn Văn Dang EMP0031 dangnguyen182005@gmail.com Information Technology Lập trình viên Cao cấp Thử việc 25/9/2026 DM Ninh Thị Diễm My EMP030 emp030@company.com Chăm sóc khách hàng Nhân viên CSKH Nghỉ phép 24/8/2026 TT Ông Thanh Tùng EMP029 emp029@company.com Kinh doanh Nhân viên Kinh doanh Thử việc 17/8/2026 KC Lại Thị Kim Chi EMP028 emp028@company.com Kinh doanh Nhân viên Kinh doanh Đang làm việc 17/7/2023 QH Vương Quốc Huy EMP027 emp027@company.com Human Resources Chuyên viên Nhân sự Đang làm việc 3/6/2024 TH Đinh Thị Thanh Hà EMP026 emp026@company.com Human Resources Chuyên viên Nhân sự Đang làm việc 20/3/2023 VT Seo Văn Trường EMP025 emp025@company.com Information Technology Software Developer Đang làm việc 2/9/2024 TH Mạc Thị Hạnh EMP024 emp024@company.com Information Technology Software Developer Đang làm việc 6/11/2023 VP Dương Văn Phiệt EMP023 emp023@company.com Information Technology Lập trình viên Cao cấp Đang làm việc 18/10/2021 MD Cao Thị Mỹ Duyên EMP022 emp022@company.com Information Technology Kiểm thử phần mềm Đang làm việc 1/7/2024 Tổng 31 nhân sự • Trang 1/4 Trang trước Trang sau"
+    },
+    {
+      "type": "shot",
+      "name": "09-employees-table",
+      "at": "2026-11-04T05:13:41.967Z"
+    },
+    {
+      "type": "shot",
+      "name": "10-employees-search",
+      "at": "2026-11-04T05:13:44.287Z"
+    },
+    {
+      "type": "shot",
+      "name": "11-employee-drawer",
+      "at": "2026-11-04T05:13:46.466Z"
+    },
+    {
+      "type": "action",
+      "label": "open-employee-row",
+      "ok": true
+    },
+    {
+      "type": "snap",
+      "label": "employee-drawer",
+      "h1": "Hồ sơ nhân sự",
+      "headings": [
+        "Hồ sơ nhân sự",
+        "Nguyễn Văn Dang"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Danh sách nhân sự (4)",
+        "Duyệt đơn",
+        "Lộ trình hội nhập",
+        "Xuất Excel",
+        "Thêm nhân viên",
+        "Xem hồ sơ Nguyễn Văn Dang",
+        "Xem hồ sơ Nguyễn Khánh Linh",
+        "Xem hồ sơ Nguyễn Thị HR Admin",
+        "Xem hồ sơ Nguyễn Văn An",
+        "Trang trước",
+        "Trang sau",
+        "Đóng hồ sơ",
+        "Sửa email & role",
+        "Đặt lại mật khẩu",
+        "Đóng",
+        "Sửa hồ sơ"
+      ],
+      "tableHeaders": [
+        "Nhân viên",
+        "Email",
+        "Phòng ban",
+        "Chức danh",
+        "Trạng thái",
+        "Ngày vào",
+        "Thao tác"
+      ],
+      "rowCount": 4,
+      "emptyStates": [
+        "Chưa có hợp đồng active",
+        "Chưa có bảng lương nào.",
+        "Chưa có đơn nào."
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Hồ sơ nhân sự Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập Danh sách nhân sự (4) Duyệt đơn Lộ trình hội nhập Tất cả phòng ban Chăm sóc khách hàng Human Resources Information Technology Kinh doanh Thiết kế 4 nhân sự Xuất Excel Thêm nhân viên Nhân viên Email Phòng ban Chức danh Trạng thái Ngày vào Thao tác VD Nguyễn Văn Dang EMP0031 dangnguyen182005@gmail.com Information Technology Lập trình viên Cao cấp Thử việc 25/9/2026 KL Nguyễn Khánh Linh EMP009 emp009@company.com Chăm sóc khách hàng Nhân viên CSKH Thử việc 6/2/2023 HA Nguyễn Thị HR Admin EMP006 hr-admin@company.com Human Resources Chuyên viên Nhân sự Nghỉ phép 2/1/2023 VA Nguyễn Văn An EMP003 nguyenvana@hr-system.com Information Technology Lập trình viên Cao cấp Đang làm việc 1/6/2021 Tổng 4 nhân sự • Trang 1/1 Trang trước Trang sau VD Nguyễn Văn Dang EMP0031 • Lập trình viên Cao cấp Hồ sơ cá nhân Ngày sinh -- Giới tính Nam Số CCCD -- Số điện thoại -- Địa chỉ -- Nghề vụ & HĐLĐ Phòng ban Information Technology Chức danh Lập trình viên Cao cấp Quản lý trực tiếp — Ngày vào làm việc 25/9/2026 Loại hợp đồng (active) Chưa có hợp đồng active Lương cơ bản (hợp đồng) -- Phụ cấp -- Công & phép Phép năm còn lại / tổng 4/4 ngày Chấm công tháng hiện tại (0 bản ghi) 0 Ngày công 0 Đi muộn 0 Remote 0 Vắng 0 Giờ OT Lịch sử lương Chưa có bảng lương nào. Trạng thái & tài khoản Email đăng nhập dangnguyen182005@gmail.com Google Role tài khoản ADMIN Trạng thái làm việc Thử việc Đổi trạng thái Đang làm Thử việc Nghỉ dài hạn Nghỉ việc Sửa email & role Đặt lại mật khẩu Đơn gần đây Chưa có đơn nào. Đóng Sửa hồ sơ"
+    },
+    {
+      "type": "action",
+      "label": "tab-leave",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "12-leave-approvals",
+      "at": "2026-11-04T05:13:48.358Z"
+    },
+    {
+      "type": "snap",
+      "label": "leave-approvals",
+      "h1": "Hồ sơ nhân sự",
+      "headings": [
+        "Hồ sơ nhân sự",
+        "Nguyễn Văn Dang"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Danh sách nhân sự (4)",
+        "Duyệt đơn",
+        "Lộ trình hội nhập",
+        "Tất cả",
+        "Chờ duyệt (2)",
+        "Đã duyệt",
+        "Từ chối",
+        "Bảng",
+        "Lịch nghỉ",
+        "Chọn tất cả đơn chờ duyệt",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Chọn đơn",
+        "Xem & duyệt",
+        "Chọn đơn",
+        "Xem & duyệt",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Đóng hồ sơ",
+        "Sửa email & role",
+        "Đặt lại mật khẩu",
+        "Đóng",
+        "Sửa hồ sơ"
+      ],
+      "tableHeaders": [
+        "",
+        "Nhân viên",
+        "Phòng ban",
+        "Loại đơn",
+        "Thời gian nghỉ",
+        "Lý do",
+        "Trạng thái",
+        "Người duyệt",
+        "Thao tác"
+      ],
+      "rowCount": 8,
+      "emptyStates": [
+        "Chưa có hợp đồng active",
+        "Chưa có bảng lương nào.",
+        "Chưa có đơn nào."
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 1008,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Hồ sơ nhân sự Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập Danh sách nhân sự (4) Duyệt đơn Lộ trình hội nhập Chờ duyệt 2 Cần xử lý ngay Đã duyệt 5 Đã chốt công phép Từ chối 1 Không được phê duyệt Tổng ngày nghỉ đã duyệt 68 Toàn công ty Tất cả Chờ duyệt (2) Đã duyệt Từ chối Mọi phòng ban Chăm sóc khách hàng Human Resources Information Technology Kinh doanh Thiết kế Bảng Lịch nghỉ Nhân viên Phòng ban Loại đơn Thời gian nghỉ Lý do Trạng thái Người duyệt Thao tác — HA Nguyễn Thị HR Admin EMP006 Human Resources Phép năm 1 ngày 24/9/2026 → 24/9/2026 đi học và đi học và đi học Đã duyệt Nguyễn Thị HR Admin Xem chi tiết — VH Lê Văn HR EMP002 Human Resources Nghỉ ốm 1 ngày 19/8/2026 → 19/8/2026 Sốt, đi khám bác sĩ Đã duyệt Trần Thị Admin Xem chi tiết MT Hoàng Minh Tuấn EMP008 Chăm sóc khách hàng Nghỉ ốm 1 ngày 10/9/2026 → 10/9/2026 Đau bụng đi khám, có giấy báo của phòng khám Chờ duyệt — Xem & duyệt GH Lý Gia Hân EMP015 Thiết kế Việc khẩn 1 ngày 11/9/2026 → 11/9/2026 Việc gia đình khẩn cần xử lý trong ngày Chờ duyệt — Xem & duyệt — NÁ Đặng Thị Ngọc Ánh EMP012 Chăm sóc khách hàng Thai sản 62 ngày 1/9/2026 → 30/11/2026 Thai sản theo quy định luật lao động Đã duyệt Võ Thị Hoa Xem chi tiết — MD Cao Thị Mỹ Duyên EMP022 Information Technology Không lương 8 ngày 21/9/2026 → 30/9/2026 Nghỉ không lương về hồ sơ cá nhân Từ chối Ngô Hải Đăng Xem chi tiết — TB Trần Thị Bình EMP004 Information Technology Phép năm 2 ngày 25/8/2026 → 26/8/2026 Nghỉ phép năm về quê Đã duyệt Nguyễn Văn An Xem chi tiết — HĐ Ngô Hải Đăng EMP020 Information Technology Phép năm 2 ngày 14/9/2026 → 15/9/2026 Nghỉ phép năm du lịch gia đình Đã duyệt Nguyễn Văn Dang Xem chi tiết VD Nguyễn Văn Dang EMP0031 • Lập trình viên Cao cấp Hồ sơ cá nhân Ngày sinh -- Giới tính Nam Số CCCD -- Số điện thoại -- Địa chỉ -- Nghề vụ & HĐLĐ Phòng ban Information Technology Chức danh Lập trình viên Cao cấp Quản lý trực tiếp — Ngày vào làm việc 25/9/2026 Loại hợp đồng (active) Chưa có hợp đồng active Lương cơ bản (hợp đồng) -- Phụ cấp -- Công & phép Phép năm còn lại / tổng 4/4 ngày Chấm công tháng hiện tại (0 bản ghi) 0 Ngày công 0 Đi muộn 0 Remote 0 Vắng 0 Giờ OT Lịch sử lương Chưa có bảng lương nào. Trạng thái & "
+    },
+    {
+      "type": "action",
+      "label": "tab-onboarding",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "13-onboarding",
+      "at": "2026-11-04T05:13:49.375Z"
+    },
+    {
+      "type": "snap",
+      "label": "onboarding",
+      "h1": "Hồ sơ nhân sự",
+      "headings": [
+        "Hồ sơ nhân sự",
+        "Theo dõi tiến độ hội nhập",
+        "Nguyễn Văn Dang"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Danh sách nhân sự (4)",
+        "Duyệt đơn",
+        "Lộ trình hội nhập",
+        "Tiến độ nhân viên mới (7)",
+        "Danh mục đầu việc mẫu (6)",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Xem chi tiết",
+        "Gán lộ trình mẫu",
+        "Gán lộ trình mẫu",
+        "Đóng hồ sơ",
+        "Sửa email & role",
+        "Đặt lại mật khẩu",
+        "Đóng",
+        "Sửa hồ sơ"
+      ],
+      "tableHeaders": [
+        "Nhân viên",
+        "Phòng ban",
+        "Ngày vào làm",
+        "Tiến độ hoàn thành",
+        "Tỷ lệ",
+        "Hành động"
+      ],
+      "rowCount": 7,
+      "emptyStates": [
+        "Chưa có hợp đồng active",
+        "Chưa có bảng lương nào.",
+        "Chưa có đơn nào."
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 899,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Hồ sơ nhân sự Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập Danh sách nhân sự (4) Duyệt đơn Lộ trình hội nhập Tiến độ nhân viên mới (7) Danh mục đầu việc mẫu (6) Tiến độ hội nhập chung 43% 13/30 nhiệm vụ đã hoàn thành Theo dõi tiến độ hội nhập Nhân viên đang thử việc hoặc vào làm trong 90 ngày gần nhất — theo dõi tỷ lệ hoàn thành đầu việc hội nhập và gán quy trình chuẩn Nhân viên Phòng ban Ngày vào làm Tiến độ hoàn thành Tỷ lệ Hành động VD Nguyễn Văn Dang EMP0031 Information Technology 25/9/2026 6/6 nhiệm vụ Đạt 100% Xem chi tiết DM Ninh Thị Diễm My EMP030 Chăm sóc khách hàng 24/8/2026 2/6 nhiệm vụ 33% Xem chi tiết TT Ông Thanh Tùng EMP029 Kinh doanh 17/8/2026 2/6 nhiệm vụ 33% Xem chi tiết KN Tạ Thị Kim Ngân EMP017 Thiết kế 6/1/2025 0/6 nhiệm vụ 0% Xem chi tiết VC Phạm Văn Chinh EMP005 Kinh doanh 15/1/2024 3/6 nhiệm vụ 50% Xem chi tiết QB Trương Quốc Bảo EMP010 Chăm sóc khách hàng 14/8/2023 Chưa gán lộ trình 0% Gán lộ trình mẫu KL Nguyễn Khánh Linh EMP009 Chăm sóc khách hàng 6/2/2023 Chưa gán lộ trình 0% Gán lộ trình mẫu VD Nguyễn Văn Dang EMP0031 • Lập trình viên Cao cấp Hồ sơ cá nhân Ngày sinh -- Giới tính Nam Số CCCD -- Số điện thoại -- Địa chỉ -- Nghề vụ & HĐLĐ Phòng ban Information Technology Chức danh Lập trình viên Cao cấp Quản lý trực tiếp — Ngày vào làm việc 25/9/2026 Loại hợp đồng (active) Chưa có hợp đồng active Lương cơ bản (hợp đồng) -- Phụ cấp -- Công & phép Phép năm còn lại / tổng 4/4 ngày Chấm công tháng hiện tại (0 bản ghi) 0 Ngày công 0 Đi muộn 0 Remote 0 Vắng 0 Giờ OT Lịch sử lương Chưa có bảng lương nào. Trạng thái & tài khoản Email đăng nhập dangnguyen182005@gmail.com Google Role tài khoản ADMIN Trạng thái làm việc Thử việc Đổi trạng thái Đang làm Thử việc Nghỉ dài hạn Nghỉ việc Sửa email & role Đặt lại mật khẩu Đơn gần đây Chưa có đơn nào. Đóng Sửa hồ sơ"
+    },
+    {
+      "type": "action",
+      "label": "nav-payroll",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "14-payroll-top",
+      "at": "2026-11-04T05:13:51.231Z"
+    },
+    {
+      "type": "snap",
+      "label": "payroll-top",
+      "h1": "Bảng lương & thuế",
+      "headings": [
+        "Bảng lương & thuế"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Xem quy chế lương",
+        "Xuất Excel (CSV)",
+        "Tính lương"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [
+        "Chưa có bảng lương kỳ này — nhấn “Tính lương” để khởi tạo.",
+        "Chưa có bảng lương kỳ 11/2026"
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Bảng lương & thuế Tính toán thật từ hợp đồng + chấm công trong database, theo Luật Lao động Việt Nam Xem quy chế lương Xuất Excel (CSV) Tính lương Kỳ lương Tháng 1 Tháng 2 Tháng 3 Tháng 4 Tháng 5 Tháng 6 Tháng 7 Tháng 8 Tháng 9 Tháng 10 Tháng 11 Tháng 12 Năm 2025 Năm 2026 Năm 2027 Kỳ 11/2026 · 0 bản ghi Chưa có bảng lương kỳ này — nhấn “Tính lương” để khởi tạo. Tổng gross ₫0 Lương thực tế + OT + phụ cấp + thưởng Khấu trừ ₫0 BHXH + BHYT + BHTN 10.5% trên lương BH Thuế TNCN ₫0 Biểu thuế 5 bậc (từ 01/7/2026) Thực lĩnh ₫0 0 bản ghi lương trong kỳ Chưa có bảng lương kỳ 11/2026 Nhấn “Tính lương” để tính từ dữ liệu chấm công thật."
+    },
+    {
+      "type": "shot",
+      "name": "15-payroll-table",
+      "at": "2026-11-04T05:13:51.924Z"
+    },
+    {
+      "type": "shot",
+      "name": "16-payroll-policy",
+      "at": "2026-11-04T05:13:53.552Z"
+    },
+    {
+      "type": "action",
+      "label": "open-payroll-policy",
+      "ok": true
+    },
+    {
+      "type": "action",
+      "label": "nav-ai",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "17-ai-top",
+      "at": "2026-11-04T05:13:56.307Z"
+    },
+    {
+      "type": "snap",
+      "label": "ai-top",
+      "h1": "",
+      "headings": [
+        "AI Multi-Agents",
+        "Router & Privacy Agent",
+        "Định tuyến Intent (Router WF01)",
+        "Kiểm thử & nhật ký Router"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt",
+        "HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động",
+        "Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động",
+        "Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động",
+        "Kiểm tra kết nối",
+        "Sandbox",
+        "Thông số kỹ thuật",
+        "Audit",
+        "[HR_QA] Nghỉ phép & BHXH",
+        "[TRAINING] Test Onboarding",
+        "[CSKH] Khiếu nại dịch vụ",
+        "[OTHER] Chào hỏi chung",
+        "Thử gọi E2E"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "AI Multi-Agents Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động Giám sát trực tiếp Số liệu làm mới tự động mỗi 30 giây. Router & Privacy Agent WF01 Rule-based, không dùng LLM • Phân loại ý định & PII Masking Kiểm tra kết nối Tỷ lệ thành công -- Số cuộc gọi 0 Định tuyến Intent (Router WF01) Live HR_QA → WF02 (Hỏi đáp nội bộ) 68 (58%) CSKH → WF04 (Khách hàng) 7 (6%) TRAINING → WF03 (Đào tạo) 42 (36%) OTHER → WF01 trả lời trực tiếp 1 (1%) Tổng đã định tuyến 118 Escalation chuyển người 2 Kiểm thử & nhật ký Router Sandbox Thông số kỹ thuật Audit Kịch bản thử nghiệm mẫu Bấm chọn để nạp văn bản mẫu kiểm tra tức thì [HR_QA] Nghỉ phép & BHXH [TRAINING] Test Onboarding [CSKH] Khiếu nại dịch vụ [OTHER] Chào hỏi chung Nội dung cần phân tích & kiểm duyệt PII Thử gọi E2E Hai thẻ dưới đây là mô phỏng phía trình duyệt; kết quả thật chỉ có sau khi bấm \"Thử gọi E2E\". 1. Che giấu PII Đã bảo vệ 2 dữ liệu Nhân viên Nguyễn Văn A CCCD [MASKED_ID], sđt [MASKED_PHONE] cần hỏi về chế độ nghỉ phép năm và đóng BHXH. CCCD: 1 SĐT: 1 Email: 0 2. Định tuyến HR_QA Đích tiếp nhận: WF02 - HR Policy Q&A Agent Quy tắc nhận diện: Khớp từ khóa nhân sự, chính sách, ngày phép, lương hoặc bảo hiểm Chỉ nội dung đã che giấu mới được chuyển tới agent tương ứng."
+    },
+    {
+      "type": "shot",
+      "name": "18-ai-wf02",
+      "at": "2026-11-04T05:13:57.625Z"
+    },
+    {
+      "type": "action",
+      "label": "select-wf02",
+      "ok": false
+    },
+    {
+      "type": "action",
+      "label": "ai-specs",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "19-ai-specs",
+      "at": "2026-11-04T05:13:58.644Z"
+    },
+    {
+      "type": "snap",
+      "label": "ai-specs",
+      "h1": "",
+      "headings": [
+        "AI Multi-Agents",
+        "Router & Privacy Agent",
+        "Định tuyến Intent (Router WF01)",
+        "Kiểm thử & nhật ký Router"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt",
+        "HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động",
+        "Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động",
+        "Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động",
+        "Kiểm tra kết nối",
+        "Sandbox",
+        "Thông số kỹ thuật",
+        "Audit"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "AI Multi-Agents Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động Giám sát trực tiếp Số liệu làm mới tự động mỗi 30 giây. Router & Privacy Agent WF01 Rule-based, không dùng LLM • Phân loại ý định & PII Masking Kiểm tra kết nối Tỷ lệ thành công -- Số cuộc gọi 0 Định tuyến Intent (Router WF01) Live HR_QA → WF02 (Hỏi đáp nội bộ) 68 (58%) CSKH → WF04 (Khách hàng) 7 (6%) TRAINING → WF03 (Đào tạo) 42 (36%) OTHER → WF01 trả lời trực tiếp 1 (1%) Tổng đã định tuyến 118 Escalation chuyển người 2 Kiểm thử & nhật ký Router Sandbox Thông số kỹ thuật Audit Nguyên lý an ninh dữ liệu & trung tâm điều phối WF01 WF01 đóng vai trò cổng bảo vệ dữ liệu (Security Gateway) và bộ điều hướng trung tâm (Orchestrator). Mọi truy vấn từ Portal, Mobile ESS và Slack đều bắt buộc đi qua bước khử dữ liệu cá nhân (Regex PII Sanitizer) trước khi gửi tới mô hình AI (DeepSeek). 1 Tiếp nhận & xác thực Nhận câu hỏi và xác thực phiên đăng nhập của người dùng. 2 Regex PII Masking Quét và thay thế tự động CCCD, SĐT, Email bằng các token ẩn danh [MASKED_*]. 3 Phân loại Intent Phân tích từ khóa ngữ nghĩa để điều phối tới WF02 (HR), WF03 (Training), WF04 (CSKH) hoặc WF01 trả lời. 4 Dispatch & Audit Chuyển nội dung đã che giấu tới agent xử lý, lưu nhật ký audit. 1. CMND / Căn cước (CCCD) [MASKED_ID] \\b\\d{9}\\b|\\b\\d{12}\\b Bảo vệ số định danh cá nhân 9 số (CMND cũ) hoặc 12 số (CCCD gắn chip) theo Nghị định 13/2023/NĐ-CP. 2. Số điện thoại VN [MASKED_PHONE] \\b(0[35789]\\d{8}|0\\d{9})\\b Bảo vệ số liên lạc cá nhân của nhân sự và khách hàng. Tự động nhận diện các đầu số mạng di động VN. 3. Thư điện tử (Email) [MASKED_EMAIL] [\\w.-]+@[\\w.-]+\\.\\w+ Bảo vệ địa chỉ hộp thư tổ chức và email cá nhân, ngăn chặn rò rỉ dữ liệu thông tin liên lạc nội bộ."
+    },
+    {
+      "type": "action",
+      "label": "ai-audit",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "20-ai-audit",
+      "at": "2026-11-04T05:13:59.676Z"
+    },
+    {
+      "type": "snap",
+      "label": "ai-audit",
+      "h1": "",
+      "headings": [
+        "AI Multi-Agents",
+        "Router & Privacy Agent",
+        "Định tuyến Intent (Router WF01)",
+        "Kiểm thử & nhật ký Router"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt",
+        "HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động",
+        "Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động",
+        "Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động",
+        "Kiểm tra kết nối",
+        "Sandbox",
+        "Thông số kỹ thuật",
+        "Audit",
+        "Làm mới"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "AI Multi-Agents Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động Giám sát trực tiếp Số liệu làm mới tự động mỗi 30 giây. Router & Privacy Agent WF01 Rule-based, không dùng LLM • Phân loại ý định & PII Masking Kiểm tra kết nối Tỷ lệ thành công -- Số cuộc gọi 0 Định tuyến Intent (Router WF01) Live HR_QA → WF02 (Hỏi đáp nội bộ) 68 (58%) CSKH → WF04 (Khách hàng) 7 (6%) TRAINING → WF03 (Đào tạo) 42 (36%) OTHER → WF01 trả lời trực tiếp 1 (1%) Tổng đã định tuyến 118 Escalation chuyển người 2 Kiểm thử & nhật ký Router Sandbox Thông số kỹ thuật Audit Nhật ký dữ liệu sau kiểm duyệt (Live Audit Trail) Dữ liệu thật từ cơ sở dữ liệu (tối đa 10 tin nhắn gần nhất đã qua xử lý PII) Làm mới AI Agent CSKH • zalo 11/03, 05:34 PM Chào bạn, cảm ơn bạn đã liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùng thử, TechHRM có 30 ngày miễn phí, không cần thẻ tín dụng. **Về việc bị trừ tiền 2 lần:** Đây là vấn đề thanh toán nghiêm trọng, ảnh hưởng trực tiếp đến quyền lợi của bạn. Tôi rất xin lỗi vì sự bất tiện này. Trường hợp này vượt phạm vi tôi có thể xử lý ngay, nên tôi sẽ chuyển đến bộ phận phụ trách để kiểm tra giao dịch và hỗ trợ hoàn tiền cho bạn. Trong lúc chờ, bạn có thể liên hệ trực tiếp để được xử lý nhanh: - Email: **support@techhrm.vn** - Hotline: **1800-1234** (8h–18h, T2–T6) Bạn vui lòng chuẩn bị mã giao dịch/sao kê ngân hàng để bộ phận hỗ trợ đối chiếu nhanh hơn nhé. Khách / NV CSKH • zalo 11/03, 05:34 PM gói Pro giá bao nhiêu, tôi muốn khiếu nại vì bị trừ tiền 2 lần Đã qua PII Masking AI Agent TRAINING • web 11/03, 05:34 PM Alo, tôi gọi đến lần thứ ba rồi đấy. Đơn hàng của tôi đáng lẽ phải được giao từ sáng, nhân viên hứa gọi lại trong 30 phút mà đến giờ gần 2 tiếng vẫn không ai liên hệ. Tôi đã bỏ lỡ việc riêng để ở nhà chờ, giờ các anh chị t"
+    },
+    {
+      "type": "action",
+      "label": "nav-cskh",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "21-cskh-top",
+      "at": "2026-11-04T05:14:01.522Z"
+    },
+    {
+      "type": "snap",
+      "label": "cskh-top",
+      "h1": "Bàn tiếp quản CSKH",
+      "headings": [
+        "Bàn tiếp quản CSKH",
+        "Hội thoại",
+        "Khách hàng Zalo"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Hội thoại trực tiếp",
+        "Nhật ký PII Masking",
+        "Chờ tiếp quản 6",
+        "Tất cả 14",
+        "K Khách guest 17:34 Chào bạn, cảm ơn bạn đã liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùng thử, TechHRM có 30 ngày miễn phí, không cần thẻ tín dụng. **Về việc bị trừ tiền 2 lần:** Đây là vấn đề thanh toán nghiêm trọng, ảnh hưởng trực tiếp đến quyền lợi của bạn. Tôi rất xin lỗi vì sự bất tiện này. Trường hợp này vượt phạm vi tôi có thể xử lý ngay, nên tôi sẽ chuyển đến bộ phận phụ trách để kiểm tra giao dịch và hỗ trợ hoàn tiền cho bạn. Trong lúc chờ, bạn có thể liên hệ trực tiếp để được xử lý nhanh: - Email: **support@techhrm.vn** - Hotline: **1800-1234** (8h–18h, T2–T6) Bạn vui lòng chuẩn bị mã giao dịch/sao kê ngân hàng để bộ phận hỗ trợ đối chiếu nhanh hơn nhé. Chờ tiếp quản",
+        "K Khách guest 11:51 Chào bạn, tôi rất tiếc khi biết bạn đang gặp trải nghiệm không tốt liên quan đến dịch vụ của TechHRM. Vì TechHRM là phần mềm SaaS (Cloud-based), trường hợp \"đơn hàng trễ\" có thể liên quan đến việc kích hoạt tài khoản hoặc triển khai gói dịch vụ. Để tôi có thể hỗ trợ bạn xử lý ngay, bạn vui lòng cung cấp mã đơn hàng hoặc thông tin tài khoản đăng ký. Bạn cũng có thể liên hệ trực tiếp với bộ phận hỗ trợ kỹ thuật qua email **support@techhrm.vn** hoặc hotline **1800-1234** (8h-18h, T2-T6) để được ưu tiên kiểm tra. Nếu vấn đề của bạn liên quan đến khiếu nại nghiêm trọng về dịch vụ hoặc lỗi hệ thống khiến bạn không thể sử dụng phần mềm, tôi sẽ chuyển tiếp yêu cầu của bạn đến bộ phận quản lý để giải quyết thỏa đáng. Chờ tiếp quản",
+        "K Khách U0B6GMBMSU 09:08 hello Chờ tiếp quản",
+        "K Khách test_cskh_ 14:01 hello Chờ tiếp quản",
+        "K Khách U0B6GMBMSU 15:23 Chào bạn, cảm ơn bạn đã cung cấp thông tin. Tôi đã ghi nhận số điện thoại **[MASKED_PHONE]** của bạn vào hệ thống. Bộ phận kinh doanh của TechHRM sẽ liên hệ với bạn trong thời gian sớm nhất (trong khung giờ làm việc 8h-18h, từ Thứ 2 đến Thứ 6) để tư vấn chi tiết hơn về gói Pro cũng như các chính sách ưu đãi dành riêng cho doanh nghiệp của bạn. Nếu bạn cần hỗ trợ gấp hoặc có thêm câu hỏi nào khác, bạn có thể chủ động liên hệ với chúng tôi qua hotline **1800-1234** hoặc email **support@techhrm.vn**. Chúc bạn một ngày làm việc hiệu quả! Chờ tiếp quản",
+        "K Khách U0B6GMBMSU 17:21 Chào bạn, Gói **Pro** của TechHRM có giá là **1.200.000đ/tháng**. Gói này phù hợp cho doanh nghiệp có quy mô **tối đa 200 nhân viên**, bao gồm: - **Đầy đủ tính năng:** Quản lý nhân sự, chấm công GPS Geofencing, tính lương tự động (thuế TNCN 7 bậc, BHXH/BHYT/BHTN) và báo cáo phân tích. - **Tính năng nâng cao:** Đào tạo AI role-play. Đặc biệt, TechHRM có chương trình **dùng thử miễn phí 30 ngày** (không cần thẻ tín dụng) để bạn trải nghiệm trọn vẹn các tính năng của gói Pro. Nếu cần hỗ trợ thêm thông tin, bạn cứ nhắn cho mình nhé! Chờ tiếp quản",
+        "Trả lại bot",
+        "Gửi"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 975,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Bàn tiếp quản CSKH Bot AI trả lời khách qua kênh Zalo. Khi AI phát hiện rủi ro vượt thẩm quyền, phiên tự chuyển xuống hàng đợi cho chuyên viên — bạn vẫn trả lời được mọi lúc mà không cần tắt bot. Bot tự bật lại sau 00:00 mỗi ngày 6 phiên chờ tiếp quản 14 tổng hội thoại Đồng bộ lúc 12:13 · chu kỳ 10s Hội thoại trực tiếp Nhật ký PII Masking Hội thoại Chờ tiếp quản 6 Tất cả 14 K Khách guest 17:34 Chào bạn, cảm ơn bạn đã liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùng thử, TechHRM có 30 ngày miễn phí, không cần thẻ tín dụng. **Về việc bị trừ tiền 2 lần:** Đây là vấn đề thanh toán nghiêm trọng, ảnh hưởng trực tiếp đến quyền lợi của bạn. Tôi rất xin lỗi vì sự bất tiện này. Trường hợp này vượt phạm vi tôi có thể xử lý ngay, nên tôi sẽ chuyển đến bộ phận phụ trách để kiểm tra giao dịch và hỗ trợ hoàn tiền cho bạn. Trong lúc chờ, bạn có thể liên hệ trực tiếp để được xử lý nhanh: - Email: **support@techhrm.vn** - Hotline: **1800-1234** (8h–18h, T2–T6) Bạn vui lòng chuẩn bị mã giao dịch/sao kê ngân hàng để bộ phận hỗ trợ đối chiếu nhanh hơn nhé. Chờ tiếp quản K Khách guest 11:51 Chào bạn, tôi rất tiếc khi biết bạn đang gặp trải nghiệm không tốt liên quan đến dịch vụ của TechHRM. Vì TechHRM là phần mềm SaaS (Cloud-based), trường hợp \"đơn hàng trễ\" có thể liên quan đến việc kích hoạt tài khoản hoặc triển khai gói dịch vụ. Để tôi có thể hỗ trợ bạn xử lý ngay, bạn vui lòng cung cấp mã đơn hàng hoặc thông tin tài khoản đăng ký. Bạn cũng có thể liên hệ trực tiếp với bộ phận hỗ trợ kỹ thuật qua email **support@techhrm.vn** hoặc hotline **1800-1234** (8h-18h, T2-T6) để được ưu tiên kiểm tra. Nếu vấn đề của bạn liên quan đến khiếu nại nghiêm trọng về dịch vụ hoặc lỗi hệ thống khiến bạn không thể sử dụng phần mềm, tôi sẽ chuyển tiếp yêu cầu của bạn đến bộ phận quản lý để giải quyết thỏa đáng. Chờ tiếp quản K Khách U0B6GMBMSU 09:08 hello Chờ tiếp quản K Khách test_cskh_ 14:01 hello Chờ tiếp quản K Khách U0B6GMBMSU 15:23 Chào bạn, cảm ơn bạn đã cung cấp thông tin. Tôi đã ghi nhận số điện thoại **[MASKED"
+    },
+    {
+      "type": "action",
+      "label": "cskh-pii",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "22-cskh-pii",
+      "at": "2026-11-04T05:14:02.569Z"
+    },
+    {
+      "type": "snap",
+      "label": "cskh-pii",
+      "h1": "Bàn tiếp quản CSKH",
+      "headings": [
+        "Bàn tiếp quản CSKH",
+        "Nhật ký PII masking (bảo mật) — đối chiếu song song"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Hội thoại trực tiếp",
+        "Nhật ký PII Masking"
+      ],
+      "tableHeaders": [
+        "Thời gian",
+        "Kênh",
+        "Vai trò",
+        "Loại PII",
+        "Bản gốc (lưu DB)",
+        "Bản mask AI nhìn thấy",
+        "Trạng thái mask"
+      ],
+      "rowCount": 20,
+      "emptyStates": [
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin).",
+        "Không có bản mask trong metadata (tin này chưa được che thông tin)."
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 7357,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Bàn tiếp quản CSKH Bot AI trả lời khách qua kênh Zalo. Khi AI phát hiện rủi ro vượt thẩm quyền, phiên tự chuyển xuống hàng đợi cho chuyên viên — bạn vẫn trả lời được mọi lúc mà không cần tắt bot. Bot tự bật lại sau 00:00 mỗi ngày 6 phiên chờ tiếp quản 14 tổng hội thoại Đồng bộ lúc 12:13 · chu kỳ 10s Hội thoại trực tiếp Nhật ký PII Masking Nhật ký PII masking (bảo mật) — đối chiếu song song Đối chiếu bản gốc với bản đã che thông tin cá nhân mà AI nhìn thấy trước khi xử lý. Áp dụng cho Hỏi đáp nhân sự, Đào tạo và CSKH (từ 17/09). Thời gian Kênh Vai trò Loại PII Bản gốc (lưu DB) Bản mask AI nhìn thấy Trạng thái mask 17:34:53 3/11/2026 CSKH Zalo guest AI / Bot -- Chào bạn, cảm ơn bạn đã liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùng thử, TechHRM có 30 ngày miễn phí, không cần thẻ tín dụng. **Về việc bị trừ tiền 2 lần:** Đây là vấn đề thanh toán nghiêm trọng, ảnh hưởng trực tiếp đến quyền lợi của bạn. Tôi rất xin lỗi vì sự bất tiện này. Trường hợp này vượt phạm vi tôi có thể xử lý ngay, nên tôi sẽ chuyển đến bộ phận phụ trách để kiểm tra giao dịch và hỗ trợ hoàn tiền cho bạn. Trong lúc chờ, bạn có thể liên hệ trực tiếp để được xử lý nhanh: - Email: **support@techhrm.vn** - Hotline: **1800-1234** (8h–18h, T2–T6) Bạn vui lòng chuẩn bị mã giao dịch/sao kê ngân hàng để bộ phận hỗ trợ đối chiếu nhanh hơn nhé. Không có bản mask trong metadata (tin này chưa được che thông tin). Gốc chưa mask (bản ghi cũ) 17:34:50 3/11/2026 CSKH Zalo guest Người dùng -- gói Pro giá bao nhiêu, tôi muốn khiếu nại vì bị trừ tiền 2 lần gói Pro giá bao nhiêu, tôi muốn khiếu nại vì bị trừ tiền 2 lần Gốc chưa mask (bản ghi cũ) 17:34:49 3/11/2026 Đào tạo cmtxpxqg6000vtlhof9ql393f AI / Bot -- Alo, tôi gọi đến lần thứ ba rồi đấy. Đơn hàng của tôi đáng lẽ phải được giao từ sáng, nhân viên hứa gọi lại trong 30 phút mà đến giờ gần 2 tiếng vẫn không ai liên hệ. Tôi đã bỏ lỡ việc riêng để ở nhà chờ, giờ các anh chị tính sao? Đừng trả lời chung chung là “đang kiểm tra” nữa — cho tôi biết chính xác ai đang phụ trách, bao giờ "
+    },
+    {
+      "type": "action",
+      "label": "nav-training",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "23-training-top",
+      "at": "2026-11-04T05:14:04.394Z"
+    },
+    {
+      "type": "snap",
+      "label": "training-top",
+      "h1": "Báo cáo năng lực đào tạo & radar 4 tiêu chí",
+      "headings": [
+        "Báo cáo năng lực đào tạo & radar 4 tiêu chí",
+        "Ma trận năng lực mềm 4 cánh",
+        "Bảng xếp hạng kết quả đánh giá tổng hợp",
+        "Điểm TB theo phòng ban"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên"
+      ],
+      "tableHeaders": [
+        "#",
+        "Học viên",
+        "Trạng thái",
+        "Trắc nghiệm",
+        "Tự luận AI",
+        "Tổng điểm",
+        "Tiêu chí AI",
+        "Nhận xét từ AI"
+      ],
+      "rowCount": 1,
+      "emptyStates": [
+        "Chưa có dữ liệu đào tạo trong tháng này",
+        "Chưa có bài đã chấm trong kỳ"
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 1034,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Báo cáo năng lực đào tạo & radar 4 tiêu chí Mô hình đánh giá kết hợp Đánh giá kết hợp: 5 câu trắc nghiệm nội quy (chấm tự động theo đáp án) + 2 câu tự luận tình huống (AI chấm) Ma trận năng lực mềm 4 cánh So sánh điểm trung bình đợt đánh giá tháng 11/2026 với chuẩn năng lực công ty 0 3 6 10 Chuẩn công tyThực tế đợt này Tỷ lệ hoàn thành 0.0% 0/0 bài đánh giá trong tháng đã nộp hoặc đã chấm xong Điểm tự luận tình huống TB 0.0 / 50 AI chấm điểm theo 4 tiêu chí: Chuyên nghiệp, Thấu cảm, Giải pháp, Rõ ràng Đề xuất đào tạo thêm Chưa đủ dữ liệu AI Score trong kỳ để đưa ra đề xuất. Bảng xếp hạng kết quả đánh giá tổng hợp Điểm trắc nghiệm nội quy (50%) + điểm tự luận xử lý tình huống AI (50%) # Học viên Trạng thái Trắc nghiệm Tự luận AI Tổng điểm Tiêu chí AI Nhận xét từ AI Chưa có dữ liệu đào tạo trong tháng này Chuyên nghiệp Thấu cảm Giải pháp Rõ ràng Điểm TB theo phòng ban Điểm tổng trung bình các bài đã chấm trong kỳ Chưa có bài đã chấm trong kỳ"
+    },
+    {
+      "type": "shot",
+      "name": "24-training-mid",
+      "at": "2026-11-04T05:14:05.086Z"
+    },
+    {
+      "type": "action",
+      "label": "nav-portal",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "25-portal-top",
+      "at": "2026-11-04T05:14:07.583Z"
+    },
+    {
+      "type": "snap",
+      "label": "portal-top",
+      "h1": "Xin chào, Admin",
+      "headings": [
+        "Xin chào, Admin",
+        "Chấm công GPS",
+        "Phép năm còn lại",
+        "Phiếu lương",
+        "Bảng công tháng 11/2026",
+        "Đơn của tôi",
+        "Lộ trình hội nhập"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Check-in",
+        "Tạo đơn mới",
+        "Tháng trước",
+        "Tháng sau",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "Tạo đơn",
+        "Mở trợ lý HR AI"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [
+        "Chưa có phiếu lương kỳ 11/2026. Phiếu xuất hiện sau khi HR tính lương.",
+        "Chưa có lộ trình hội nhập nào được gán cho bạn."
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 1130,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Xin chào, Admin Chuyên viên Nhân sự · Human Resources · EMP006 Trợ lý AI đang trực tuyến Chấm công GPS Thứ Tư, 04/11/2026 Chưa check-in Giờ vào --:-- Giờ ra --:-- Vùng hợp lệ: Văn phòng công ty · bán kính 200 m Check-in Phép năm còn lại Năm 2026 11 / 12 ngày Đã dùng 1 ngày Tạo đơn mới Phiếu lương Kỳ tháng 11/2026 Chưa có phiếu lương kỳ 11/2026. Phiếu xuất hiện sau khi HR tính lương. Bảng công tháng 11/2026 Nhấn vào ngày để xem chi tiết T2 T3 T4 T5 T6 T7 CN 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 Đủ công Đi muộn Nghỉ phép Làm từ xa Nửa ngày Vắng Ngày công 0,0 Đi muộn 0 Vắng 2 Đơn của tôi Nghỉ phép, tăng ca, công tác và trạng thái duyệt Tạo đơn Phép năm 24/09/2026 · 1 ngày đi học và đi học và đi học Đã duyệt Lộ trình hội nhập Tiến độ hội nhập sẽ hiển thị tại đây Chưa có lộ trình hội nhập nào được gán cho bạn."
+    },
+    {
+      "type": "shot",
+      "name": "26-portal-calendar",
+      "at": "2026-11-04T05:14:08.276Z"
+    },
+    {
+      "type": "shot",
+      "name": "27-portal-leave-modal",
+      "at": "2026-11-04T05:14:09.936Z"
+    },
+    {
+      "type": "action",
+      "label": "open-portal-leave",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "28-portal-payslip",
+      "at": "2026-11-04T05:14:11.830Z"
+    },
+    {
+      "type": "action",
+      "label": "open-payslip",
+      "ok": false
+    },
+    {
+      "type": "action",
+      "label": "nav-settings",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "29-settings-salary",
+      "at": "2026-11-04T05:14:14.498Z"
+    },
+    {
+      "type": "snap",
+      "label": "settings-salary",
+      "h1": "Cài đặt hệ thống",
+      "headings": [
+        "Cài đặt hệ thống",
+        "Lương & thuế",
+        "Cấu hình lương & thuế (theo năm)"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Lương & thuế",
+        "Vùng chấm công",
+        "Tích hợp",
+        "Phép năm",
+        "Bảo mật & phiên",
+        "AI Agent",
+        "Nhật ký thay đổi",
+        "Lưu thay đổi"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 897,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 9,
+      "mainText": "Cài đặt hệ thống Cấu hình vận hành, nhân sự, bảo mật và AI Agent — dành cho quản trị viên. Lương & thuế Vùng chấm công Tích hợp Phép năm Bảo mật & phiên AI Agent Nhật ký thay đổi Lương & thuế BHXH, thuế, hệ số OT theo năm Cấu hình lương & thuế (theo năm) Tỷ lệ bảo hiểm, mức giảm trừ gia cảnh và hệ số tăng ca — áp dụng cho công thức tính lương mỗi lần chạy lương. Năm áp dụng BHXH (%) Nhập dạng thập phân: 0.08 = 8% BHYT (%) 0.015 = 1,5% BHTN (%) 0.01 = 1% Giảm trừ gia cảnh (đ) Mức miễn thuế TNCN, mặc định 11.000.000 Hệ số OT ngày thường Mặc định 1.5 Hệ số OT cuối tuần Mặc định 2.0 Hệ số OT ngày lễ Mặc định 3.0 Giờ làm chuẩn/ngày Dùng để tính công và OT Lưu thay đổi"
+    },
+    {
+      "type": "action",
+      "label": "settings-integrations",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "30-settings-integrations",
+      "at": "2026-11-04T05:14:15.501Z"
+    },
+    {
+      "type": "snap",
+      "label": "settings-integrations",
+      "h1": "Cài đặt hệ thống",
+      "headings": [
+        "Cài đặt hệ thống",
+        "Tích hợp",
+        "Trạng thái tích hợp"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Lương & thuế",
+        "Vùng chấm công",
+        "Tích hợp",
+        "Phép năm",
+        "Bảo mật & phiên",
+        "AI Agent",
+        "Nhật ký thay đổi",
+        "Kiểm tra"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Cài đặt hệ thống Cấu hình vận hành, nhân sự, bảo mật và AI Agent — dành cho quản trị viên. Lương & thuế Vùng chấm công Tích hợp Phép năm Bảo mật & phiên AI Agent Nhật ký thay đổi Tích hợp Trạng thái DB / n8n / Slack / Gemini (embedding) Trạng thái tích hợp Kiểm tra kết nối thật tới từng dịch vụ: PostgreSQL, n8n (/healthz), Slack (auth.test) và Gemini (embedding). Kiểm tra"
+    },
+    {
+      "type": "action",
+      "label": "settings-security",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "31-settings-security",
+      "at": "2026-11-04T05:14:16.511Z"
+    },
+    {
+      "type": "snap",
+      "label": "settings-security",
+      "h1": "Cài đặt hệ thống",
+      "headings": [
+        "Cài đặt hệ thống",
+        "Bảo mật & phiên",
+        "Chính sách bảo mật",
+        "Đổi mật khẩu",
+        "Phiên đăng nhập đang hoạt động",
+        "Lịch sử đăng nhập"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Lương & thuế",
+        "Vùng chấm công",
+        "Tích hợp",
+        "Phép năm",
+        "Bảo mật & phiên",
+        "AI Agent",
+        "Nhật ký thay đổi",
+        "Lưu thay đổi",
+        "Đổi mật khẩu",
+        "Tải lại",
+        "Đăng xuất thiết bị khác",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi",
+        "Thu hồi"
+      ],
+      "tableHeaders": [
+        "Người dùng",
+        "Thiết bị",
+        "IP",
+        "Đăng nhập lúc",
+        "Hết hạn",
+        "Hành động",
+        "Thời gian",
+        "Email",
+        "Kết quả",
+        "Lý do (nếu thất bại)",
+        "IP"
+      ],
+      "rowCount": 70,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 5892,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 12,
+      "mainText": "Cài đặt hệ thống Cấu hình vận hành, nhân sự, bảo mật và AI Agent — dành cho quản trị viên. Lương & thuế Vùng chấm công Tích hợp Phép năm Bảo mật & phiên AI Agent Nhật ký thay đổi Bảo mật & phiên Mật khẩu, khóa tài khoản, phiên đăng nhập Chính sách bảo mật Áp dụng khi đổi mật khẩu và khi đăng nhập. Thay đổi lưu vào DB kèm nhật ký kiểm tra. Độ dài tối thiểu Độ dài tối thiểu của mật khẩu mới Buộc đổi mỗi (ngày) 0 = không bắt buộc đổi định kỳ Khóa sau N lần sai Khóa tài khoản tạm thời sau N lần sai mật khẩu liên tiếp Khóa trong (phút) Thời gian khóa tạm trước khi thử lại được Yêu cầu ký tự trong mật khẩu Chữ HOA (A-Z) Chữ thường (a-z) Chữ số (0-9) Ký tự đặc biệt (!@#...) Thời hạn phiên ngắn (24 giờ) Hiện tại: 720h — áp dụng cho lần đăng nhập sau. Bật để siết còn 24h. Lưu thay đổi Đổi mật khẩu Mật khẩu mới cần tối thiểu 8 ký tự, chữ HOA, chữ thường, chữ số, ký tự đặc biệt. Sau khi đổi, các phiên đăng nhập khác sẽ bị thu hồi. Mật khẩu hiện tại Mật khẩu mới Xác nhận mật khẩu mới Đổi mật khẩu Phiên đăng nhập đang hoạt động 50 phiên active. Thu hồi → thiết bị bị đăng xuất ngay ở request kế tiếp. Tải lại Đăng xuất thiết bị khác Người dùng Thiết bị IP Đăng nhập lúc Hết hạn Hành động hr-admin@company.com ADMIN Phiên hiện tại Chrome · Windows 127.0.0.1 12:13 04-11 12:13 04-12 Đang dùng hr-admin@company.com ADMIN Chrome · Windows 127.0.0.1 12:11 04-11 12:11 04-12 Thu hồi employee1@company.com EMPLOYEE Khác · Windows 127.0.0.1 12:10 04-11 12:10 04-12 Thu hồi hr-admin@company.com ADMIN Khác · Windows 127.0.0.1 12:10 04-11 12:10 04-12 Thu hồi hr-admin@company.com ADMIN Chrome · Windows 127.0.0.1 12:02 04-11 12:02 04-12 Thu hồi hr-admin@company.com ADMIN Edge · Windows 127.0.0.1 11:58 04-11 11:58 04-12 Thu hồi employee1@company.com EMPLOYEE Chrome · Windows 127.0.0.1 11:54 04-11 11:54 04-12 Thu hồi employee1@company.com EMPLOYEE Khác · Khác 127.0.0.1 18:05 03-11 18:05 03-12 Thu hồi employee1@company.com EMPLOYEE Khác · Khác 127.0.0.1 18:05 03-11 18:05 03-12 Thu hồi employee1@company.com EMPLOYEE Khác · Khác 127.0.0.1 18:04 03-11 18:04 03-12 Thu hồi employee1@company.com EMPLOYEE Khác · Khác 127.0.0.1 18:04 03-11 18:04 03-12 Thu hồi employee1@company.com EMPLOYEE Chrome · Windows "
+    },
+    {
+      "type": "action",
+      "label": "settings-audit",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "32-settings-audit",
+      "at": "2026-11-04T05:14:17.556Z"
+    },
+    {
+      "type": "snap",
+      "label": "settings-audit",
+      "h1": "Cài đặt hệ thống",
+      "headings": [
+        "Cài đặt hệ thống",
+        "Nhật ký thay đổi",
+        "Nhật ký thay đổi cài đặt"
+      ],
+      "buttons": [
+        "Bảng điều hành",
+        "Hồ sơ nhân sự",
+        "Bảng lương & thuế",
+        "Trợ lý AI",
+        "Tiếp quản CSKH",
+        "Đào tạo & Radar AI",
+        "Cổng nhân viên",
+        "Cài đặt",
+        "Thu gọn",
+        "Tìm kiếm nhanh Ctrl K",
+        "HA Nguyễn Thị HR Admin Quản trị viên",
+        "Lương & thuế",
+        "Vùng chấm công",
+        "Tích hợp",
+        "Phép năm",
+        "Bảo mật & phiên",
+        "AI Agent",
+        "Nhật ký thay đổi",
+        "Tải lại",
+        "Trước",
+        "Sau"
+      ],
+      "tableHeaders": [
+        "Thời gian",
+        "Người sửa",
+        "Mục",
+        "Trường thay đổi",
+        "Giá trị cũ → mới"
+      ],
+      "rowCount": 20,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 1598,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Cài đặt hệ thống Cấu hình vận hành, nhân sự, bảo mật và AI Agent — dành cho quản trị viên. Lương & thuế Vùng chấm công Tích hợp Phép năm Bảo mật & phiên AI Agent Nhật ký thay đổi Nhật ký thay đổi Ai sửa gì, lúc nào Nhật ký thay đổi cài đặt Mọi thay đổi cấu hình được ghi tự động: ai sửa, trường nào, giá trị cũ → mới. Chỉ xem, không sửa/xóa. Tất cả mục Phép năm Bảo mật AI Agent Lương & thuế Vùng chấm công Tài khoản Tải lại Thời gian Người sửa Mục Trường thay đổi Giá trị cũ → mới 10:01 02/11/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 10:01 02/11/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 09:57 02/11/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 09:57 02/11/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 09:15 02/11/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 09:15 02/11/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 17:26 25/09/2026 dangnguyen182005@gmail.com Phép năm Pro-rate theo tháng vào làm false→true 15:31 25/09/2026 hr-admin@company.com Phép năm Pro-rate theo tháng vào làm true→false 15:31 25/09/2026 hr-admin@company.com Phép năm Pro-rate theo tháng vào làm false→true 15:31 25/09/2026 hr-admin@company.com Phép năm Pro-rate theo tháng vào làm true→false 17:56 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 17:56 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 17:40 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 17:40 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 17:32 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 17:32 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 17:31 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 17:31 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent true→false 17:30 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent false→true 17:30 24/09/2026 admin@hr-system.com AI Agent Bật AI Agent true→false Trang 1/4 — 65 bản ghi Trước Sau"
+    },
+    {
+      "type": "shot",
+      "name": "33-user-menu",
+      "at": "2026-11-04T05:14:18.159Z"
+    },
+    {
+      "type": "action",
+      "label": "logout",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "34-employee-portal",
+      "at": "2026-11-04T05:14:24.702Z"
+    },
+    {
+      "type": "snap",
+      "label": "employee-portal",
+      "h1": "Xin chào, Chinh",
+      "headings": [
+        "Xin chào, Chinh",
+        "Chấm công GPS",
+        "Phép năm còn lại",
+        "Phiếu lương",
+        "Bảng công tháng 11/2026",
+        "Đơn của tôi",
+        "Lộ trình hội nhập"
+      ],
+      "buttons": [
+        "Cổng nhân viên",
+        "Kết quả đào tạo",
+        "Trợ lý AI",
+        "Thu gọn",
+        "VC Phạm Văn Chinh Nhân viên",
+        "Check-in",
+        "Tạo đơn mới",
+        "Tháng trước",
+        "Tháng sau",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "Tạo đơn",
+        "Mở trợ lý HR AI"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [
+        "Chưa có phiếu lương kỳ 11/2026. Phiếu xuất hiện sau khi HR tính lương."
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 1201,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Xin chào, Chinh Nhân viên Kinh doanh · Kinh doanh · EMP005 Trợ lý AI đang trực tuyến Chấm công GPS Thứ Tư, 04/11/2026 Chưa check-in Giờ vào --:-- Giờ ra --:-- Vùng hợp lệ: Văn phòng công ty · bán kính 200 m Check-in Phép năm còn lại Năm 2026 12 / 12 ngày Đã dùng 0 ngày Tạo đơn mới Phiếu lương Kỳ tháng 11/2026 Chưa có phiếu lương kỳ 11/2026. Phiếu xuất hiện sau khi HR tính lương. Bảng công tháng 11/2026 Nhấn vào ngày để xem chi tiết T2 T3 T4 T5 T6 T7 CN 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 Đủ công Đi muộn Nghỉ phép Làm từ xa Nửa ngày Vắng Ngày công 0,0 Đi muộn 0 Vắng 2 Đơn của tôi Nghỉ phép, tăng ca, công tác và trạng thái duyệt Tạo đơn Bạn chưa gửi đơn nào Đơn nghỉ phép, tăng ca, công tác sẽ hiện ở đây. Lộ trình hội nhập 3/6 hạng mục đã hoàn thành 50% Đã hoàn thành Ký hợp đồng lao động Hoàn thành 16/01/2026 Đã hoàn thành Nhận máy tính & thiết bị Hoàn thành 16/01/2026 Đã hoàn thành Tham gia buổi hướng dẫn nội quy Hoàn thành 16/01/2026 Chưa hoàn thành Gặp gỡ đồng nghiệp trong phòng Chờ xử lý Chưa hoàn thành Hoàn thành khóa học an toàn thông tin Chờ xử lý Chưa hoàn thành Thiết lập tài khoản hệ thống (email, Slack) Chờ xử lý"
+    },
+    {
+      "type": "shot",
+      "name": "35-employee-portal-lower",
+      "at": "2026-11-04T05:14:25.424Z"
+    },
+    {
+      "type": "action",
+      "label": "nav-my-training",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "36-my-training",
+      "at": "2026-11-04T05:14:27.849Z"
+    },
+    {
+      "type": "snap",
+      "label": "my-training",
+      "h1": "Kết quả đào tạo của tôi",
+      "headings": [
+        "Kết quả đào tạo của tôi",
+        "Biểu đồ năng lực 4 tiêu chí",
+        "Nhận xét từ AI",
+        "Lịch sử đánh giá"
+      ],
+      "buttons": [
+        "Cổng nhân viên",
+        "Kết quả đào tạo",
+        "Trợ lý AI",
+        "Thu gọn",
+        "VC Phạm Văn Chinh Nhân viên"
+      ],
+      "tableHeaders": [
+        "Ngày",
+        "Loại",
+        "Điểm quiz",
+        "Điểm AI",
+        "Tổng",
+        "Trạng thái"
+      ],
+      "rowCount": 3,
+      "emptyStates": [],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 987,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Kết quả đào tạo của tôi Theo dõi tiến bộ kỹ năng qua các lần đánh giá kết hợp (trắc nghiệm + AI chấm tự luận) Lần đánh giá 3 bài đã chấm điểm Điểm tổng (lần đang xem) 20/100 Quiz 50% + AI 50% Điểm kỹ năng AI 0,0/10 trung bình 4 tiêu chí Biểu đồ năng lực 4 tiêu chí Chuyên nghiệp Thấu cảm Giải pháp Rõ ràng Của bạn Chuẩn công ty Nhận xét từ AI Chuyên nghiệp 0/10 Thấu cảm 0/10 Giải quyết vấn đề 0/10 Rõ ràng 0/10 “Bạn cần ôn tập lại các kiến thức về kỹ năng giải quyết mâu thuẫn. Phần tự luận chưa được thực hiện nghiêm túc, không phản ánh được khả năng xử lý tình huống thực tế.” Lịch sử đánh giá Ngày Loại Điểm quiz Điểm AI Tổng Trạng thái 25/09/2026 Xung đột đồng nghiệp 20/50 0,0/10 20/100 Đã chấm 21/09/2026 Khiếu nại khách hàng 50/50 0,0/10 50/100 Đã chấm 15/09/2026 Khiếu nại khách hàng 40/50 81,3/10 81/100 Đã chấm"
+    },
+    {
+      "type": "action",
+      "label": "nav-ai-employee",
+      "ok": true
+    },
+    {
+      "type": "shot",
+      "name": "37-employee-ai",
+      "at": "2026-11-04T05:14:29.675Z"
+    },
+    {
+      "type": "snap",
+      "label": "employee-ai",
+      "h1": "",
+      "headings": [
+        "AI Multi-Agents",
+        "HR Policy Q&A Agent"
+      ],
+      "buttons": [
+        "Cổng nhân viên",
+        "Kết quả đào tạo",
+        "Trợ lý AI",
+        "Thu gọn",
+        "VC Phạm Văn Chinh Nhân viên",
+        "HR Policy Q&A Agent Hỏi đáp ngày phép, bảo hiểm, lương",
+        "Training & Onboarding Agent Luyện tập 2 chiều & chấm điểm tự luận",
+        "Phiên mới",
+        "Gửi tin nhắn"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [
+        "Chưa có tin nhắn nào trong phiên này"
+      ],
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 836,
+        "client": 836
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "AI Multi-Agents HR Policy Q&A Agent Hỏi đáp ngày phép, bảo hiểm, lương Training & Onboarding Agent Luyện tập 2 chiều & chấm điểm tự luận HR Policy Q&A Agent deepseek-flash • Dữ liệu cá nhân được che giấu trước khi gửi tới AI Phiên mới Chưa có tin nhắn nào trong phiên này Gửi câu hỏi để bắt đầu trò chuyện với HR Policy Q&A Agent. CCCD, số điện thoại, email được tự động che giấu trước khi gửi tới AI — phản hồi có thể mất 5–60s."
+    },
+    {
+      "type": "shot",
+      "name": "38-mobile-portal",
+      "at": "2026-11-04T05:14:31.261Z"
+    },
+    {
+      "type": "snap",
+      "label": "mobile-portal",
+      "h1": "Xin chào, Chinh",
+      "headings": [
+        "Xin chào, Chinh",
+        "Chấm công GPS",
+        "Phép năm còn lại",
+        "Phiếu lương",
+        "Bảng công tháng 11/2026",
+        "Đơn của tôi",
+        "Lộ trình hội nhập"
+      ],
+      "buttons": [
+        "Cổng nhân viên",
+        "Kết quả đào tạo",
+        "Trợ lý AI",
+        "Mở menu điều hướng",
+        "VC",
+        "Check-in",
+        "Tạo đơn mới",
+        "Tháng trước",
+        "Tháng sau",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "Tạo đơn mới",
+        "Mở trợ lý HR AI"
+      ],
+      "tableHeaders": [],
+      "rowCount": 0,
+      "emptyStates": [
+        "Chưa có phiếu lương kỳ 11/2026. Phiếu xuất hiện sau khi HR tính lương."
+      ],
+      "viewport": {
+        "w": 390,
+        "h": 844
+      },
+      "overflowX": false,
+      "mainScroll": {
+        "top": 0,
+        "height": 2344,
+        "client": 780
+      },
+      "bodyBg": "rgb(247, 248, 250)",
+      "font": "Inter, \"Inter Fallback\"",
+      "unnamedControls": 0,
+      "mainText": "Xin chào, Chinh Nhân viên Kinh doanh · Kinh doanh · EMP005 Trợ lý AI đang trực tuyến Chấm công GPS Thứ Tư, 04/11/2026 Chưa check-in Giờ vào --:-- Giờ ra --:-- Vùng hợp lệ: Văn phòng công ty · bán kính 200 m Check-in Phép năm còn lại Năm 2026 12 / 12 ngày Đã dùng 0 ngày Tạo đơn mới Phiếu lương Kỳ tháng 11/2026 Chưa có phiếu lương kỳ 11/2026. Phiếu xuất hiện sau khi HR tính lương. Bảng công tháng 11/2026 Nhấn vào ngày để xem chi tiết T2 T3 T4 T5 T6 T7 CN 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 Đủ công Đi muộn Nghỉ phép Làm từ xa Nửa ngày Vắng Ngày công 0,0 Đi muộn 0 Vắng 2 Đơn của tôi Nghỉ phép, tăng ca, công tác và trạng thái duyệt Bạn chưa gửi đơn nào Đơn nghỉ phép, tăng ca, công tác sẽ hiện ở đây. Lộ trình hội nhập 3/6 hạng mục đã hoàn thành 50% Đã hoàn thành Ký hợp đồng lao động Hoàn thành 16/01/2026 Đã hoàn thành Nhận máy tính & thiết bị Hoàn thành 16/01/2026 Đã hoàn thành Tham gia buổi hướng dẫn nội quy Hoàn thành 16/01/2026 Chưa hoàn thành Gặp gỡ đồng nghiệp trong phòng Chờ xử lý Chưa hoàn thành Hoàn thành khóa học an toàn thông tin Chờ xử lý Chưa hoàn thành Thiết lập tài khoản hệ thống (email, Slack) Chờ xử lý"
+    },
+    {
+      "type": "shot",
+      "name": "39-mobile-nav",
+      "at": "2026-11-04T05:14:31.995Z"
+    },
+    {
+      "type": "action",
+      "label": "open-mobile-nav",
+      "ok": true
+    }
+  ],
+  "console": [
+    "[error] Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\".",
+    "[error] Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\".",
+    "[error] Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\".",
+    "[error] Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\"."
+  ],
+  "requestsFailed": [],
+  "finishedAt": "2026-11-04T05:14:31.995Z"
+}

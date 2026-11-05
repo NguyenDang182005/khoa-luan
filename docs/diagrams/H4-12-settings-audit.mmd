@@ -5,4 +5,4 @@ flowchart LR
   R --> U["Cập nhật cấu hình"]
   U --> L["SettingsAuditService.logChanges<br/>so sánh giá trị cũ và mới"]
   L --> DB[("settings_audit_logs")]
-  UI -->|"GET /settings/integrations"| P["Ping PostgreSQL, n8n healthz,<br/>Slack auth.test, Gemini models"]
+  UI -->|"GET /settings/integrations"| P["Ping PostgreSQL, n8n healthz,<br/>Slack auth.test, Gemini embedding"]

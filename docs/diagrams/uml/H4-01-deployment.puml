@@ -1,0 +1,32 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+top to bottom direction
+
+node "Máy phát triển Windows 11" as DEV {
+  node "Docker Compose" as DC {
+    database "pgvector/pgvector:pg16\n:5432" as PG
+    artifact "n8nio/n8n\n:5678" as N8N
+    artifact "pgAdmin 4\n:5050" as PGA
+  }
+  artifact "NestJS API (pnpm dev)\n:3001" as API
+  artifact "Next.js (pnpm dev)\n:3000" as WEB
+}
+cloud "Internet" {
+  node "DeepSeek API\n(deepseek-flash)" as DS
+  node "Google AI Studio\n(gemini-embedding-001)" as GEM
+  node "Slack workspace" as SLK
+  node "Firebase Authentication" as FB
+}
+
+WEB --> API : HTTP + WebSocket
+API --> PG : TCP 5432
+N8N --> PG : TCP 5432
+PGA --> PG
+API <--> N8N : HTTP + x-api-key
+N8N --> DS : HTTPS
+API --> GEM : HTTPS
+API <--> SLK : Socket Mode
+WEB --> FB : OAuth popup
+API --> FB : verifyIdToken
+@enduml

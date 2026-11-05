@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { Coins, Loader2 } from "lucide-react"
+import { Coins, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,7 @@ const SALARY_FIELDS: Array<{ key: keyof SalaryConfig; label: string; step: strin
   { key: "bhxhRate", label: "BHXH", step: "0.001", hint: "Nhập dạng thập phân: 0.08 = 8%", percent: true },
   { key: "bhytRate", label: "BHYT", step: "0.001", hint: "0.015 = 1,5%", percent: true },
   { key: "bhtnRate", label: "BHTN", step: "0.001", hint: "0.01 = 1%", percent: true },
-  { key: "pitFreeAmount", label: "Giảm trừ gia cảnh (đ)", step: "100000", hint: "Mức miễn thuế TNCN, mặc định 11.000.000" },
+  { key: "pitFreeAmount", label: "Giảm trừ bản thân (đ)", step: "100000", hint: "Mức giảm trừ bản thân, mặc định 15.500.000" },
   { key: "overtimeRate", label: "Hệ số OT ngày thường", step: "0.1", hint: "Mặc định 1.5" },
   { key: "otWeekendRate", label: "Hệ số OT cuối tuần", step: "0.1", hint: "Mặc định 2.0" },
   { key: "otHolidayRate", label: "Hệ số OT ngày lễ", step: "0.1", hint: "Mặc định 3.0" },
@@ -30,6 +30,7 @@ export function SalarySection({ onDirtyChange }: { onDirtyChange?: (dirty: boole
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const dirty = useMemo(
     () => Boolean(salary && saved && JSON.stringify(salary) !== JSON.stringify(saved)),
@@ -41,12 +42,14 @@ export function SalarySection({ onDirtyChange }: { onDirtyChange?: (dirty: boole
   }, [dirty, onDirtyChange])
 
   const load = useCallback(async () => {
+    setLoadError(null)
     try {
       const s = await payrollApi.getSalaryConfig()
       setSalary(s)
       setSaved(s)
     } catch (e) {
       console.error(e)
+      setLoadError("Không tải được cấu hình lương.")
     }
   }, [])
 
@@ -85,58 +88,91 @@ export function SalarySection({ onDirtyChange }: { onDirtyChange?: (dirty: boole
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Coins className="size-4 text-agent-amber" /> Cấu Hình Lương & Thuế (theo năm)
+        <CardTitle className="flex items-center gap-2">
+          <Coins className="size-4 text-primary" /> Cấu hình lương & thuế (theo năm)
         </CardTitle>
         <CardDescription>
-          Tỷ lệ bảo hiểm, mức giảm trừ gia cảnh và hệ số tăng ca — áp dụng khi chạy lương (WF Rule Engine).
+          Tỷ lệ bảo hiểm, mức giảm trừ bản thân và hệ số tăng ca — áp dụng cho công thức tính lương mỗi lần chạy lương.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!salary ? (
-          <div className="flex h-20 items-center justify-center gap-2 text-xs text-muted-foreground">
+        {!salary && loadError ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/20 bg-danger-tint px-4 py-3 text-body-sm text-danger">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="size-4 shrink-0" /> {loadError}
+            </span>
+            <Button size="sm" variant="outline" onClick={load}>
+              Thử lại
+            </Button>
+          </div>
+        ) : !salary ? (
+          <div className="flex h-20 items-center justify-center gap-2 text-body-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Đang tải cấu hình...
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-              <div className="md:col-span-4">
-                <label className="text-[11px] font-semibold text-muted-foreground">Năm áp dụng</label>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label htmlFor="salary-year" className="text-body-sm font-medium text-secondary-foreground">
+                  Năm áp dụng
+                </label>
                 <Input
+                  id="salary-year"
                   type="number"
                   value={salary.year}
                   onChange={(e) => setSalary({ ...salary, year: Number(e.target.value) })}
-                  className="mt-1 h-8 w-32 text-xs font-mono"
+                  className="mt-1.5 w-32 tabular"
                 />
               </div>
               {SALARY_FIELDS.map(({ key, label, step, hint, percent }) => (
-                <div key={key} title={hint}>
-                  <label className="text-[11px] font-semibold text-muted-foreground">
+                <div key={key}>
+                  <label htmlFor={`salary-${key}`} className="text-body-sm font-medium text-secondary-foreground">
                     {label}{percent ? " (%)" : ""}
                   </label>
                   <Input
+                    id={`salary-${key}`}
                     type="number"
                     step={step}
                     value={percent ? displayRate(salary[key] as number) : String(salary[key])}
                     onChange={(e) =>
                       setSalary({ ...salary, [key]: Number(e.target.value) })
                     }
-                    className="mt-1 h-8 text-xs font-mono"
+                    className="mt-1.5 tabular"
                   />
+                  <p className="mt-1 text-caption text-muted-foreground">{hint}</p>
+                  {key === "pitFreeAmount" && Number(salary[key]) > 0 && (
+                    <p className="mt-0.5 text-caption tabular text-secondary-foreground">
+                      = {Number(salary[key]).toLocaleString("vi-VN")} ₫
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
-            {msg && <p className="mt-3 text-[11px] text-emerald-400">{msg}</p>}
-            {error && <p className="mt-3 text-[11px] text-agent-coral">{error}</p>}
-            <div className="mt-3 flex items-center gap-3">
-              <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Cấu Hình Lương
-              </Button>
-              {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
-            </div>
+            {msg && (
+              <p className="mt-4 flex items-center gap-1.5 text-body-sm text-success">
+                <CheckCircle2 className="size-4 shrink-0" /> {msg}
+              </p>
+            )}
+            {error && (
+              <p className="mt-4 flex items-center gap-1.5 text-body-sm text-danger">
+                <AlertTriangle className="size-4 shrink-0" /> {error}
+              </p>
+            )}
           </>
         )}
       </CardContent>
+      {salary && (
+        <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 rounded-b-lg border-t border-border bg-card px-5 py-4 sm:px-6">
+          {dirty && (
+            <span className="mr-auto flex items-center gap-1.5 text-body-sm text-warning">
+              <span className="size-2 rounded-full bg-warning" aria-hidden="true" /> Có thay đổi chưa lưu
+            </span>
+          )}
+          <Button onClick={save} disabled={busy || !dirty}>
+            {busy && <Loader2 className="size-4 animate-spin" />} Lưu thay đổi
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

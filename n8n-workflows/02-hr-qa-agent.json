@@ -120,31 +120,28 @@
       "position": [
         1120,
         300
-      ],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 2000
+      ]
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
+        "model": "deepseek-flash",
         "options": {
           "temperature": 0.3,
-          "maxOutputTokens": 1024
+          "maxTokens": 1024
         }
       },
-      "id": "gemini-hr",
-      "name": "Gemini Flash",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "id": "deepseek-hr",
+      "name": "DeepSeek Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "position": [
         920,
         540
       ],
       "credentials": {
-        "googlePalmApi": {
-          "id": "GijeOpAk3nuWoDHZ",
-          "name": "Gemini 2025"
+        "deepSeekApi": {
+          "id": "QwonmhnAXcr33Bvm",
+          "name": "DeepSeek account"
         }
       },
       "retryOnFail": true,
@@ -175,16 +172,7 @@
     {
       "parameters": {
         "toolDescription": "Lay thong tin nhan vien: ten, phong ban, luong co ban, hop dong, so ngay phep con. Dung khi can thong tin ca nhan.",
-        "url": "http://host.docker.internal:3001/api/v1/n8n/employee-context/{employee_id}",
-        "placeholderDefinitions": {
-          "values": [
-            {
-              "name": "employee_id",
-              "description": "Ma nhan vien vi du EMP003",
-              "type": "string"
-            }
-          ]
-        },
+        "url": "={{ \"http://host.docker.internal:3001/api/v1/n8n/employee-context/\" + $(\"Normalize Input\").first().json.employeeId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -206,16 +194,7 @@
     {
       "parameters": {
         "toolDescription": "Lay bang luong chi tiet theo thang/nam: luong gop, khau tru BHXH BHYT BHTN thue TNCN, luong thuc lanh, OT. Chi tra loi ve bang luong cua chinh nguoi dang hoi.",
-        "url": "http://host.docker.internal:3001/api/v1/n8n/payroll-context/{employee_id}",
-        "placeholderDefinitions": {
-          "values": [
-            {
-              "name": "employee_id",
-              "description": "Ma nhan vien cua nguoi dang hoi vi du EMP003",
-              "type": "string"
-            }
-          ]
-        },
+        "url": "={{ \"http://host.docker.internal:3001/api/v1/n8n/payroll-context/\" + $(\"Normalize Input\").first().json.employeeId }}",
         "sendQuery": true,
         "specifyQuery": "keypair",
         "parametersQuery": {
@@ -293,7 +272,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.output, metadata: { model: \"gemini-3.1-flash-lite\", intent: \"HR_QA\" } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"assistant\", content: $json.output, metadata: { model: \"deepseek-flash\", intent: \"HR_QA\" } }) }}",
         "options": {}
       },
       "id": "save-assistant",
@@ -418,7 +397,7 @@
         ]
       ]
     },
-    "Gemini Flash": {
+    "DeepSeek Chat": {
       "ai_languageModel": [
         [
           {

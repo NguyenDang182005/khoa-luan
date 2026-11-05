@@ -1,0 +1,30 @@
+@startuml
+!include _style.iuml
+start
+:calculatePayroll(nhân viên, tháng, năm);
+:Lấy hợp đồng hiệu lực trong kỳ
+(baseSalary, allowances);
+:Ngày công chuẩn = thứ Hai đến thứ Sáu
+trừ ngày lễ;
+:Ngày công thực tế = workDays ngày thường
++ ngày phép năm đã duyệt;
+:Giờ làm thêm theo dayType
+×1,5 ngày thường, ×2,0 cuối tuần, ×3,0 ngày lễ;
+:Thu nhập gộp = lương theo ngày công
++ phụ cấp + tiền OT + thưởng;
+if (Ngày công thực tế ≥ 14?) then (có)
+  :BHXH 8%, BHYT 1,5%, BHTN 1%
+  trên min(lương hợp đồng, trần 20 × lương cơ sở);
+else (không)
+  :Không trích bảo hiểm;
+endif
+:Thu nhập tính thuế = gộp − bảo hiểm
+− 15,5 triệu − 6,2 triệu × số người phụ thuộc;
+if (Kỳ lương trước 01/7/2026?) then (có)
+  :Biểu lũy tiến 7 bậc;
+else (không)
+  :Biểu lũy tiến 5 bậc;
+endif
+:Thực lĩnh = gộp − bảo hiểm − thuế − tạm ứng;
+stop
+@enduml

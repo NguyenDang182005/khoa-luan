@@ -1,0 +1,33 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+actor "Nhân viên" as E
+actor "ADMIN" as AD
+participant "LeaveService" as L
+database "PostgreSQL" as DB
+E -> L : POST /leave (loại phép, ngày, lý do)
+activate L
+L -> L : countWorkdays bỏ thứ Bảy,\nChủ nhật, ngày lễ
+L -> DB : Kiểm tra trùng đơn PENDING hoặc APPROVED\n(bỏ qua đơn OT)
+L -> L : Phép năm: số dư = quota pro-rate\ntrừ số ngày đã dùng
+alt Trùng ngày hoặc vượt số dư
+  L --> E : 400 Bad Request
+else Hợp lệ
+  L -> DB : Lưu đơn PENDING
+  L --> E : 201 Created
+end
+deactivate L
+AD -> L : PATCH /leave/:id/approve
+activate L
+L -> DB : Kiểm tra đơn PENDING, người duyệt có hồ sơ,\nđếm lại số ngày làm việc
+group Transaction
+  L -> DB : BEGIN
+  L -> DB : Kiểm tra lại số dư phép năm
+  L -> DB : Upsert attendance ON_LEAVE\ncho từng ngày làm việc
+  L -> DB : Cập nhật APPROVED, approvedBy, approvedAt
+  L -> DB : COMMIT
+end
+L --> AD : 200 OK
+deactivate L
+@enduml

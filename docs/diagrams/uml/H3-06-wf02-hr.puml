@@ -1,0 +1,35 @@
+@startuml
+!include _style.iuml
+start
+if (Nguồn gọi?) then (từ WF01)
+  :Execute Workflow Trigger;
+else (gọi trực tiếp)
+  :Webhook POST /hr-qa
+  (x-api-key);
+endif
+:Normalize Input + PII Masking;
+:POST /n8n/chat/session
+lấy hoặc tạo phiên HR_QA;
+:POST /n8n/chat/message
+lưu tin người dùng;
+:HR Agent
+(maxIterations = 3);
+note right
+  <b>Mô hình:</b> DeepSeek deepseek-flash
+  (temperature 0.3, 1024 tokens)
+  <b>Bộ nhớ:</b> Postgres Chat Memory
+  (n8n_chat_histories, 50 lượt)
+  <b>Công cụ:</b>
+  • GetEmployeeContext
+    GET /n8n/employee-context/:id
+  • GetPayrollContext
+    GET /n8n/payroll-context/:id
+  • SearchPolicyKnowledge
+    GET /n8n/knowledge-search
+end note
+:POST /n8n/chat/message
+lưu câu trả lời;
+:Format Output;
+:Respond to Webhook;
+stop
+@enduml

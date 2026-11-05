@@ -9,6 +9,9 @@ created: 2026-11-02
 > Báo cáo chính nằm trên Google Doc: https://docs.google.com/document/d/1maZALMYXxLZdKnyXzSNHpuGgvo5mAkLw315eNCBDge8/edit
 > Mọi số liệu dưới đây được đo trực tiếp ngày 02/11/2026 hoặc đọc từ mã nguồn hiện tại.
 
+> [!WARNING]
+> Ngày 05/11/2026 các biểu đồ Mermaid trong note này đã được thay bằng sơ đồ UML (PlantUML) trong báo cáo. Xem [[37 - Vẽ Lại 22 Sơ Đồ UML & Chèn Vào Báo Cáo (05-11-2026)]].
+
 ## 1. Những gì đã thêm vào Google Doc
 
 | Phần | Nội dung |

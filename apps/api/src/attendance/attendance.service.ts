@@ -129,6 +129,8 @@ export class AttendanceService {
 
   /** Check-in chỉ hợp lệ trong bán kính văn phòng — kiểm tra ở server, không tin client. */
   private async assertInsideGeofence(lat?: number, lng?: number) {
+    // Mock tạm (ATTENDANCE_GEOFENCE_MOCK=true trong apps/api/.env): mọi vị trí đều check-in được, kể cả không có GPS
+    if (process.env.ATTENDANCE_GEOFENCE_MOCK === 'true') return null;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       throw new BadRequestException('Thiếu tọa độ GPS (lat, lng) để check-in');
     }
@@ -145,7 +147,13 @@ export class AttendanceService {
   async checkInForUser(userId: string, coords: { lat?: number; lng?: number }) {
     const employeeId = await this.employeeIdFromUser(userId);
     const distance = await this.assertInsideGeofence(coords.lat, coords.lng);
-    const location = `GPS ${coords.lat!.toFixed(5)},${coords.lng!.toFixed(5)} (${distance}m)`;
+    const hasCoords = Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+    const location =
+      distance !== null
+        ? `GPS ${coords.lat!.toFixed(5)},${coords.lng!.toFixed(5)} (${distance}m)`
+        : hasCoords
+          ? `GPS ${coords.lat!.toFixed(5)},${coords.lng!.toFixed(5)} (mock, bỏ qua geofence)`
+          : 'Mock (không có GPS, bỏ qua geofence)';
     const today = vnDateUtc();
     const holidays = await loadHolidays(
       this.prisma,

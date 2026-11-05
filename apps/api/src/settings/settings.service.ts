@@ -372,7 +372,7 @@ export class SettingsService {
     return { items, total, page, pageCount: Math.ceil(total / limit) };
   }
 
-  /** Ping trạng thái các tích hợp: DB, n8n, Slack, Gemini */
+  /** Ping trạng thái các tích hợp: DB, n8n, Slack, Gemini (embedding) */
   async getIntegrations(): Promise<{ checkedAt: string; items: IntegrationStatus[] }> {
     const items: IntegrationStatus[] = [];
 
@@ -456,12 +456,12 @@ export class SettingsService {
       }
     }
 
-    // 4. Gemini API key
+    // 4. Gemini API key — chỉ dùng cho embedding RAG (agent chat chạy DeepSeek trong n8n)
     const geminiKey = this.config.get<string>('GEMINI_API_KEY');
     if (!geminiKey) {
       items.push({
         key: 'gemini',
-        name: 'Google Gemini 3.1 Flash Lite',
+        name: 'Google Gemini (embedding)',
         status: 'not_configured',
         latencyMs: null,
         detail: 'Chưa cấu hình GEMINI_API_KEY',
@@ -470,20 +470,20 @@ export class SettingsService {
       const tg = Date.now();
       try {
         const res = await fetchWithTimeout(
-          `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1&key=${encodeURIComponent(geminiKey)}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001?key=${encodeURIComponent(geminiKey)}`,
           { timeoutMs: 5000 },
         );
         items.push({
           key: 'gemini',
-          name: 'Google Gemini 3.1 Flash Lite',
+          name: 'Google Gemini (embedding)',
           status: res.ok ? 'ok' : 'error',
           latencyMs: Date.now() - tg,
-          detail: res.ok ? 'API key hợp lệ (GET /v1beta/models)' : `HTTP ${res.status} — key có thể đã hết hạn`,
+          detail: res.ok ? 'Key hợp lệ, model gemini-embedding-001 khả dụng' : `HTTP ${res.status} — key hết hạn hoặc không truy cập được model embedding`,
         });
       } catch (e) {
         items.push({
           key: 'gemini',
-          name: 'Google Gemini 3.1 Flash Lite',
+          name: 'Google Gemini (embedding)',
           status: 'error',
           latencyMs: null,
           detail: (e as Error).message.slice(0, 100),

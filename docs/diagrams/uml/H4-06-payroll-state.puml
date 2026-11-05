@@ -1,0 +1,14 @@
+@startuml
+!include _style.iuml
+hide empty description
+left to right direction
+[*] --> DRAFT : generate /\ngenerate-bulk
+DRAFT --> DRAFT : generate lại (tính lại toàn bộ)\nadjust thưởng, tạm ứng (giữ nguyên thuế, BH)
+DRAFT --> APPROVED : approve /\napprove-bulk
+APPROVED --> PAID : paid / paid-bulk\n[ghi paidAt]
+PAID --> [*]
+note bottom of APPROVED
+  Không generate lại
+  hoặc adjust được (400)
+end note
+@enduml

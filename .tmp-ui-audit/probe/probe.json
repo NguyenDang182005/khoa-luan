@@ -1,0 +1,84 @@
+{
+  "payrollKpi": {
+    "cardHTML": "<span class=\"flex size-9 items-center justify-center rounded-md bg-warning-tint text-warning\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-wallet size-[18px]\" aria-hidden=\"true\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"></path><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"></path></svg></span><p class=\"mt-4 text-body-sm text-muted-foreground\">Quỹ lương tháng</p><p class=\"tabular mt-1 text-[28px] font-semibold leading-9 text-foreground\">₫0</p><p class=\"mt-1 text-caption text-muted-foreground\">Tổng thực lĩnh, mọi trạng thái</p>",
+    "valueText": "\"₫0\"",
+    "valueClass": "tabular mt-1 text-[28px] font-semibold leading-9 text-foreground",
+    "valueFont": "Inter, \"Inter Fallback\"",
+    "valueRects": [
+      {
+        "x": 877,
+        "y": 280,
+        "w": 35.59375,
+        "h": 34
+      }
+    ]
+  },
+  "searchEmployee": {
+    "text": "Esc Kết quả Không tìm thấy kết quả.",
+    "resultButtons": []
+  },
+  "portalLeave": {
+    "cardText": "Phép năm còn lại Năm 2026 11 / 12 ngày Đã dùng 1 ngày Tạo đơn mới",
+    "bars": [
+      {
+        "w": 313,
+        "h": 8,
+        "cls": "mt-3 h-2 overflow-hidden rounded-full bg-muted",
+        "childW": 26,
+        "aria": "1"
+      },
+      {
+        "w": 26,
+        "h": 8,
+        "cls": "h-full rounded-full bg-success transition-[width]",
+        "childW": null,
+        "aria": null
+      }
+    ],
+    "html": "<div class=\"flex items-center gap-3\"><span class=\"flex size-9 shrink-0 items-center justify-center rounded-md bg-success-tint text-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-calendar-check size-[18px]\" aria-hidden=\"true\"><path d=\"M8 2v4\"></path><path d=\"M16 2v4\"></path><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"></rect><path d=\"M3 10h18\"></path><path d=\"m9 16 2 2 4-4\"></path></svg></span><div><h2 class=\"text-body font-semibold text-foreground\">Phép năm còn lại</h2><p class=\"text-caption text-muted-foreground\">Năm 2026</p></div></div><p class=\"mt-5 flex items-baseline gap-2\"><span class=\"text-display font-bold tabular text-foreground\">11</span><span class=\"text-body text-muted-foreground\">/ 12 ngày</span></p><div class=\"mt-3 h-2 overflow-hidden rounded-full bg-muted\" role=\"progressbar\" aria-valuenow=\"1\" aria-valuemin=\"0\" aria-valuemax=\"12\" aria-label=\"Đã dùng 1 trên 12 ngày phép\"><div class=\"h-full rounded-full bg-success transition-[width]\" style=\"width: 8.33333%;\"></div></div><p class=\"mt-2 text-caption text-muted-foreground\">Đã dùng 1 ngày</p><div class=\"mt-auto pt-5\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-md border bg-clip-padding font-semibold whitespace-nowrap transition-colors duration-150 ease-out outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/20 focus-visible:border-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-3 aria-invalid:ring-danger/15 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*='size-'])]:size-4 border-input bg-card hover:bg-sunken hover:text-foreground aria-expanded:bg-muted gap-2 px-4 text-body h-11 w-full\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-plus\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"M12 5v14\"></path>"
+  },
+  "integrations": {
+    "text": "Cài đặt hệ thống Cấu hình vận hành, nhân sự, bảo mật và AI Agent — dành cho quản trị viên. Lương & thuế Vùng chấm công Tích hợp Phép năm Bảo mật & phiên AI Agent Nhật ký thay đổi Tích hợp Trạng thái DB / n8n / Slack / Gemini (embedding) Trạng thái tích hợp Kiểm tra kết nối thật tới từng dịch vụ: PostgreSQL, n8n (/healthz), Slack (auth.test) và Gemini (embedding). Kiểm tra Hoạt động PostgreSQL (:5432) Truy vấn SELECT 1 thành công Hoạt động n8n (http://localhost:5678) GET /healthz OK Hoạt động Slack (CSKH transport) Workspace: NewVim Hoạt động Google Gemini (embedding) Key hợp lệ, model gemini-embedding-001 khả dụng",
+    "skeletons": 0
+  },
+  "cskh": {
+    "rawDoubleAsterisks": 42,
+    "strongTags": 0,
+    "sample": " liên hệ TechHRM! **Về gói Pro:** Gói Pro có giá **1.200.000đ/tháng**, hỗ trợ tối đa 200 nhân viên, bao gồm đầy đủ tính năng (chấm công GPS Geofencing, tính lương tự động, báo cáo phân tích) và AI đào tạo role-play. Nếu bạn muốn dùng thử, TechHRM có 30 ngày miễn phí, không cần th",
+    "bubbleHTML": "<div class=\"flex flex-col gap-6\"><section class=\"rounded-lg border border-border bg-card p-5 shadow-xs md:p-6\"><div class=\"flex flex-wrap items-start justify-between gap-4\"><div class=\"flex items-start gap-3\"><div class=\"flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-user-check size-5\" aria-hidden=\"true\"><path d=\"m16 11 2 2 4-4\"></path><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle></svg></div><div><h1 class=\"text-h1 font-semibold text-foreground\">Bàn tiếp quản CSKH</h1><p class=\"mt-1 max-w-2xl text-body text-muted-foreground\">Bot AI trả lời khách qua kênh Zalo. Khi AI phát hiện rủi ro vượt thẩm quy"
+  },
+  "aiAgents": [
+    "Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt",
+    "HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động",
+    "Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động",
+    "Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động"
+  ],
+  "wf02Selected": true,
+  "aiHeader": "AI Multi-Agents Router & Privacy Agent WF01 Phân loại ý định & PII Masking Hoạt động 118 lượt HR Policy Q&A Agent WF02 Hỏi đáp ngày phép, bảo hiểm, lương Hoạt động Training & Onboarding Agent WF03 Luyện tập 2 chiều & chấm điểm tự luận Hoạt động Zalo CSKH & Escalation Agent WF04 Khách hàng Slack/Zalo & Tiếp quản Hoạt động Giám sát trực tiếp Số liệu làm mới tự động mỗi 30 giây. HR Policy Q&A Agent WF02 deepseek-flash • Dữ liệu cá nhân được che giấu trước khi gửi tới AI Phiên mới Chưa có tin nhắn nào trong phiên này Gửi câu hỏi để bắt đầu trò chuyện với HR Policy Q&A Agent. CCCD, số điện thoại, email được tự động che giấu trước khi gửi tới AI — phản hồi có thể mất 5–60s.",
+  "consoleErrors": [
+    "Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\".",
+    "Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\".",
+    "Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\".",
+    "Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"Z\"."
+  ],
+  "myTraining": {
+    "text": "Kết quả đào tạo của tôi Theo dõi tiến bộ kỹ năng qua các lần đánh giá kết hợp (trắc nghiệm + AI chấm tự luận) Lần đánh giá 3 bài đã chấm điểm Điểm tổng (lần đang xem) 20/100 Quiz 50% + AI 50% Điểm kỹ năng AI 0,0/10 trung bình 4 tiêu chí Biểu đồ năng lực 4 tiêu chí Chuyên nghiệp Thấu cảm Giải pháp Rõ ràng Của bạn Chuẩn công ty Nhận xét từ AI Chuyên nghiệp 0/10 Thấu cảm 0/10 Giải quyết vấn đề 0/10 Rõ ràng 0/10 “Bạn cần ôn tập lại các kiến thức về kỹ năng giải quyết mâu thuẫn. Phần tự luận chưa được thực hiện nghiêm túc, không phản ánh được khả năng xử lý tình huống thực tế.” Lịch sử đánh giá Ngày Loại Điểm quiz Điểm AI Tổng Trạng thái 25/09/2026 Xung đột đồng nghiệp 20/50 0,0/10 20/100 Đã chấm 21/09/2026 Khiếu nại khách hàng 50/50 0,0/10 50/100 Đã chấm 15/09/2026 Khiếu nại khách hàng 40/50 81,3/10 81/100 Đã chấm",
+    "buttons": [],
+    "links": []
+  },
+  "mobileFab": {
+    "fab": {
+      "right": 374,
+      "bottom": 828,
+      "w": 56,
+      "h": 56,
+      "z": "40"
+    },
+    "progress": null,
+    "overlap": false,
+    "viewport": {
+      "w": 390,
+      "h": 844
+    }
+  }
+}

@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
-import { Clock, MapPin, Coffee, AlertCircle, Calendar } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import type { AttendanceRecord } from "@/lib/api/attendance.api"
 import { todayVN } from "@/lib/utils"
 import { cn } from "@/lib/utils"
@@ -19,7 +19,9 @@ interface MonthlyTimesheetStripProps {
 }
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
-const DOW_LABEL = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"]
+const DOW_LABEL = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"]
+
+type BadgeVariant = "success" | "warning" | "info" | "destructive" | "secondary" | "default"
 
 function formatTime(iso: string | null | undefined): string {
   if (!iso) return "--:--"
@@ -27,90 +29,107 @@ function formatTime(iso: string | null | undefined): string {
   catch { return "--:--" }
 }
 
+function formatHours(h: number): string {
+  return `${h.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} h`
+}
+
 // Trả về màu dot + nhãn trạng thái
-function getStatus(status: string | undefined, hasRecord: boolean, isWeekend: boolean, isFuture: boolean) {
-  if (isWeekend || isFuture || !hasRecord && isFuture) return { dot: null, label: "", credit: "" }
-  if (!hasRecord) return { dot: "bg-rose-500",    label: "Vắng",       credit: "V"   }
+function getStatus(status: string | undefined, hasRecord: boolean, isWeekend: boolean, isFuture: boolean, isToday = false): {
+  dot: string | null; label: string; credit: string; badge: BadgeVariant
+} {
+  if (isWeekend || isFuture || !hasRecord && isFuture) return { dot: null, label: "", credit: "", badge: "secondary" }
+  // Hôm nay chưa có bản ghi = chưa chấm công, chưa phải vắng
+  if (!hasRecord && isToday) return { dot: null, label: "Chưa chấm công", credit: "", badge: "secondary" }
+  if (!hasRecord) return { dot: "bg-danger", label: "Vắng", credit: "V", badge: "destructive" }
   switch (status) {
-    case "PRESENT":  return { dot: "bg-emerald-500", label: "Đủ công",   credit: "1.0" }
-    case "LATE":     return { dot: "bg-amber-500",   label: "Đi muộn",  credit: "1.0" }
-    case "REMOTE":   return { dot: "bg-sky-500",     label: "Remote",    credit: "1.0" }
-    case "HALF_DAY": return { dot: "bg-amber-400",   label: "Nửa ngày", credit: "0.5" }
-    case "ON_LEAVE": return { dot: "bg-teal-500",    label: "Nghỉ phép", credit: "P"   }
-    case "ABSENT":   return { dot: "bg-rose-500",    label: "Vắng",      credit: "V"   }
-    default:         return { dot: null,             label: "",          credit: ""    }
+    case "PRESENT":  return { dot: "bg-success",          label: "Đủ công",   credit: "1.0", badge: "success" }
+    case "LATE":     return { dot: "bg-warning",          label: "Đi muộn",   credit: "1.0", badge: "warning" }
+    case "REMOTE":   return { dot: "bg-primary",          label: "Làm từ xa", credit: "1.0", badge: "default" }
+    case "HALF_DAY": return { dot: "bg-muted-foreground", label: "Nửa ngày",  credit: "0.5", badge: "secondary" }
+    case "ON_LEAVE": return { dot: "bg-info",             label: "Nghỉ phép", credit: "P",   badge: "info" }
+    case "ABSENT":   return { dot: "bg-danger",           label: "Vắng",      credit: "V",   badge: "destructive" }
+    default:         return { dot: null,                  label: "",          credit: "",    badge: "secondary" }
   }
 }
 
+const LEGEND = [
+  { dot: "bg-success", label: "Đủ công" },
+  { dot: "bg-warning", label: "Đi muộn" },
+  { dot: "bg-info", label: "Nghỉ phép" },
+  { dot: "bg-primary", label: "Làm từ xa" },
+  { dot: "bg-muted-foreground", label: "Nửa ngày" },
+  { dot: "bg-danger", label: "Vắng" },
+]
+
 // ── Popover chi tiết ─────────────────────────────────────
 function DayDetail({
-  day, month, year, dow, record, isWeekend, isFuture,
+  day, month, year, dow, record, isWeekend, isFuture, isToday,
   status,
 }: {
   day: number; month: number; year: number; dow: number
-  record: AttendanceRecord | null; isWeekend: boolean; isFuture: boolean
+  record: AttendanceRecord | null; isWeekend: boolean; isFuture: boolean; isToday: boolean
   status: ReturnType<typeof getStatus>
 }) {
   return (
-    <div className="w-48 space-y-2">
-      <div>
-        <p className="text-[11px] text-muted-foreground">{DOW_LABEL[dow]}</p>
-        <p className="text-sm font-semibold">
-          {String(day).padStart(2, "0")}/{String(month).padStart(2, "0")}/{year}
-        </p>
-      </div>
-      <Separator />
+    <div>
+      <p className="text-caption text-muted-foreground">{DOW_LABEL[dow]}</p>
+      <p className="text-body font-semibold tabular">
+        {String(day).padStart(2, "0")}/{String(month).padStart(2, "0")}/{year}
+      </p>
       {isWeekend ? (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Coffee className="size-3 shrink-0" /> Cuối tuần
-        </p>
+        <p className="mt-1 text-body-sm text-muted-foreground">Cuối tuần.</p>
       ) : isFuture ? (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="size-3 shrink-0" /> Chưa có dữ liệu
-        </p>
+        <p className="mt-1 text-body-sm text-muted-foreground">Chưa đến ngày.</p>
+      ) : !record && isToday ? (
+        <>
+          <Badge variant="secondary" className="mt-2">Chưa chấm công</Badge>
+          <p className="mt-2 text-body-sm text-muted-foreground">Hôm nay bạn chưa check-in.</p>
+        </>
       ) : !record ? (
-        <p className="text-xs text-rose-500 flex items-center gap-1.5">
-          <AlertCircle className="size-3 shrink-0" /> Vắng mặt không phép
-        </p>
+        <>
+          <Badge variant="destructive" className="mt-2">
+            <span className="size-1.5 rounded-full bg-danger" />
+            Vắng mặt không phép
+          </Badge>
+          <p className="mt-2 text-body-sm text-muted-foreground">Không có dữ liệu chấm công.</p>
+        </>
       ) : (
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <p className="text-muted-foreground flex items-center gap-1 mb-0.5">
-              <Clock className="size-2.5" /> Vào
-            </p>
-            <p className="font-mono font-semibold tabular-nums">{formatTime(record.checkIn)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground flex items-center gap-1 mb-0.5">
-              <Clock className="size-2.5" /> Ra
-            </p>
-            <p className="font-mono font-semibold tabular-nums">{formatTime(record.checkOut)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground mb-0.5">Tổng giờ</p>
-            <p className="font-mono font-semibold">
-              {typeof record.workHours === "number" ? `${record.workHours.toFixed(1)}h` : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground mb-0.5">Tăng ca</p>
-            <p className={cn("font-mono font-semibold", (record.overtime ?? 0) > 0 ? "text-emerald-500" : "")}>
-              {(record.overtime ?? 0) > 0 ? `+${record.overtime!.toFixed(1)}h` : "—"}
-            </p>
-          </div>
-          {record.location && (
-            <div className="col-span-2 flex items-start gap-1 text-muted-foreground">
-              <MapPin className="size-2.5 mt-0.5 shrink-0" />
-              <span className="text-[10px] truncate">{record.location}</span>
-            </div>
-          )}
+        <>
           {status.label && (
-            <div className="col-span-2 flex items-center gap-1.5">
+            <Badge variant={status.badge} className="mt-2">
               {status.dot && <span className={cn("size-1.5 rounded-full", status.dot)} />}
-              <span className="font-medium">{status.label}</span>
-            </div>
+              {status.label}
+            </Badge>
           )}
-        </div>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-body-sm">
+            <div>
+              <dt className="text-caption text-muted-foreground">Giờ vào</dt>
+              <dd className="font-medium tabular">{formatTime(record.checkIn)}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-muted-foreground">Giờ ra</dt>
+              <dd className="font-medium tabular">{formatTime(record.checkOut)}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-muted-foreground">Tổng giờ</dt>
+              <dd className="font-medium tabular">
+                {typeof record.workHours === "number" ? formatHours(record.workHours) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-caption text-muted-foreground">Tăng ca</dt>
+              <dd className={cn("font-medium tabular", (record.overtime ?? 0) > 0 && "text-success")}>
+                {(record.overtime ?? 0) > 0 ? `+${formatHours(record.overtime!)}` : "—"}
+              </dd>
+            </div>
+          </dl>
+          {record.location && (
+            <p className="mt-2 flex items-start gap-1.5 text-caption text-muted-foreground">
+              <MapPin className="mt-0.5 size-3.5 shrink-0" />
+              <span className="min-w-0 break-words">{record.location}</span>
+            </p>
+          )}
+        </>
       )}
     </div>
   )
@@ -131,7 +150,6 @@ export function MonthlyTimesheetStrip({
 
   // Mon-based first day offset
   const firstDow = (new Date(year, month - 1, 1).getDay() + 6) % 7
-  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7
 
   // Stats
   const stats = React.useMemo(() => {
@@ -143,7 +161,7 @@ export function MonthlyTimesheetStrip({
       const ds = `${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`
       if (ds > today) continue
       const r = recordMap.get(ds)
-      if (!r) { if (dow !== 0 && dow !== 6) absent++; continue }
+      if (!r) { if (dow !== 0 && dow !== 6 && ds !== today) absent++; continue }
       if (["PRESENT","REMOTE","LATE","ON_LEAVE"].includes(r.status)) credits += 1
       else if (r.status === "HALF_DAY") credits += 0.5
       if (r.status === "LATE") late++
@@ -155,125 +173,77 @@ export function MonthlyTimesheetStrip({
   const prevMonth = () => month === 1 ? onMonthChange(12, year - 1) : onMonthChange(month - 1, year)
   const nextMonth = () => month === 12 ? onMonthChange(1, year + 1) : onMonthChange(month + 1, year)
 
-  // Prev/next month day numbers for empty cells
-  const prevMonthDays = new Date(year, month - 1, 0).getDate()
-
   return (
-    <div className="w-[400px] h-full rounded-2xl bg-card p-4 shadow-sm border border-border/50 flex flex-col">
+    <div className="flex w-full min-w-0 flex-col rounded-lg border border-border bg-card p-5 sm:p-6">
       {/* ── TITLE + NAV ── */}
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-base font-bold text-foreground tracking-tight">
-          Tháng {month}, {year}
-        </h3>
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={prevMonth}
-            className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            onClick={nextMonth}
-            className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-          >
-            <ChevronRight className="size-4" />
-          </button>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-h3 font-semibold text-foreground">
+            Bảng công tháng {month}/{year}
+          </h2>
+          <p className="text-body-sm text-muted-foreground">Nhấn vào ngày để xem chi tiết</p>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <Button variant="ghost" size="icon-sm" onClick={prevMonth} aria-label="Tháng trước">
+            <ChevronLeft />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={nextMonth} aria-label="Tháng sau">
+            <ChevronRight />
+          </Button>
         </div>
       </div>
 
-      {/* ── STATS ROW ── */}
-      <div className="flex items-center gap-3 mb-3 text-xs">
-        <span className="flex items-center gap-1 text-foreground/80">
-          <span className="size-2 rounded-full bg-emerald-500" />
-          <span>{stats.credits} Đủ</span>
-        </span>
-        <span className="flex items-center gap-1 text-foreground/80">
-          <span className="size-2 rounded-full bg-amber-500" />
-          <span>{stats.late} Muộn</span>
-        </span>
-        <span className="flex items-center gap-1 text-foreground/80">
-          <span className="size-2 rounded-full bg-rose-500" />
-          <span>{stats.absent} Vắng</span>
-        </span>
-      </div>
-
       {/* ── WEEKDAY HEADER ── */}
-      <div className="grid grid-cols-7 mb-1">
-        {WEEKDAYS.map((d, i) => (
-          <div key={d} className={cn(
-            "text-center text-[11px] font-medium py-1",
-            i >= 5 ? "text-rose-400/80 dark:text-rose-400/60" : "text-muted-foreground/60"
-          )}>
-            {d}
-          </div>
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-caption font-medium text-muted-foreground">
+        {WEEKDAYS.map((d) => (
+          <span key={d} className="py-1">{d}</span>
         ))}
       </div>
 
       {/* ── CALENDAR GRID ── */}
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="mt-1 grid grid-cols-7 gap-1" aria-busy="true" aria-label="Đang tải bảng công">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <div key={i} className="skeleton aspect-square min-h-11 rounded-md" />
+          ))}
         </div>
       ) : (
-        <div className="grid grid-cols-7 flex-1 content-start">
-          {Array.from({ length: totalCells }).map((_, idx) => {
-            const day = idx - firstDow + 1
-            const isOtherMonth = day < 1 || day > daysInMonth
-
-            // Số ngày tháng khác
-            if (isOtherMonth) {
-              const otherDay = day < 1
-                ? prevMonthDays + day
-                : day - daysInMonth
-              return (
-                <div key={`o-${idx}`} className="flex flex-col items-center py-1.5 gap-1">
-                  <span className="text-sm text-muted-foreground/25 w-7 text-center">{otherDay}</span>
-                  <span className="h-1.5" />
-                </div>
-              )
-            }
-
+        <div className="mt-1 grid grid-cols-7 gap-1">
+          {Array.from({ length: firstDow }).map((_, idx) => (
+            <span key={`o-${idx}`} aria-hidden="true" />
+          ))}
+          {Array.from({ length: daysInMonth }).map((_, idx) => {
+            const day = idx + 1
             const dow = new Date(year, month - 1, day).getDay()
             const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`
             const isToday   = dateStr === today
             const isFuture  = dateStr > today
             const isWeekend = dow === 0 || dow === 6
             const record    = recordMap.get(dateStr) ?? null
-            const st        = getStatus(record?.status, !!record, isWeekend, isFuture)
+            const st        = getStatus(record?.status, !!record, isWeekend, isFuture, isToday)
+            const ariaStatus = st.label ? `: ${st.label}` : isWeekend ? ": cuối tuần" : isFuture ? ": chưa đến ngày" : ""
 
             return (
               <Popover key={day}>
                 <PopoverTrigger
+                  aria-label={`Ngày ${day}/${month}/${year}${isToday ? " (hôm nay)" : ""}${ariaStatus}`}
                   className={cn(
-                    "flex flex-col items-center py-1.5 gap-1 rounded-lg outline-none",
-                    "transition-colors hover:bg-muted/40 cursor-pointer",
-                    isFuture && "opacity-40 cursor-default hover:bg-transparent",
+                    "flex aspect-square min-h-11 cursor-pointer flex-col items-center justify-center gap-1 rounded-md text-body-sm tabular outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/20",
+                    isToday
+                      ? "font-semibold text-primary ring-2 ring-inset ring-primary"
+                      : isWeekend || isFuture
+                        ? "text-subtle-foreground"
+                        : "text-foreground",
                   )}
                 >
-                  {/* Số ngày */}
-                  <span className={cn(
-                    "flex size-7 items-center justify-center rounded-full text-sm leading-none tabular-nums transition-colors",
-                    isToday
-                      ? "bg-foreground text-background font-bold"
-                      : isWeekend
-                        ? "text-rose-400/70 dark:text-rose-400/50 font-medium"
-                        : "text-foreground/85 font-medium hover:text-foreground",
-                  )}>
-                    {day}
-                  </span>
-
-                  {/* Dot trạng thái */}
-                  <span className="h-1.5 flex items-center justify-center">
-                    {st.dot && !isFuture && (
-                      <span className={cn("size-1.5 rounded-full", st.dot)} />
-                    )}
-                  </span>
+                  {day}
+                  <span className={cn("size-1.5 rounded-full", st.dot && !isFuture ? st.dot : "bg-transparent")} />
                 </PopoverTrigger>
 
-                <PopoverContent side="top" align="center" sideOffset={4} className="p-3 w-auto">
+                <PopoverContent side="bottom" align="center" sideOffset={6} className="w-64 p-4">
                   <DayDetail
                     day={day} month={month} year={year} dow={dow}
-                    record={record} isWeekend={isWeekend} isFuture={isFuture}
+                    record={record} isWeekend={isWeekend} isFuture={isFuture} isToday={isToday}
                     status={st}
                   />
                 </PopoverContent>
@@ -282,6 +252,34 @@ export function MonthlyTimesheetStrip({
           })}
         </div>
       )}
+
+      {/* ── LEGEND ── */}
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-caption text-muted-foreground">
+        {LEGEND.map((l) => (
+          <span key={l.label} className="flex items-center gap-1.5">
+            <span className={cn("size-2 rounded-full", l.dot)} />
+            {l.label}
+          </span>
+        ))}
+      </div>
+
+      {/* ── SUMMARY ── */}
+      <dl className="mt-4 grid grid-cols-3 border-t border-border-subtle pt-4 text-center">
+        <div>
+          <dt className="text-caption text-muted-foreground">Ngày công</dt>
+          <dd className="text-h3 font-semibold tabular">
+            {stats.credits.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-caption text-muted-foreground">Đi muộn</dt>
+          <dd className="text-h3 font-semibold tabular">{stats.late}</dd>
+        </div>
+        <div>
+          <dt className="text-caption text-muted-foreground">Vắng</dt>
+          <dd className="text-h3 font-semibold tabular">{stats.absent}</dd>
+        </div>
+      </dl>
     </div>
   )
 }

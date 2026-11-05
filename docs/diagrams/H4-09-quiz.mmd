@@ -4,7 +4,7 @@ sequenceDiagram
   participant W as my-training-view
   participant A as NestJS
   participant T as n8n WF03
-  participant G as Gemini
+  participant G as DeepSeek
   E->>W: Chọn kịch bản, bắt đầu bài test
   W->>A: POST /agents/chat, action generate_quiz
   A->>T: Chuyển qua WF01

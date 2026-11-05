@@ -59,7 +59,7 @@ function TabsList({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="tabs-list"
       className={cn(
-        "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+        "inline-flex h-10 max-w-full items-stretch justify-start gap-4 overflow-x-auto border-b border-border text-muted-foreground sm:gap-6",
         className
       )}
       {...props}
@@ -80,11 +80,13 @@ function TabsTrigger({
       type="button"
       data-slot="tabs-trigger"
       data-state={isActive ? "active" : "inactive"}
+      role="tab"
+      aria-selected={isActive}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "-mb-px inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-t-sm border-b-2 px-0.5 text-body-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:opacity-50",
         isActive
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground",
+          ? "border-primary text-accent-foreground"
+          : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
         className
       )}
       onClick={() => onValueChange(value)}
@@ -104,7 +106,7 @@ function TabsContent({
   return (
     <div
       data-slot="tabs-content"
-      className={cn("mt-2 ring-offset-background focus-visible:outline-none", className)}
+      className={cn("mt-4 focus-visible:outline-none", className)}
       {...props}
     />
   )

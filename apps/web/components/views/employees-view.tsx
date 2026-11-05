@@ -13,10 +13,14 @@ import * as React from "react"
 import { useAuth } from "@/lib/auth-context"
 import {
   Search,
-  ShieldCheck,
   X,
   Loader2,
   AlertTriangle,
+  Download,
+  Plus,
+  Users,
+  ChevronRight,
+  CheckCircle2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,6 +50,18 @@ const CONTRACT_TYPE_LABEL: Record<string, string> = {
   INTERNSHIP: "Thực tập",
 }
 
+/** Native <select> trông giống Input primitive */
+const SELECT_CLASS =
+  "w-full rounded-md border border-input bg-card px-3 text-body text-foreground transition-[border-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60"
+
+function statusVariant(status: string): "success" | "warning" | "secondary" | "destructive" {
+  return status === "ACTIVE" ? "success" : status === "PROBATION" ? "warning" : status === "TERMINATED" ? "destructive" : "secondary"
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h4 className="mb-2 text-body font-semibold text-foreground">{children}</h4>
+}
+
 function initialsOf(name: string): string {
   return (
     name
@@ -58,7 +74,13 @@ function initialsOf(name: string): string {
   )
 }
 
-export function EmployeesView() {
+interface EmployeesViewProps {
+  /** Từ khóa được đẩy từ global search (vd. chọn một nhân viên) */
+  initialSearch?: string
+  onInitialSearchApplied?: () => void
+}
+
+export function EmployeesView({ initialSearch, onInitialSearchApplied }: EmployeesViewProps = {}) {
   const { user: currentUser } = useAuth()
   const isAdmin = currentUser?.role === "ADMIN"
   const [searchInput, setSearchInput] = useState("")
@@ -119,6 +141,15 @@ export function EmployeesView() {
     }, 300)
     return () => clearTimeout(timer)
   }, [searchInput])
+
+  // Global search chọn nhân viên → nạp từ khóa vào trang này
+  useEffect(() => {
+    if (!initialSearch) return
+    setSearchInput(initialSearch)
+    setSearchQuery(initialSearch)
+    setPage(1)
+    onInitialSearchApplied?.()
+  }, [initialSearch, onInitialSearchApplied])
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true)
@@ -318,9 +349,28 @@ export function EmployeesView() {
     }
   }
 
-  const exportCsv = () => {
+  // Xuất TOÀN BỘ kết quả theo bộ lọc hiện tại (API giới hạn 100 dòng/trang → lặp đủ số trang)
+  const [exporting, setExporting] = useState(false)
+  const exportCsv = async () => {
+    setExporting(true)
+    let all: typeof employees = []
+    try {
+      const filter = { search: searchQuery || undefined, departmentId: selectedDeptId ?? undefined, limit: 100 }
+      let p = 1, pages = 1
+      do {
+        const res = await employeesApi.list({ ...filter, page: p })
+        all = all.concat(res.data)
+        pages = res.totalPages
+        p++
+      } while (p <= pages)
+    } catch {
+      setError("Không xuất được danh sách. Vui lòng thử lại.")
+      setExporting(false)
+      return
+    }
+    setExporting(false)
     const header = ["Mã NV", "Họ tên", "Email", "Phòng ban", "Chức vụ", "Ngày vào làm", "Trạng thái"]
-    const rows = employees.map((e) => [
+    const rows = all.map((e) => [
       e.employeeCode, e.fullName, e.email, e.department.name, e.position.title, fmtVNDate(e.joinDate), employeeStatusLabel(e.status),
     ])
     const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")
@@ -336,176 +386,170 @@ export function EmployeesView() {
   }
 
   return (
-    <div className="relative flex flex-col gap-6 p-6">
+    <div className="relative flex flex-col gap-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Quản Lý Nhân Sự (HR Management)
-          </h1>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            Quản lý hồ sơ nhân viên, phê duyệt đơn nghỉ phép và theo dõi tiến độ hội nhập
+          <h1 className="text-h1 font-semibold text-foreground">Hồ sơ nhân sự</h1>
+          <p className="mt-1 text-body text-muted-foreground">
+            Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="list" className="w-full">
-        <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 gap-6 h-11">
-          <TabsTrigger
-            value="list"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs"
-          >
-            Danh Sách Nhân Sự ({total})
+        <TabsList>
+          <TabsTrigger value="list">
+            <span className="sm:hidden">Nhân sự</span>
+            <span className="hidden sm:inline">Danh sách nhân sự</span>{" "}
+            <span className="tabular text-muted-foreground">({total})</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="leave-approvals"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs"
-          >
-            Kiểm Duyệt Nghỉ Phép
-          </TabsTrigger>
-          <TabsTrigger
-            value="onboarding"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-2 pb-2.5 font-semibold text-xs"
-          >
-            Lộ Trình Hội Nhập
-          </TabsTrigger>
+          <TabsTrigger value="leave-approvals">Duyệt đơn</TabsTrigger>
+          <TabsTrigger value="onboarding">Lộ trình hội nhập</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="list" className="mt-4 flex flex-col gap-6">
-          {/* Action Bar (Search & Buttons) */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Tìm theo tên, mã NV hoặc email..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-xs" onClick={exportCsv} disabled={employees.length === 0}>
-                Xuất Excel (CSV)
-              </Button>
-              <Button size="sm" className="bg-primary text-primary-foreground text-xs" onClick={() => setShowAdd(true)}>
-                Thêm Nhân Viên
-              </Button>
-            </div>
-          </div>
-
-          {/* Department Filter Bar */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              onClick={() => { setSelectedDeptId(null); setPage(1) }}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedDeptId === null
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted/40 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              }`}
-            >
-              Tất cả
-            </button>
-            {departments.map((dept) => (
-              <button
-                key={dept.id}
-                onClick={() => { setSelectedDeptId(dept.id); setPage(1) }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  selectedDeptId === dept.id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted/40 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                }`}
+        <TabsContent value="list" className="mt-6 flex flex-col gap-4">
+          {/* Toolbar: tìm kiếm, lọc phòng ban, hành động */}
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-80">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm theo tên, mã NV hoặc email..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="h-9 pl-9"
+                  aria-label="Tìm nhân viên"
+                />
+              </div>
+              <select
+                value={selectedDeptId ?? ""}
+                onChange={(e) => { setSelectedDeptId(e.target.value || null); setPage(1) }}
+                className={`${SELECT_CLASS} h-9 sm:w-56`}
+                aria-label="Lọc theo phòng ban"
               >
-                {dept.name}
-              </button>
-            ))}
+                <option value="">Tất cả phòng ban</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+              <span className="whitespace-nowrap text-body-sm text-muted-foreground">
+                <span className="tabular font-medium text-foreground">{total}</span> hồ sơ
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={exportCsv} disabled={total === 0 || exporting}>
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                {exporting ? "Đang xuất..." : "Xuất Excel"}
+              </Button>
+              <Button onClick={() => setShowAdd(true)}>
+                <Plus className="size-4" /> Thêm nhân viên
+              </Button>
+            </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-              <AlertTriangle className="size-3.5" /> {error}
+            <div className="flex items-center gap-2 rounded-lg border border-danger/20 bg-danger-tint px-3 py-2 text-body-sm text-danger">
+              <AlertTriangle className="size-4 shrink-0" /> {error}
             </div>
           )}
 
           {/* Table */}
-          <Card>
+          <Card className="gap-0 overflow-hidden p-0">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 size-4 animate-spin" /> Đang tải danh sách...
+              <div className="flex flex-col gap-3 p-5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="skeleton h-10 rounded-md" />
+                ))}
               </div>
             ) : employees.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center text-sm text-muted-foreground">
-                <p>Không tìm thấy nhân sự phù hợp.</p>
-                {searchQuery && <p className="text-xs text-muted-foreground/60 mt-1">Từ khóa: &quot;{searchQuery}&quot;</p>}
+              <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <Users className="size-5" />
+                </div>
+                <p className="text-body font-semibold text-foreground">Không tìm thấy nhân sự phù hợp</p>
+                {searchQuery && <p className="text-body-sm text-muted-foreground">Từ khóa: &quot;{searchQuery}&quot;</p>}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16 text-center text-xs">Mã NV</TableHead>
-                    <TableHead className="text-xs">Họ và tên</TableHead>
-                    <TableHead className="text-xs">Phòng ban</TableHead>
-                    <TableHead className="text-xs">Chức danh</TableHead>
-                    <TableHead className="text-xs">Ngày vào làm</TableHead>
-                    <TableHead className="text-xs text-right">Trạng thái</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employees.map((emp) => (
-                    <TableRow
-                      key={emp.id}
-                      onClick={() => openDrawer(emp)}
-                      className={`cursor-pointer transition-colors hover:bg-muted/30 ${
-                        selectedEmployee?.id === emp.id ? "bg-muted/50" : ""
-                      }`}
-                    >
-                      <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground">
-                        {emp.employeeCode}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2.5">
-                          <Avatar initials={initialsOf(emp.fullName)} className="size-7 bg-primary/20 text-primary font-bold text-xs" />
-                          <div>
-                            <p className="font-semibold text-foreground text-xs leading-none">{emp.fullName}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{emp.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs">{emp.department.name}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{emp.position.title}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{emp.joinDate.slice(0, 10)}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={emp.status === "ACTIVE" ? "success" : emp.status === "PROBATION" ? "warning" : "secondary"}>
-                          {employeeStatusLabel(emp.status)}
-                        </Badge>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[360px] md:min-w-[560px] xl:min-w-[880px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nhân viên</TableHead>
+                      <TableHead className="hidden xl:table-cell">Email</TableHead>
+                      <TableHead className="hidden md:table-cell">Phòng ban</TableHead>
+                      <TableHead className="hidden xl:table-cell">Chức danh</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead className="hidden lg:table-cell">Ngày vào</TableHead>
+                      <TableHead className="hidden w-12 sm:table-cell"><span className="sr-only">Thao tác</span></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {employees.map((emp) => (
+                      <TableRow
+                        key={emp.id}
+                        onClick={() => openDrawer(emp)}
+                        data-state={selectedEmployee?.id === emp.id ? "selected" : undefined}
+                        className="cursor-pointer"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar initials={initialsOf(emp.fullName)} className="size-8 bg-primary-tint text-accent-foreground" />
+                            <div className="min-w-0">
+                              <p className="truncate text-body-sm font-medium text-foreground">{emp.fullName}</p>
+                              <p className="font-mono text-caption text-muted-foreground">{emp.employeeCode}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden text-secondary-foreground xl:table-cell">{emp.email}</TableCell>
+                        <TableCell className="hidden text-foreground md:table-cell">{emp.department.name}</TableCell>
+                        <TableCell className="hidden text-secondary-foreground xl:table-cell">{emp.position.title}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(emp.status)}>
+                            <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                            {employeeStatusLabel(emp.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="tabular hidden text-secondary-foreground lg:table-cell">{fmtVNDate(emp.joinDate)}</TableCell>
+                        <TableCell className="hidden text-right sm:table-cell">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Xem hồ sơ ${emp.fullName}`}
+                            onClick={(e) => { e.stopPropagation(); openDrawer(emp) }}
+                          >
+                            <ChevronRight className="size-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </Card>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {loading ? "..." : `Tổng ${total} nhân sự • Trang ${page}/${totalPages}`}
+          <div className="flex flex-wrap items-center justify-between gap-3 text-body-sm text-muted-foreground">
+            <span className="tabular">
+              {loading ? "..." : `Tổng ${total} hồ sơ • Trang ${page}/${totalPages}`}
             </span>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="xs" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 Trang trước
               </Button>
-              <Button variant="outline" size="xs" disabled={page >= totalPages || loading} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+              <Button variant="outline" size="sm" disabled={page >= totalPages || loading} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
                 Trang sau
               </Button>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="leave-approvals" className="mt-4">
+        <TabsContent value="leave-approvals" className="mt-6">
           <LeaveApprovalsTab departments={departments} />
         </TabsContent>
 
-        <TabsContent value="onboarding" className="mt-4">
+        <TabsContent value="onboarding" className="mt-6">
           <OnboardingManagementTab />
         </TabsContent>
       </Tabs>
@@ -514,16 +558,18 @@ export function EmployeesView() {
       {selectedEmployee && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity"
+            className="fixed inset-0 z-40 bg-[var(--overlay)] animate-in fade-in-0 duration-150"
             onClick={() => setSelectedEmployee(null)}
           />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card p-6 shadow-2xl animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <Avatar initials={initialsOf(selectedEmployee.fullName)} className="size-10 bg-primary/20 text-primary font-bold text-sm" />
-                <div>
-                  <h3 className="font-bold text-base text-foreground">{selectedEmployee.fullName}</h3>
-                  <p className="text-xs text-muted-foreground">{selectedEmployee.employeeCode} • {selectedEmployee.position.title}</p>
+          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[480px] flex-col border-l border-border bg-card shadow-modal animate-in slide-in-from-right duration-200">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-6 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar initials={initialsOf(selectedEmployee.fullName)} className="size-10 bg-primary-tint text-body-sm text-accent-foreground" />
+                <div className="min-w-0">
+                  <h3 className="truncate text-h3 font-semibold text-foreground">{selectedEmployee.fullName}</h3>
+                  <p className="truncate text-caption text-muted-foreground">
+                    <span className="font-mono">{selectedEmployee.employeeCode}</span> • {selectedEmployee.position.title}
+                  </p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setSelectedEmployee(null)} aria-label="Đóng hồ sơ">
@@ -531,206 +577,180 @@ export function EmployeesView() {
               </Button>
             </div>
 
-            <div className="flex flex-col gap-5 py-5 overflow-y-auto text-xs">
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5 text-body-sm">
               {editError && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-400">
-                  <AlertTriangle className="size-3.5" /> {editError}
+                <div className="flex items-center gap-2 rounded-lg border border-danger/20 bg-danger-tint px-3 py-2 text-body-sm text-danger">
+                  <AlertTriangle className="size-4 shrink-0" /> {editError}
                 </div>
               )}
 
               {/* 1. Hồ sơ cá nhân */}
               <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">1. Hồ Sơ Cá Nhân</p>
-                  <Button size="xs" variant="outline" className="text-[10px]" onClick={() => setEditOpen(true)}>
-                    Sửa hồ sơ
-                  </Button>
+                <SectionTitle>Hồ sơ cá nhân</SectionTitle>
+                <div className="flex flex-col">
+                  <Row label="Ngày sinh" value={fmtDate(drawerDetail?.dateOfBirth)} />
+                  <Row label="Giới tính" value={genderLabel(drawerDetail?.gender)} />
+                  <Row label="Số CCCD" value={drawerDetail?.nationalId || "--"} mono />
+                  <Row label="Số điện thoại" value={drawerDetail?.phone || "--"} mono />
+                  <Row label="Địa chỉ" value={drawerDetail?.address || "--"} />
                 </div>
-              <div className="flex flex-col gap-2">
-                <Row label="Ngày sinh" value={fmtDate(drawerDetail?.dateOfBirth)} />
-                <Row label="Giới tính" value={genderLabel(drawerDetail?.gender)} />
-                <Row label="Số CCCD" value={drawerDetail?.nationalId || "--"} mono />
-                <Row label="Số điện thoại" value={drawerDetail?.phone || "--"} mono />
-                <Row label="Địa chỉ" value={drawerDetail?.address || "--"} />
-              </div>
-            </section>
+              </section>
 
-            {/* 2. Nghề vụ & hợp đồng */}
-            <section>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">2. Nghề Vụ & Hợp Đồng Lao Động</p>
-              <div className="flex flex-col gap-2">
-                <Row label="Phòng ban" value={selectedEmployee.department.name} />
-                <Row label="Chức danh" value={selectedEmployee.position.title} />
-                <Row
-                  label="Quản lý trực tiếp"
-                  value={
-                    drawerDetail === undefined ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      drawerDetail?.manager
-                        ? `${drawerDetail.manager.fullName} (${drawerDetail.manager.employeeCode})`
-                        : "—"
-                    )
-                  }
-                />
-                <Row label="Ngày vào làm việc" value={selectedEmployee.joinDate.slice(0, 10)} />
-                <Row
-                  label="Loại hợp đồng (active)"
-                  value={
-                    !drawerDetail ? (
-                      drawerDetail === null ? (
-                        "—"
+              {/* 2. Nghề vụ & hợp đồng */}
+              <section>
+                <SectionTitle>Nghề vụ & HĐLĐ</SectionTitle>
+                <div className="flex flex-col">
+                  <Row label="Phòng ban" value={selectedEmployee.department.name} />
+                  <Row label="Chức danh" value={selectedEmployee.position.title} />
+                  <Row
+                    label="Quản lý trực tiếp"
+                    value={
+                      drawerDetail === undefined ? (
+                        <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
                       ) : (
-                        <Loader2 className="size-3.5 animate-spin" />
+                        drawerDetail?.manager
+                          ? `${drawerDetail.manager.fullName} (${drawerDetail.manager.employeeCode})`
+                          : "—"
                       )
-                    ) : drawerDetail.contracts && drawerDetail.contracts.length > 0 ? (
-                      CONTRACT_TYPE_LABEL[drawerDetail.contracts[0]!.type] ?? drawerDetail.contracts[0]!.type
-                    ) : (
-                      "Chưa có hợp đồng active"
-                    )
-                  }
-                />
-                {drawerDetail?.contracts && drawerDetail.contracts.length > 0 && (
-                  <Row label="Số hợp đồng" value={drawerDetail.contracts[0]!.contractNumber} mono />
-                )}
-                <Row
-                  label="Lương cơ bản (hợp đồng)"
-                  value={drawerDetail?.contracts?.length ? vnd(drawerDetail.contracts[0]!.baseSalary) : "--"}
-                  mono
-                />
-                <Row
-                  label="Phụ cấp"
-                  value={drawerDetail?.contracts?.length ? vnd(drawerDetail.contracts[0]!.allowances) : "--"}
-                  mono
-                />
-              </div>
-            </section>
+                    }
+                  />
+                  <Row label="Ngày vào làm việc" value={fmtVNDate(selectedEmployee.joinDate)} tabular />
+                  <Row
+                    label="Loại hợp đồng (active)"
+                    value={
+                      !drawerDetail ? (
+                        drawerDetail === null ? (
+                          "—"
+                        ) : (
+                          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                        )
+                      ) : drawerDetail.contracts && drawerDetail.contracts.length > 0 ? (
+                        CONTRACT_TYPE_LABEL[drawerDetail.contracts[0]!.type] ?? drawerDetail.contracts[0]!.type
+                      ) : (
+                        "Chưa có hợp đồng active"
+                      )
+                    }
+                  />
+                  {drawerDetail?.contracts && drawerDetail.contracts.length > 0 && (
+                    <Row label="Số hợp đồng" value={drawerDetail.contracts[0]!.contractNumber} mono />
+                  )}
+                  <Row
+                    label="Lương cơ bản (hợp đồng)"
+                    value={drawerDetail?.contracts?.length ? vnd(drawerDetail.contracts[0]!.baseSalary) : "--"}
+                    tabular
+                  />
+                  <Row
+                    label="Phụ cấp"
+                    value={drawerDetail?.contracts?.length ? vnd(drawerDetail.contracts[0]!.allowances) : "--"}
+                    tabular
+                  />
+                </div>
+              </section>
 
-            {/* 3. Công & phép */}
-            <section>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">3. Công & Phép</p>
-              <div className="flex flex-col gap-2">
-                <Row
-                  label="Phép năm còn lại / tổng"
-                  value={drawerLeave ? `${drawerLeave.remainingDays}/${drawerLeave.totalDays} ngày` : "--"}
-                  mono
-                />
-              </div>
-              <AttendanceSummaryMini employeeId={selectedEmployee.id} />
-            </section>
+              {/* 3. Công & phép */}
+              <section>
+                <SectionTitle>Công & phép</SectionTitle>
+                <div className="flex flex-col">
+                  <Row
+                    label="Phép năm còn lại / tổng"
+                    value={drawerLeave ? `${drawerLeave.remainingDays}/${drawerLeave.totalDays} ngày` : "--"}
+                    tabular
+                  />
+                </div>
+                <AttendanceSummaryMini employeeId={selectedEmployee.id} />
+              </section>
 
-            {/* 4. Lịch sử lương */}
-            <section>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">4. Lịch Sử Lương</p>
-              <PayrollHistoryMini employeeId={selectedEmployee.id} />
-            </section>
+              {/* 4. Lịch sử lương */}
+              <section>
+                <SectionTitle>Lịch sử lương</SectionTitle>
+                <PayrollHistoryMini employeeId={selectedEmployee.id} />
+              </section>
 
-            {/* 5. Trạng thái & tài khoản */}
-            <section>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">5. Trạng Thái & Tài Khoản</p>
-              <div className="flex flex-col gap-2">
-                {/* Email + OAuth provider icons */}
-                <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2.5 gap-2">
-                  <span className="text-[11px] text-muted-foreground shrink-0">Email đăng nhập</span>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[11px] font-mono text-foreground truncate">{drawerDetail?.user?.email ?? selectedEmployee.email}</span>
-                    {/* Google icon */}
-                    {drawerDetail?.user?.googleId && (
-                      <span title="Đã liên kết Google" className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm">
-                        <svg viewBox="0 0 24 24" className="size-3"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                      </span>
-                    )}
-                    {/* Facebook icon */}
-                    {drawerDetail?.user?.facebookId && (
-                      <span title="Đã liên kết Facebook" className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#1877F2]">
-                        <svg viewBox="0 0 24 24" fill="white" className="size-3"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                      </span>
-                    )}
+              {/* 5. Trạng thái & tài khoản */}
+              <section>
+                <SectionTitle>Trạng thái & tài khoản</SectionTitle>
+                <div className="flex flex-col">
+                  {/* Email + OAuth provider đã liên kết */}
+                  <div className="flex items-center justify-between gap-3 border-b border-border-subtle py-2.5">
+                    <span className="shrink-0 text-muted-foreground">Email đăng nhập</span>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-foreground">{drawerDetail?.user?.email ?? selectedEmployee.email}</span>
+                      {drawerDetail?.user?.googleId && (
+                        <Badge variant="outline" title="Đã liên kết Google" className="h-5 px-1.5 text-micro">Google</Badge>
+                      )}
+                      {drawerDetail?.user?.facebookId && (
+                        <Badge variant="outline" title="Đã liên kết Facebook" className="h-5 px-1.5 text-micro">Facebook</Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {/* Role badge */}
-                <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2.5">
-                  <span className="text-[11px] text-muted-foreground">Role tài khoản</span>
-                  <Badge variant={drawerDetail?.user?.role === "ADMIN" ? "default" : "secondary"} className="text-[10px]">
-                    {drawerDetail?.user?.role ?? "EMPLOYEE"}
-                  </Badge>
-                </div>
-                <Row
-                  label="Trạng thái làm việc"
-                  value={
-                    <Badge variant={(drawerDetail?.status ?? selectedEmployee.status) === "ACTIVE" ? "success" : (drawerDetail?.status ?? selectedEmployee.status) === "PROBATION" ? "warning" : "secondary"}>
-                      {employeeStatusLabel(drawerDetail?.status ?? selectedEmployee.status)}
-                    </Badge>
-                  }
-                />
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 p-2.5">
-                  <span className="text-muted-foreground">Đổi trạng thái</span>
-                  <select
-                    value={drawerDetail?.status ?? selectedEmployee.status}
-                    disabled={statusBusy || drawerDetail === undefined}
-                    onChange={(e) => handleChangeStatus(e.target.value)}
-                    className="rounded-lg border border-border bg-input/40 px-2 py-1 text-[11px] text-foreground"
-                    aria-label="Đổi trạng thái làm việc"
-                  >
-                    <option value="ACTIVE">Đang làm</option>
-                    <option value="PROBATION">Thử việc</option>
-                    <option value="ON_LEAVE">Nghỉ dài hạn</option>
-                    <option value="TERMINATED">Nghỉ việc</option>
-                  </select>
-                </div>
-                {/* Account actions — chỉ ADMIN */}
-                {isAdmin && (
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => {
-                        setEditAccountForm({
-                          email: drawerDetail?.user?.email ?? "",
-                          role: (drawerDetail?.user?.role ?? "EMPLOYEE") as "ADMIN" | "EMPLOYEE",
-                        })
-                        setEditAccountError(null)
-                        setEditAccountOpen(true)
-                      }}
+                  <Row
+                    label="Role tài khoản"
+                    value={
+                      <Badge variant={drawerDetail?.user?.role === "ADMIN" ? "default" : "secondary"}>
+                        {drawerDetail?.user?.role ?? "EMPLOYEE"}
+                      </Badge>
+                    }
+                  />
+                  <Row
+                    label="Trạng thái làm việc"
+                    value={
+                      <Badge variant={statusVariant(drawerDetail?.status ?? selectedEmployee.status)}>
+                        <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                        {employeeStatusLabel(drawerDetail?.status ?? selectedEmployee.status)}
+                      </Badge>
+                    }
+                  />
+                  <div className="flex items-center justify-between gap-3 border-b border-border-subtle py-2.5">
+                    <span className="text-muted-foreground">Đổi trạng thái</span>
+                    <select
+                      value={drawerDetail?.status ?? selectedEmployee.status}
+                      disabled={statusBusy || drawerDetail === undefined}
+                      onChange={(e) => handleChangeStatus(e.target.value)}
+                      className={`${SELECT_CLASS} h-8 w-auto text-body-sm`}
+                      aria-label="Đổi trạng thái làm việc"
                     >
-                      Sửa Email & Role
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={openResetPassword}
-                    >
-                      Đặt Lại Mật Khẩu
-                    </Button>
+                      <option value="ACTIVE">Đang làm</option>
+                      <option value="PROBATION">Thử việc</option>
+                      <option value="ON_LEAVE">Nghỉ dài hạn</option>
+                      <option value="TERMINATED">Nghỉ việc</option>
+                    </select>
                   </div>
-                )}
-              </div>
-            </section>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Tích Hợp AI Context (WF01 & WF02)
-              </p>
-              <div className="rounded-xl border border-agent-teal/30 bg-agent-teal/5 p-3 text-xs text-agent-teal">
-                <div className="flex items-center gap-2 font-semibold mb-1">
-                  <ShieldCheck className="size-4" /> Ngữ Cảnh Tự Động Nạp Cho Chatbot
+                  {/* Account actions — chỉ ADMIN */}
+                  {isAdmin && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditAccountForm({
+                            email: drawerDetail?.user?.email ?? "",
+                            role: (drawerDetail?.user?.role ?? "EMPLOYEE") as "ADMIN" | "EMPLOYEE",
+                          })
+                          setEditAccountError(null)
+                          setEditAccountOpen(true)
+                        }}
+                      >
+                        Sửa email & role
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={openResetPassword}>
+                        Đặt lại mật khẩu
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-[11px] leading-relaxed text-foreground/80">
-                  Khi nhân viên này nhắn tin với n8n HR Q&A, bot sẽ tự động truy vấn chức vụ, hợp đồng
-                  {drawerLeave ? ` và số ngày phép còn lại (${drawerLeave.remainingDays} ngày)` : ""} để trả lời chính xác mà không cần hỏi lại.
-                </p>
-              </div>
+              </section>
+
+              <section>
+                <SectionTitle>Đơn gần đây</SectionTitle>
+                <EmployeeLeavesMini employeeId={selectedEmployee.id} />
+              </section>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Đơn Nghỉ Phép Gần Đây
-              </p>
-              <EmployeeLeavesMini employeeId={selectedEmployee.id} />
+            {/* Footer cố định — sửa hồ sơ mở dialog chỉnh sửa sẵn có */}
+            <div className="flex shrink-0 justify-end gap-2 border-t border-border bg-card px-6 py-4">
+              <Button variant="outline" onClick={() => setSelectedEmployee(null)}>Đóng</Button>
+              <Button onClick={() => setEditOpen(true)}>Sửa hồ sơ</Button>
             </div>
-          </div>
           </div>
         </>
       )}
@@ -738,37 +758,37 @@ export function EmployeesView() {
       {/* Edit Profile Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogHeader>
-          <DialogTitle>Chỉnh Sửa Hồ Sơ — {selectedEmployee?.fullName}</DialogTitle>
+          <DialogTitle>Chỉnh sửa hồ sơ — {selectedEmployee?.fullName}</DialogTitle>
           <DialogDescription>
             Chỉ hồ sơ cá nhân được sửa tại đây. Hợp đồng & lương thay đổi thông qua hợp đồng mới.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3 py-3 text-xs">
+        <div className="flex flex-col gap-4 py-2 text-body-sm">
           <Field label="Số điện thoại">
-            <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="mt-1 h-8 text-xs" />
+            <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="mt-1.5 h-9" />
           </Field>
           <Field label="Địa chỉ">
-            <Input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="mt-1 h-8 text-xs" />
+            <Input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="mt-1.5 h-9" />
           </Field>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Ngày sinh">
               <input
                 type="date"
                 value={editForm.dateOfBirth}
                 onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+                className={`mt-1.5 h-9 ${SELECT_CLASS}`}
               />
             </Field>
             <Field label="Số CCCD">
-              <Input value={editForm.nationalId} onChange={(e) => setEditForm({ ...editForm, nationalId: e.target.value })} className="mt-1 h-8 text-xs" />
+              <Input value={editForm.nationalId} onChange={(e) => setEditForm({ ...editForm, nationalId: e.target.value })} className="mt-1.5 h-9" />
             </Field>
           </div>
-          {editError && <p className="text-agent-coral">{editError}</p>}
+          {editError && <p className="text-body-sm text-danger">{editError}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editBusy}>Hủy</Button>
-          <Button variant="default" onClick={handleSaveEdit} disabled={editBusy} className="gap-1.5">
-            {editBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu Thay Đổi
+          <Button variant="default" onClick={handleSaveEdit} disabled={editBusy}>
+            {editBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu thay đổi
           </Button>
         </DialogFooter>
       </Dialog>
@@ -776,24 +796,24 @@ export function EmployeesView() {
       {/* Add Employee Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogHeader>
-          <DialogTitle>Thêm Nhân Viên Mới</DialogTitle>
+          <DialogTitle>Thêm nhân viên mới</DialogTitle>
           <DialogDescription>
             Hệ thống tự sinh mã NV và gán lộ trình onboarding. Mã NV trùng hoặc email trùng sẽ bị từ chối.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3 py-3 text-xs">
+        <div className="flex flex-col gap-4 py-2 text-body-sm">
           <Field label="Họ tên" error={addErrors.fullName}>
-            <Input value={addForm.fullName} onChange={(e) => setAddForm({ ...addForm, fullName: e.target.value })} className="mt-1 h-8 text-xs" />
+            <Input value={addForm.fullName} onChange={(e) => setAddForm({ ...addForm, fullName: e.target.value })} className="mt-1.5 h-9" />
           </Field>
           <Field label="Email" error={addErrors.email}>
-            <Input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} className="mt-1 h-8 text-xs" />
+            <Input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} className="mt-1.5 h-9" />
           </Field>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Phòng ban" error={addErrors.departmentId}>
               <select
                 value={addForm.departmentId}
                 onChange={(e) => setAddForm({ ...addForm, departmentId: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground"
+                className={`mt-1.5 h-9 ${SELECT_CLASS}`}
               >
                 <option value="">— Chọn —</option>
                 {departments.map((d) => (
@@ -805,7 +825,7 @@ export function EmployeesView() {
               <select
                 value={addForm.positionId}
                 onChange={(e) => setAddForm({ ...addForm, positionId: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground"
+                className={`mt-1.5 h-9 ${SELECT_CLASS}`}
               >
                 <option value="">— Chọn —</option>
                 {positions.map((p) => (
@@ -819,28 +839,28 @@ export function EmployeesView() {
               type="date"
               value={addForm.joinDate}
               onChange={(e) => setAddForm({ ...addForm, joinDate: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+              className={`mt-1.5 h-9 ${SELECT_CLASS}`}
             />
           </Field>
           <Field label="Role tài khoản">
             <select
               value={addForm.role ?? "EMPLOYEE"}
               onChange={(e) => setAddForm({ ...addForm, role: e.target.value as "ADMIN" | "EMPLOYEE" })}
-              className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+              className={`mt-1.5 h-9 ${SELECT_CLASS}`}
             >
-              <option value="EMPLOYEE">Nhân viên (Employee)</option>
-              <option value="ADMIN">Quản trị (Admin)</option>
+              <option value="EMPLOYEE">Nhân viên</option>
+              <option value="ADMIN">Quản trị</option>
             </select>
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className="mt-1.5 text-caption text-muted-foreground">
               Email này sẽ được kích hoạt làm whitelist đăng nhập (Email/Google/Facebook).
             </p>
           </Field>
-          {addErrors.form && <p className="text-agent-coral">{addErrors.form}</p>}
+          {addErrors.form && <p className="text-body-sm text-danger">{addErrors.form}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowAdd(false)}>Hủy</Button>
-          <Button variant="default" onClick={handleCreateEmployee} disabled={addBusy} className="gap-1.5">
-            {addBusy && <Loader2 className="size-3.5 animate-spin" />} Tạo Nhân Viên
+          <Button variant="default" onClick={handleCreateEmployee} disabled={addBusy}>
+            {addBusy && <Loader2 className="size-3.5 animate-spin" />} Tạo nhân viên
           </Button>
         </DialogFooter>
       </Dialog>
@@ -848,37 +868,37 @@ export function EmployeesView() {
       {/* Edit Account Dialog */}
       <Dialog open={editAccountOpen} onOpenChange={setEditAccountOpen}>
         <DialogHeader>
-          <DialogTitle>Sửa Email & Role — {selectedEmployee?.fullName}</DialogTitle>
+          <DialogTitle>Sửa email & role — {selectedEmployee?.fullName}</DialogTitle>
           <DialogDescription>
             Thay đổi email đăng nhập hoặc role tài khoản. Email mới sẽ được dùng để đăng nhập bằng Google/Facebook.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3 py-3 text-xs">
+        <div className="flex flex-col gap-4 py-2 text-body-sm">
           <Field label="Email đăng nhập mới">
             <Input
               type="email"
               value={editAccountForm.email ?? ""}
               onChange={(e) => setEditAccountForm({ ...editAccountForm, email: e.target.value })}
               placeholder="email@gmail.com hoặc email@facebook.com"
-              className="mt-1 h-8 text-xs"
+              className="mt-1.5 h-9"
             />
           </Field>
           <Field label="Role tài khoản">
             <select
               value={editAccountForm.role ?? "EMPLOYEE"}
               onChange={(e) => setEditAccountForm({ ...editAccountForm, role: e.target.value as "ADMIN" | "EMPLOYEE" })}
-              className="mt-1 w-full rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+              className={`mt-1.5 h-9 ${SELECT_CLASS}`}
             >
-              <option value="EMPLOYEE">Nhân viên (Employee)</option>
-              <option value="ADMIN">Quản trị (Admin)</option>
+              <option value="EMPLOYEE">Nhân viên</option>
+              <option value="ADMIN">Quản trị</option>
             </select>
           </Field>
-          {editAccountError && <p className="text-agent-coral">{editAccountError}</p>}
+          {editAccountError && <p className="text-body-sm text-danger">{editAccountError}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setEditAccountOpen(false)} disabled={editAccountBusy}>Hủy</Button>
-          <Button variant="default" onClick={handleSaveAccount} disabled={editAccountBusy} className="gap-1.5">
-            {editAccountBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu Tài Khoản
+          <Button variant="default" onClick={handleSaveAccount} disabled={editAccountBusy}>
+            {editAccountBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu tài khoản
           </Button>
         </DialogFooter>
       </Dialog>
@@ -886,39 +906,39 @@ export function EmployeesView() {
       {/* Reset Password Dialog — admin đặt lại mật khẩu cho nhân viên (mật khẩu tự sinh chỉ hiện 1 lần) */}
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogHeader>
-          <DialogTitle>Đặt Lại Mật Khẩu — {selectedEmployee?.fullName}</DialogTitle>
+          <DialogTitle>Đặt lại mật khẩu — {selectedEmployee?.fullName}</DialogTitle>
           <DialogDescription>
             Mật khẩu mới dùng cho đăng nhập bằng Email. Mọi phiên đăng nhập hiện có của nhân viên sẽ bị đăng xuất. Hệ thống không có email — hãy chuyển mật khẩu cho nhân viên trực tiếp.
           </DialogDescription>
         </DialogHeader>
         {resetResult ? (
-          <div className="flex flex-col gap-3 py-3 text-xs">
-            <p className="font-medium text-emerald-400">{resetResult.message}</p>
+          <div className="flex flex-col gap-4 py-2 text-body-sm">
+            <p className="flex items-center gap-2 font-medium text-success"><CheckCircle2 className="size-4 shrink-0" />{resetResult.message}</p>
             {resetResult.generatedPassword && (
-              <div className="rounded-lg border border-agent-amber/40 bg-agent-amber/10 p-3">
-                <p className="mb-1.5 text-[11px] font-semibold text-agent-amber">
+              <div className="rounded-lg border border-warning/20 bg-warning-tint p-3">
+                <p className="mb-2 text-caption font-semibold text-warning">
                   Mật khẩu mới — chỉ hiển thị MỘT LẦN:
                 </p>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 select-all rounded-md border border-border bg-background/60 px-2.5 py-1.5 font-mono text-sm text-foreground">
+                  <code className="flex-1 select-all rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-body text-foreground">
                     {resetResult.generatedPassword}
                   </code>
                   <Button size="sm" variant="outline" onClick={copyGeneratedPassword}>
                     {copied ? "Đã chép" : "Sao chép"}
                   </Button>
                 </div>
-                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                <p className="mt-2 text-caption text-muted-foreground">
                   Gửi cho nhân viên qua email {resetResult.email}. Sau khi đóng dialog sẽ không xem lại được.
                 </p>
               </div>
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3 py-3 text-xs">
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 p-2.5">
+          <div className="flex flex-col gap-4 py-2 text-body-sm">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-sunken p-3">
               <div>
                 <p className="font-medium text-foreground">Tự sinh mật khẩu ngẫu nhiên</p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                <p className="mt-0.5 text-caption text-muted-foreground">
                   Bỏ chọn nếu muốn tự nhập mật khẩu dễ nhớ — server vẫn kiểm tra theo chính sách bảo mật
                 </p>
               </div>
@@ -932,11 +952,11 @@ export function EmployeesView() {
                   onChange={(e) => setResetPasswordInput(e.target.value)}
                   placeholder="Nhập mật khẩu mới cho nhân viên"
                   autoComplete="off"
-                  className="mt-1 h-8 font-mono text-xs"
+                  className="mt-1.5 h-9 font-mono"
                 />
               </Field>
             )}
-            {resetError && <p className="text-agent-coral">{resetError}</p>}
+            {resetError && <p className="text-body-sm text-danger">{resetError}</p>}
           </div>
         )}
         <DialogFooter>
@@ -944,8 +964,8 @@ export function EmployeesView() {
             {resetResult ? "Đóng" : "Hủy"}
           </Button>
           {!resetResult && (
-            <Button variant="default" onClick={handleResetPassword} disabled={resetBusy} className="gap-1.5">
-              {resetBusy && <Loader2 className="size-3.5 animate-spin" />} Đặt Lại Mật Khẩu
+            <Button variant="default" onClick={handleResetPassword} disabled={resetBusy}>
+              {resetBusy && <Loader2 className="size-3.5 animate-spin" />} Đặt lại mật khẩu
             </Button>
           )}
         </DialogFooter>
@@ -968,16 +988,16 @@ function EmployeeLeavesMini({ employeeId }: { employeeId: string }) {
     return () => { cancelled = true }
   }, [employeeId])
 
-  if (error) return <p className="text-[11px] text-muted-foreground">Không tải được đơn nghỉ phép.</p>
+  if (error) return <p className="text-body-sm text-muted-foreground">Không tải được danh sách đơn.</p>
   if (!leaves) return <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-  if (leaves.length === 0) return <p className="text-[11px] text-muted-foreground">Chưa có đơn nghỉ phép nào.</p>
+  if (leaves.length === 0) return <p className="text-body-sm text-muted-foreground">Chưa có đơn nào.</p>
 
   return (
-    <div className="flex flex-col gap-1.5 text-[11px]">
+    <div className="flex flex-col text-body-sm">
       {leaves.map((leave) => (
-        <div key={leave.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-2">
-          <span className="text-foreground">
-            {leaveTypeLabel(leave.type)} • {leave.startDate.slice(0, 10)} → {leave.endDate.slice(0, 10)}
+        <div key={leave.id} className="flex items-center justify-between gap-3 border-b border-border-subtle py-2.5 last:border-0">
+          <span className="tabular text-foreground">
+            {leaveTypeLabel(leave.type)} • {fmtVNDate(leave.startDate)} → {fmtVNDate(leave.endDate)}
           </span>
           <Badge variant={leave.status === "APPROVED" ? "success" : leave.status === "REJECTED" ? "destructive" : "warning"}>
             {leave.status === "APPROVED" ? "Đã duyệt" : leave.status === "REJECTED" ? "Từ chối" : leave.status === "CANCELLED" ? "Đã hủy" : "Chờ duyệt"}
@@ -992,25 +1012,25 @@ function EmployeeLeavesMini({ employeeId }: { employeeId: string }) {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[11px] font-semibold text-muted-foreground">{label}</label>
+      <label className="text-body-sm font-medium text-foreground">{label}</label>
       {children}
-      {error && <p className="mt-1 text-agent-coral">{error}</p>}
+      {error && <p className="mt-1.5 text-caption text-danger">{error}</p>}
     </div>
   )
 }
 
 /** Dòng thông tin label — value trong drawer */
-function Row({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+function Row({ label, value, mono, tabular }: { label: string; value: React.ReactNode; mono?: boolean; tabular?: boolean }) {
   return (
-    <div className="flex justify-between gap-3 rounded-lg bg-muted/40 p-2.5">
+    <div className="flex items-center justify-between gap-3 border-b border-border-subtle py-2.5 last:border-0">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className={`text-right font-medium text-foreground ${mono ? "font-mono" : ""}`}>{value}</span>
+      <span className={`text-right font-medium text-foreground ${mono ? "font-mono" : ""} ${tabular ? "tabular" : ""}`}>{value}</span>
     </div>
   )
 }
 
 function fmtDate(v?: string | null): string {
-  return v ? v.slice(0, 10) : "--"
+  return v ? fmtVNDate(v) : "--"
 }
 
 function genderLabel(g?: string | null): string {
@@ -1046,31 +1066,31 @@ function AttendanceSummaryMini({ employeeId }: { employeeId: string }) {
     return () => { cancelled = true }
   }, [employeeId])
 
-  if (failed) return <p className="mt-2 text-[11px] text-muted-foreground">Không tải được chấm công tháng này.</p>
-  if (!summary) return <Loader2 className="mt-2 size-3.5 animate-spin text-muted-foreground" />
+  if (failed) return <p className="mt-3 text-body-sm text-muted-foreground">Không tải được chấm công tháng này.</p>
+  if (!summary) return <Loader2 className="mt-3 size-4 animate-spin text-muted-foreground" />
   return (
-    <div className="mt-2">
-      <p className="text-[10px] text-muted-foreground mb-1">
+    <div className="mt-3">
+      <p className="mb-2 text-caption text-muted-foreground">
         Chấm công tháng hiện tại ({summary.total} bản ghi)
       </p>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         <Stat label="Ngày công" value={String(summary.present + summary.late + summary.remote)} />
-        <Stat label="Đi muộn" value={String(summary.late)} tone={summary.late > 0 ? "amber" : undefined} />
+        <Stat label="Đi muộn" value={String(summary.late)} tone={summary.late > 0 ? "warning" : undefined} />
         <Stat label="Remote" value={String(summary.remote)} />
-        <Stat label="Vắng" value={String(summary.absent)} tone={summary.absent > 0 ? "coral" : undefined} />
-        <Stat label="Giờ OT" value={String(summary.otHours)} tone="teal" />
+        <Stat label="Vắng" value={String(summary.absent)} tone={summary.absent > 0 ? "danger" : undefined} />
+        <Stat label="Giờ OT" value={String(summary.otHours)} tone="info" />
       </div>
     </div>
   )
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "amber" | "coral" | "teal" }) {
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "warning" | "danger" | "info" }) {
   const toneClass =
-    tone === "amber" ? "text-agent-amber" : tone === "coral" ? "text-agent-coral" : tone === "teal" ? "text-agent-teal" : "text-foreground"
+    tone === "warning" ? "text-warning" : tone === "danger" ? "text-danger" : tone === "info" ? "text-info" : "text-foreground"
   return (
-    <div className="rounded-lg bg-muted/40 p-2 text-center">
-      <p className={`font-mono text-sm font-bold ${toneClass}`}>{value}</p>
-      <p className="mt-0.5 text-[9px] text-muted-foreground">{label}</p>
+    <div className="rounded-lg border border-border bg-sunken p-2.5 text-center">
+      <p className={`tabular text-h3 font-semibold ${toneClass}`}>{value}</p>
+      <p className="mt-0.5 text-micro text-muted-foreground">{label}</p>
     </div>
   )
 }
@@ -1089,17 +1109,17 @@ function PayrollHistoryMini({ employeeId }: { employeeId: string }) {
     return () => { cancelled = true }
   }, [employeeId])
 
-  if (failed) return <p className="text-[11px] text-muted-foreground">Không tải được lịch sử lương.</p>
+  if (failed) return <p className="text-body-sm text-muted-foreground">Không tải được lịch sử lương.</p>
   if (!rows) return <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-  if (rows.length === 0) return <p className="text-[11px] text-muted-foreground">Chưa có bảng lương nào.</p>
+  if (rows.length === 0) return <p className="text-body-sm text-muted-foreground">Chưa có bảng lương nào.</p>
 
   return (
-    <div className="flex flex-col gap-1.5 text-[11px]">
+    <div className="flex flex-col text-body-sm">
       {rows.map((r) => (
-        <div key={r.id} className="flex items-center justify-between rounded-lg bg-muted/40 p-2">
-          <span className="text-foreground">Kỳ {String(r.month).padStart(2, "0")}/{r.year}</span>
-          <span className="font-mono font-semibold text-emerald-400">{vnd(r.netSalary)}</span>
-          <Badge variant={r.status === "PAID" ? "success" : r.status === "APPROVED" ? "teal" : "warning"}>
+        <div key={r.id} className="flex items-center justify-between gap-3 border-b border-border-subtle py-2.5 last:border-0">
+          <span className="tabular text-foreground">Kỳ {String(r.month).padStart(2, "0")}/{r.year}</span>
+          <span className="tabular ml-auto font-semibold text-foreground">{vnd(r.netSalary)}</span>
+          <Badge variant={r.status === "PAID" ? "success" : r.status === "APPROVED" ? "info" : "warning"}>
             {payrollStatusLabel(r.status)}
           </Badge>
         </div>

@@ -9,6 +9,7 @@ export const LeaveRequestSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   totalDays: z.number(),
+  overtimeHours: z.number().nullable().optional(),
   reason: z.string(),
   status: LeaveStatusEnum,
   approvedAt: z.string().nullable().optional(),

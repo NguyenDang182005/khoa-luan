@@ -1,0 +1,49 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+actor "Nhân viên" as E
+participant "ai-agents-view\n(Training Agent)" as W
+participant "NestJS" as A
+participant "n8n WF01" as R
+participant "n8n WF03" as T
+participant "DeepSeek" as G
+E -> W : Chọn kịch bản, nhắn "bắt đầu bài test"
+activate W
+W -> A : POST /agents/chat\n(sessionType TRAINING, scenarioType)
+activate A
+A -> R : POST /webhook/chat
+activate R
+R -> R : Từ khóa "bài test" → action generate_quiz
+R -> T : Execute Workflow
+activate T
+T -> G : Sinh 5 MCQ và 2 câu tự luận (JSON)
+activate G
+G --> T : questions
+deactivate G
+T --> R : questions kèm đáp án đúng
+deactivate T
+R --> A : questions
+deactivate R
+A -> A : Lưu đáp án vào metadata.quiz,\ngỡ correctAnswer
+A --> W : Câu hỏi không kèm đáp án
+deactivate A
+E -> W : Nộp bài
+W -> A : POST /training/submit
+activate A
+A -> A : Tối đa 5 lần mỗi kịch bản mỗi ngày
+A -> T : POST /webhook/training-quiz\n(submit_quiz, timeout 60 giây)
+activate T
+T -> G : Chấm 2 câu tự luận theo 4 tiêu chí
+activate G
+G --> T : results, criteria
+deactivate G
+T -> T : Chấm MCQ bằng code
+T --> A : Kết quả chấm
+deactivate T
+A -> A : Chấm lại MCQ theo đáp án đã lưu
+A -> A : Tổng điểm = 0,5 × MCQ + 0,5 × tự luận × 10
+A --> W : TrainingSession GRADED, radar 4 tiêu chí
+deactivate A
+deactivate W
+@enduml

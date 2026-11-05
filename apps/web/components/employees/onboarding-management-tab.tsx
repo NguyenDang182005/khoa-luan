@@ -10,8 +10,13 @@ import {
   Sparkles,
   Loader2,
   UserCheck,
+  Plus,
+  X,
+  AlertTriangle,
+  Clock,
+  Circle,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +34,7 @@ import { onboardingApi } from "@/lib/api/onboarding.api"
 import { employeesApi } from "@/lib/api/employees.api"
 import type { OnboardingTask, OnboardingProgressItem } from "@/lib/schemas/onboarding.schema"
 import type { Employee } from "@/lib/schemas/employee.schema"
+import { fmtVNDate } from "@/lib/utils"
 
 interface EmployeeProgressGroup {
   employeeId: string
@@ -42,13 +48,33 @@ interface EmployeeProgressGroup {
   items: OnboardingProgressItem[]
 }
 
-const DEFAULT_CATEGORY = { label: "Hồ sơ & Giấy tờ", icon: FileText, color: "text-blue-400 bg-blue-500/10 border-blue-500/30" }
+const DEFAULT_CATEGORY = { label: "Hồ sơ & Giấy tờ", icon: FileText, color: "bg-info-tint text-info" }
 
 const CATEGORY_MAP: Record<string, { label: string; icon: typeof FileText; color: string }> = {
   paperwork: DEFAULT_CATEGORY,
-  equipment: { label: "Thiết bị & Tài khoản", icon: Laptop, color: "text-purple-400 bg-purple-500/10 border-purple-500/30" },
-  training: { label: "Đào tạo & Quy định", icon: GraduationCap, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" },
-  introduction: { label: "Hội nhập & Làm quen", icon: Sparkles, color: "text-agent-teal bg-agent-teal/10 border-agent-teal/30" },
+  equipment: { label: "Thiết bị & Tài khoản", icon: Laptop, color: "bg-muted text-secondary-foreground" },
+  training: { label: "Đào tạo & Quy định", icon: GraduationCap, color: "bg-success-tint text-success" },
+  introduction: { label: "Hội nhập & Làm quen", icon: Sparkles, color: "bg-warning-tint text-warning" },
+}
+
+/** Ô nhập native (select/textarea) trông giống Input primitive */
+const FIELD_CLASS =
+  "w-full rounded-md border border-input bg-card px-3 text-body text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-subtle-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20"
+
+/** Lấy thông báo lỗi từ backend (message có thể là string hoặc string[]) */
+function apiErrorMessage(e: unknown, fallback: string): string {
+  const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+  if (Array.isArray(msg)) return msg.join("; ") || fallback
+  return msg || fallback
+}
+
+/** Nhân viên mới: đang thử việc hoặc vào làm trong 90 ngày gần nhất, chưa nghỉ việc */
+const NEW_HIRE_WINDOW_DAYS = 90
+function isNewHire(emp: Employee): boolean {
+  if (emp.status === "TERMINATED") return false
+  if (emp.status === "PROBATION") return true
+  const joined = new Date(emp.joinDate).getTime()
+  return !Number.isNaN(joined) && Date.now() - joined <= NEW_HIRE_WINDOW_DAYS * 24 * 60 * 60 * 1000
 }
 
 export function OnboardingManagementTab() {
@@ -58,6 +84,8 @@ export function OnboardingManagementTab() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null)
+  // Lỗi hiển thị bên trong dialog đang mở (banner trang bị dialog che mất)
+  const [dialogError, setDialogError] = React.useState<string | null>(null)
 
   // Sub-tab view: 'progress' vs 'tasks'
   const [activeSubTab, setActiveSubTab] = React.useState<"progress" | "tasks">("progress")
@@ -95,8 +123,21 @@ export function OnboardingManagementTab() {
       if (tasksRes.status === "fulfilled") setTasks(tasksRes.value)
       if (progressRes.status === "fulfilled") setProgressList(progressRes.value)
       if (empRes.status === "fulfilled") setAllEmployees(empRes.value.data ?? [])
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Không thể tải dữ liệu onboarding.")
+
+      // allSettled không bao giờ throw → tự báo lỗi để không hiện nhầm trạng thái "trống"
+      const failed = [
+        tasksRes.status === "rejected" && "danh mục đầu việc mẫu",
+        progressRes.status === "rejected" && "tiến độ hội nhập",
+        empRes.status === "rejected" && "danh sách nhân viên",
+      ].filter(Boolean)
+      if (failed.length > 0) {
+        const firstRejected = [tasksRes, progressRes, empRes].find(
+          (r): r is PromiseRejectedResult => r.status === "rejected",
+        )
+        setError(
+          `Không tải được ${failed.join(", ")}: ${apiErrorMessage(firstRejected?.reason, "lỗi kết nối máy chủ")}`,
+        )
+      }
     } finally {
       setLoading(false)
     }
@@ -110,8 +151,10 @@ export function OnboardingManagementTab() {
   const employeeGroups = React.useMemo<EmployeeProgressGroup[]>(() => {
     const map = new Map<string, EmployeeProgressGroup>()
 
-    // Điền toàn bộ nhân viên thử việc / mới vào map
+    // Chỉ điền nhân viên mới (thử việc / vào làm ≤ 90 ngày), bỏ người đã nghỉ việc
+    const terminatedIds = new Set(allEmployees.filter((e) => e.status === "TERMINATED").map((e) => e.id))
     for (const emp of allEmployees) {
+      if (!isNewHire(emp)) continue
       map.set(emp.id, {
         employeeId: emp.id,
         fullName: emp.fullName,
@@ -128,6 +171,8 @@ export function OnboardingManagementTab() {
     // Nối tiến độ đã có
     for (const p of progressList) {
       const empId = p.employeeId
+      // Nhân viên đã có lộ trình vẫn hiện để theo dõi tiếp, trừ người đã nghỉ việc
+      if (terminatedIds.has(empId)) continue
       let group = map.get(empId)
       if (!group && p.employee) {
         group = {
@@ -165,12 +210,13 @@ export function OnboardingManagementTab() {
   const handleAssignTasks = async (employeeId: string) => {
     setAssigningId(employeeId)
     setSuccessMsg(null)
+    setError(null)
     try {
       await onboardingApi.assignTasksToEmployee(employeeId)
       setSuccessMsg("Đã gán lộ trình hội nhập mẫu thành công cho nhân viên!")
       await fetchData()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Gán lộ trình thất bại.")
+      setError(apiErrorMessage(e, "Gán lộ trình thất bại."))
     } finally {
       setAssigningId(null)
     }
@@ -181,6 +227,7 @@ export function OnboardingManagementTab() {
     if (!selectedEmpProgress) return
     const newStatus: OnboardingProgressItem["status"] = currentStatus === "COMPLETED" ? "PENDING" : "COMPLETED"
     setUpdatingTaskId(taskId)
+    setDialogError(null)
     try {
       await onboardingApi.updateProgress(selectedEmpProgress.employeeId, taskId, { status: newStatus })
       // Cập nhật state nội bộ modal
@@ -200,7 +247,7 @@ export function OnboardingManagementTab() {
       })
       await fetchData()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Cập nhật thất bại.")
+      setDialogError(apiErrorMessage(e, "Cập nhật thất bại."))
     } finally {
       setUpdatingTaskId(null)
     }
@@ -217,6 +264,7 @@ export function OnboardingManagementTab() {
       isRequired: true,
       order: tasks.length + 1,
     })
+    setDialogError(null)
     setTaskModalOpen(true)
   }
 
@@ -231,16 +279,18 @@ export function OnboardingManagementTab() {
       isRequired: task.isRequired ?? true,
       order: task.order ?? 0,
     })
+    setDialogError(null)
     setTaskModalOpen(true)
   }
 
   // Lưu task template
   const handleSaveTask = async () => {
     if (!taskForm.title.trim()) {
-      alert("Vui lòng nhập tiêu đề nhiệm vụ.")
+      setDialogError("Vui lòng nhập tiêu đề nhiệm vụ.")
       return
     }
     setTaskBusy(true)
+    setDialogError(null)
     try {
       if (editingTask) {
         await onboardingApi.updateTask(editingTask.id, taskForm)
@@ -252,7 +302,7 @@ export function OnboardingManagementTab() {
       setTaskModalOpen(false)
       await fetchData()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Lưu nhiệm vụ thất bại.")
+      setDialogError(apiErrorMessage(e, "Lưu nhiệm vụ thất bại."))
     } finally {
       setTaskBusy(false)
     }
@@ -261,96 +311,129 @@ export function OnboardingManagementTab() {
   // Xóa task template
   const handleDeleteTask = async (id: string, title: string) => {
     if (!confirm(`Bạn có chắc muốn xóa nhiệm vụ mẫu "${title}"?`)) return
+    setError(null)
     try {
       await onboardingApi.deleteTask(id)
       setSuccessMsg("Đã xóa nhiệm vụ mẫu.")
       await fetchData()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Xóa thất bại.")
+      setError(apiErrorMessage(e, "Xóa thất bại."))
     }
   }
 
+  // Tổng hợp hiển thị: tỷ lệ hoàn thành chung của các lộ trình đã gán
+  const overallTotal = employeeGroups.reduce((s, g) => s + g.total, 0)
+  const overallCompleted = employeeGroups.reduce((s, g) => s + g.completed, 0)
+  const overallPct = overallTotal > 0 ? Math.round((overallCompleted / overallTotal) * 100) : 0
+
+  const segClass = (active: boolean) =>
+    `rounded-sm px-3 py-1 text-body-sm font-medium transition-colors duration-150 ${
+      active ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+    }`
+
+  const barTone = (pct: number, complete: boolean) =>
+    complete ? "bg-success" : pct >= 50 ? "bg-primary" : "bg-warning"
+
   return (
-    <div className="flex flex-col gap-5 pt-2">
+    <div className="flex flex-col gap-4">
       {/* Sub navigation & Action bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-0.5">
-          <button
-            onClick={() => setActiveSubTab("progress")}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-              activeSubTab === "progress"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Tiến Độ Nhân Viên Mới ({employeeGroups.length})
+        <div className="flex flex-wrap items-center gap-0.5 self-start rounded-md bg-muted p-0.5">
+          <button onClick={() => setActiveSubTab("progress")} className={segClass(activeSubTab === "progress")}>
+            Tiến độ nhân viên mới <span className="tabular">({employeeGroups.length})</span>
           </button>
-          <button
-            onClick={() => setActiveSubTab("tasks")}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-              activeSubTab === "tasks"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Danh Mục Đầu Việc Mẫu ({tasks.length})
+          <button onClick={() => setActiveSubTab("tasks")} className={segClass(activeSubTab === "tasks")}>
+            Danh mục đầu việc mẫu <span className="tabular">({tasks.length})</span>
           </button>
         </div>
 
         {activeSubTab === "tasks" && (
-          <Button size="sm" className="text-xs bg-primary text-primary-foreground" onClick={handleOpenCreateTask}>
-            Thêm Nhiệm Vụ Mẫu
+          <Button onClick={handleOpenCreateTask}>
+            <Plus className="size-4" /> Thêm nhiệm vụ mẫu
           </Button>
         )}
       </div>
 
       {error && (
-        <div className="rounded-xl border border-agent-coral/30 bg-agent-coral/10 px-4 py-2.5 text-xs text-agent-coral">{error}</div>
+        <div className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-tint px-4 py-2.5 text-body-sm text-danger">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {error}
+        </div>
       )}
 
       {successMsg && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-400 flex items-center justify-between animate-in fade-in">
-          <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-muted-foreground hover:text-foreground">
-            ×
-          </button>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-success/20 bg-success-tint px-4 py-2.5 text-body-sm text-success animate-in fade-in">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" /> {successMsg}
+          </span>
+          <Button size="icon-xs" variant="ghost" onClick={() => setSuccessMsg(null)} aria-label="Đóng thông báo" className="text-success hover:bg-card/60 hover:text-success">
+            <X />
+          </Button>
         </div>
       )}
 
       {/* SUBTAB 1: TIẾN ĐỘ NHÂN VIÊN MỚI */}
       {activeSubTab === "progress" && (
-        <Card className="border-border overflow-hidden">
-          <CardHeader className="p-4 pb-2 border-b border-border bg-muted/10">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <UserCheck className="size-4 text-emerald-400" />
-              Theo Dõi Tiến Độ Hội Nhập (Onboarding Progress Matrix)
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Theo dõi tỷ lệ hoàn thành các đầu việc hội nhập của nhân viên mới và gán quy trình chuẩn
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
+        <>
+          {/* Tiến độ chung */}
+          {!loading && overallTotal > 0 && (
+            <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary">
+                  <UserCheck className="size-4" />
+                </div>
+                <div>
+                  <p className="text-body-sm text-muted-foreground">Tiến độ hội nhập chung</p>
+                  <p className="tabular text-h2 font-semibold text-foreground">{overallPct}%</p>
+                </div>
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full transition-all ${barTone(overallPct, overallPct === 100)}`}
+                    style={{ width: `${overallPct}%` }}
+                  />
+                </div>
+                <p className="tabular text-caption text-muted-foreground">
+                  {overallCompleted}/{overallTotal} nhiệm vụ đã hoàn thành
+                </p>
+              </div>
+            </Card>
+          )}
+
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2">
+                <UserCheck className="size-4 text-primary" />
+                Theo dõi tiến độ hội nhập
+              </CardTitle>
+              <CardDescription>
+                Nhân viên đang thử việc hoặc vào làm trong {NEW_HIRE_WINDOW_DAYS} ngày gần nhất — theo dõi tỷ lệ hoàn thành đầu việc hội nhập và gán quy trình chuẩn
+              </CardDescription>
+            </CardHeader>
             {loading ? (
-              <div className="flex h-48 flex-col items-center justify-center text-xs text-muted-foreground">
-                <Loader2 className="size-6 animate-spin mb-2 text-primary" />
-                Đang tải dữ liệu tiến độ...
+              <div className="flex flex-col gap-3 p-5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="skeleton h-10 rounded-md" />
+                ))}
               </div>
             ) : employeeGroups.length === 0 ? (
-              <div className="flex h-48 flex-col items-center justify-center text-xs text-muted-foreground">
-                <Users className="size-8 text-muted-foreground/40 mb-2" />
-                <p className="font-semibold text-foreground">Chưa có nhân viên nào</p>
+              <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <Users className="size-5" />
+                </div>
+                <p className="text-body font-semibold text-foreground">Chưa có nhân viên mới nào</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[860px]">
                   <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead className="text-xs">Nhân Viên</TableHead>
-                      <TableHead className="text-xs">Phòng Ban</TableHead>
-                      <TableHead className="text-xs">Ngày Vào Làm</TableHead>
-                      <TableHead className="text-xs">Tiến Độ Hoàn Thành</TableHead>
-                      <TableHead className="text-xs">Tỷ Lệ (%)</TableHead>
-                      <TableHead className="text-xs text-right">Hành Động</TableHead>
+                    <TableRow>
+                      <TableHead>Nhân viên</TableHead>
+                      <TableHead>Phòng ban</TableHead>
+                      <TableHead>Ngày vào làm</TableHead>
+                      <TableHead>Tiến độ hoàn thành</TableHead>
+                      <TableHead className="text-right">Tỷ lệ</TableHead>
+                      <TableHead className="text-right">Hành động</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -359,10 +442,10 @@ export function OnboardingManagementTab() {
                       const isComplete = hasTasks && group.completed === group.total
 
                       return (
-                        <TableRow key={group.employeeId} className="text-xs hover:bg-muted/20 transition-colors">
+                        <TableRow key={group.employeeId}>
                           {/* Nhân viên */}
                           <TableCell>
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-3">
                               <Avatar
                                 initials={group.fullName
                                   .split(" ")
@@ -370,96 +453,79 @@ export function OnboardingManagementTab() {
                                   .map((w) => w[0])
                                   .join("")
                                   .toUpperCase()}
-                                className="size-7 bg-primary/20 text-primary border border-primary/30"
+                                className="size-8 bg-primary-tint text-accent-foreground"
                               />
-                              <div>
-                                <p className="font-semibold text-foreground">{group.fullName}</p>
-                                <p className="text-[10px] text-muted-foreground">{group.employeeCode}</p>
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-foreground">{group.fullName}</p>
+                                <p className="font-mono text-caption text-muted-foreground">{group.employeeCode}</p>
                               </div>
                             </div>
                           </TableCell>
 
                           {/* Phòng ban */}
-                          <TableCell className="text-muted-foreground">{group.departmentName || "—"}</TableCell>
+                          <TableCell className="text-secondary-foreground">{group.departmentName || "—"}</TableCell>
 
                           {/* Ngày vào */}
-                          <TableCell className="text-muted-foreground">
-                            {group.joinDate ? group.joinDate.slice(0, 10) : "—"}
+                          <TableCell className="tabular text-secondary-foreground">
+                            {group.joinDate ? fmtVNDate(group.joinDate) : "—"}
                           </TableCell>
 
                           {/* Thanh tiến độ */}
-                          <TableCell className="min-w-[140px]">
+                          <TableCell className="min-w-[180px]">
                             {hasTasks ? (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-muted-foreground">
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-caption">
+                                  <span className="tabular text-muted-foreground">
                                     {group.completed}/{group.total} nhiệm vụ
                                   </span>
                                   {isComplete && (
-                                    <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                                      <CheckCircle2 className="size-3" /> Đạt
+                                    <span className="flex items-center gap-1 font-medium text-success">
+                                      <CheckCircle2 className="size-3.5" /> Đạt
                                     </span>
                                   )}
                                 </div>
-                                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                                   <div
-                                    className={`h-full rounded-full transition-all ${
-                                      isComplete
-                                        ? "bg-emerald-500"
-                                        : group.percentage >= 50
-                                        ? "bg-agent-teal"
-                                        : "bg-amber-500"
-                                    }`}
+                                    className={`h-full rounded-full transition-all ${barTone(group.percentage, isComplete)}`}
                                     style={{ width: `${group.percentage}%` }}
                                   />
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-muted-foreground italic text-[11px]">Chưa gán lộ trình</span>
+                              <span className="text-caption text-muted-foreground">Chưa gán lộ trình</span>
                             )}
                           </TableCell>
 
                           {/* Tỷ lệ % */}
-                          <TableCell>
+                          <TableCell className="text-right">
                             {hasTasks ? (
                               <span
-                                className={`font-bold font-mono text-xs ${
-                                  isComplete
-                                    ? "text-emerald-400"
-                                    : group.percentage >= 50
-                                    ? "text-agent-teal"
-                                    : "text-amber-400"
+                                className={`tabular font-semibold ${
+                                  isComplete ? "text-success" : group.percentage >= 50 ? "text-primary" : "text-warning"
                                 }`}
                               >
                                 {group.percentage}%
                               </span>
                             ) : (
-                              <span className="text-muted-foreground/50">0%</span>
+                              <span className="tabular text-subtle-foreground">0%</span>
                             )}
                           </TableCell>
 
                           {/* Hành động */}
                           <TableCell className="text-right">
                             {hasTasks ? (
-                              <Button
-                                size="xs"
-                                variant="outline"
-                                className="text-xs"
-                                onClick={() => setSelectedEmpProgress(group)}
-                              >
-                                Xem Chi Tiết
+                              <Button size="sm" variant="outline" onClick={() => setSelectedEmpProgress(group)}>
+                                Xem chi tiết
                               </Button>
                             ) : (
                               <Button
-                                size="xs"
-                                className="text-xs gap-1 bg-primary text-primary-foreground"
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleAssignTasks(group.employeeId)}
                                 disabled={assigningId === group.employeeId}
                               >
-                                {assigningId === group.employeeId && (
-                                  <Loader2 className="size-3 animate-spin" />
-                                )}
-                                Gán Lộ Trình Mẫu
+                                {assigningId === group.employeeId && <Loader2 className="size-3.5 animate-spin" />}
+                                Gán lộ trình mẫu
                               </Button>
                             )}
                           </TableCell>
@@ -470,196 +536,221 @@ export function OnboardingManagementTab() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </Card>
+        </>
       )}
 
       {/* SUBTAB 2: QUẢN LÝ NHIỆM VỤ MẪU (TASK TEMPLATES) */}
       {activeSubTab === "tasks" && (
-        <Card className="border-border overflow-hidden">
-          <CardHeader className="p-4 pb-2 border-b border-border bg-muted/10">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2">
               <FileText className="size-4 text-primary" />
-              Danh Mục Đầu Việc Chuẩn Hóa (Onboarding Task Templates)
+              Danh mục đầu việc chuẩn hóa
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription>
               Các đầu việc này sẽ được gán tự động cho nhân viên mới để hoàn thành trong tuần đầu tiên
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex h-48 flex-col items-center justify-center text-xs text-muted-foreground">
-                <Loader2 className="size-6 animate-spin mb-2 text-primary" />
-                Đang tải danh mục nhiệm vụ...
+          {loading ? (
+            <div className="flex flex-col gap-3 p-5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton h-10 rounded-md" />
+              ))}
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <FileText className="size-5" />
               </div>
-            ) : tasks.length === 0 ? (
-              <div className="flex h-48 flex-col items-center justify-center text-xs text-muted-foreground">
-                <FileText className="size-8 text-muted-foreground/40 mb-2" />
-                <p className="font-semibold text-foreground">Chưa có nhiệm vụ mẫu nào</p>
-                <Button size="xs" className="mt-2 text-xs" onClick={handleOpenCreateTask}>
-                  + Thêm nhiệm vụ đầu tiên
-                </Button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead className="w-12 text-center text-xs">STT</TableHead>
-                      <TableHead className="text-xs">Tiêu Đề Nhiệm Vụ</TableHead>
-                      <TableHead className="text-xs">Phân Loại</TableHead>
-                      <TableHead className="text-xs">Hạn Hoàn Thành</TableHead>
-                      <TableHead className="text-xs">Bắt Buộc</TableHead>
-                      <TableHead className="text-xs text-right">Thao Tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tasks.map((task, idx) => {
-                      const catInfo = (task.category ? CATEGORY_MAP[task.category] : undefined) ?? DEFAULT_CATEGORY
-                      const CatIcon = catInfo.icon
+              <p className="text-body font-semibold text-foreground">Chưa có nhiệm vụ mẫu nào</p>
+              <Button size="sm" variant="outline" className="mt-1" onClick={handleOpenCreateTask}>
+                <Plus className="size-4" /> Thêm nhiệm vụ đầu tiên
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="min-w-[820px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14 text-center">STT</TableHead>
+                    <TableHead>Tiêu đề nhiệm vụ</TableHead>
+                    <TableHead>Phân loại</TableHead>
+                    <TableHead>Hạn hoàn thành</TableHead>
+                    <TableHead>Bắt buộc</TableHead>
+                    <TableHead className="text-right">Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tasks.map((task, idx) => {
+                    const catInfo = (task.category ? CATEGORY_MAP[task.category] : undefined) ?? DEFAULT_CATEGORY
+                    const CatIcon = catInfo.icon
 
-                      return (
-                        <TableRow key={task.id} className="text-xs hover:bg-muted/20 transition-colors">
-                          <TableCell className="text-center font-mono text-muted-foreground">
-                            {task.order || idx + 1}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-semibold text-foreground">{task.title}</p>
-                              {task.description && (
-                                <p className="text-[11px] text-muted-foreground mt-0.5">{task.description}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`text-[10px] gap-1 border ${catInfo.color}`}>
-                              <CatIcon className="size-3" /> {catInfo.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {task.dueAfterDays ? `${task.dueAfterDays} ngày sau khi vào` : "Không giới hạn"}
-                          </TableCell>
-                          <TableCell>
-                            {task.isRequired ? (
-                              <Badge variant="teal" className="text-[10px]">
-                                Bắt buộc
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-[11px]">Tùy chọn</span>
+                    return (
+                      <TableRow key={task.id}>
+                        <TableCell className="tabular text-center text-muted-foreground">
+                          {task.order || idx + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-foreground">{task.title}</p>
+                            {task.description && (
+                              <p className="mt-0.5 text-caption text-muted-foreground">{task.description}</p>
                             )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <Button
-                                size="xs"
-                                variant="ghost"
-                                className="text-xs"
-                                onClick={() => handleOpenEditTask(task)}
-                              >
-                                Sửa
-                              </Button>
-                              <Button
-                                size="xs"
-                                variant="ghost"
-                                className="text-xs text-destructive hover:bg-destructive/10"
-                                onClick={() => handleDeleteTask(task.id, task.title)}
-                              >
-                                Xóa
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={catInfo.color}>
+                            <CatIcon /> {catInfo.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-secondary-foreground">
+                          {task.dueAfterDays ? `${task.dueAfterDays} ngày sau khi vào` : "Không giới hạn"}
+                        </TableCell>
+                        <TableCell>
+                          {task.isRequired ? (
+                            <Badge variant="warning">Bắt buộc</Badge>
+                          ) : (
+                            <span className="text-caption text-muted-foreground">Tùy chọn</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => handleOpenEditTask(task)}>
+                              Sửa
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-danger hover:bg-danger-tint hover:text-danger"
+                              onClick={() => handleDeleteTask(task.id, task.title)}
+                            >
+                              Xóa
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </Card>
       )}
 
       {/* MODAL 1: CHI TIẾT TIẾN ĐỘ NHÂN VIÊN */}
       <Dialog
         open={selectedEmpProgress !== null}
-        onOpenChange={(open) => !open && setSelectedEmpProgress(null)}
-        className="max-w-xl max-h-[85vh] flex flex-col"
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedEmpProgress(null)
+            setDialogError(null)
+          }
+        }}
+        className="flex max-h-[85vh] max-w-[560px] flex-col"
       >
         {selectedEmpProgress && (
           <>
-            <DialogHeader className="pr-6">
-              <DialogTitle className="text-base font-bold flex items-center justify-between">
-                <span>Tiến Độ: {selectedEmpProgress.fullName}</span>
-                <Badge variant="outline" className="text-xs">
-                  {selectedEmpProgress.completed}/{selectedEmpProgress.total} hoàn thành ({selectedEmpProgress.percentage}%)
-                </Badge>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Mã NV: {selectedEmpProgress.employeeCode} • Phòng ban: {selectedEmpProgress.departmentName || "—"}
+            <DialogHeader>
+              <DialogTitle>Tiến độ: {selectedEmpProgress.fullName}</DialogTitle>
+              <DialogDescription>
+                Mã NV: <span className="font-mono">{selectedEmpProgress.employeeCode}</span> • Phòng ban: {selectedEmpProgress.departmentName || "—"}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-4 flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 text-xs">
-              {selectedEmpProgress.items.map((item) => {
+            {/* Thanh tiến độ tổng của nhân viên */}
+            <div className="mt-4 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-body-sm">
+                <span className="text-muted-foreground">Hoàn thành</span>
+                <span className="tabular font-semibold text-foreground">
+                  {selectedEmpProgress.completed}/{selectedEmpProgress.total} ({selectedEmpProgress.percentage}%)
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full transition-all ${barTone(
+                    selectedEmpProgress.percentage,
+                    selectedEmpProgress.total > 0 && selectedEmpProgress.completed === selectedEmpProgress.total,
+                  )}`}
+                  style={{ width: `${selectedEmpProgress.percentage}%` }}
+                />
+              </div>
+            </div>
+
+            {dialogError && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-tint px-3 py-2 text-body-sm text-danger">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {dialogError}
+              </div>
+            )}
+
+            {/* Checklist dạng timeline */}
+            <ol className="mt-5 flex-1 overflow-y-auto pr-1 text-body-sm">
+              {selectedEmpProgress.items.map((item, idx) => {
                 const isDone = item.status === "COMPLETED"
                 const t = item.task
                 const cat = (t?.category ? CATEGORY_MAP[t.category] : undefined) ?? DEFAULT_CATEGORY
+                const isLast = idx === selectedEmpProgress.items.length - 1
 
                 return (
-                  <div
-                    key={item.id}
-                    className={`flex items-start justify-between rounded-xl border p-3 transition-colors ${
-                      isDone ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-muted/10"
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5">
-                      {isDone ? (
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                      ) : (
-                        <span className="mt-1 size-3.5 shrink-0 rounded-full border-2 border-muted-foreground/40" />
-                      )}
-                      <div>
-                        <p className={`font-semibold ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                  <li key={item.id} className="relative flex gap-3 pb-5 last:pb-0">
+                    {!isLast && (
+                      <span className="absolute left-[11px] top-7 bottom-0 w-px bg-border" aria-hidden />
+                    )}
+                    <span
+                      className={`relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border ${
+                        isDone ? "border-success bg-success-tint text-success" : "border-border bg-card text-subtle-foreground"
+                      }`}
+                    >
+                      {isDone ? <CheckCircle2 className="size-3.5" /> : <Circle className="size-2.5" />}
+                    </span>
+
+                    <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className={`font-medium ${isDone ? "text-muted-foreground line-through" : "text-foreground"}`}>
                           {t?.title || "Nhiệm vụ"}
                         </p>
                         {t?.description && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{t.description}</p>
+                          <p className="mt-0.5 text-caption text-muted-foreground">{t.description}</p>
                         )}
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                            {cat.label}
-                          </Badge>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          {isDone ? (
+                            <Badge variant="success"><CheckCircle2 /> Đã xong</Badge>
+                          ) : (
+                            <Badge variant="warning"><Clock /> Chưa xong</Badge>
+                          )}
+                          <Badge variant="outline">{cat.label}</Badge>
                           {isDone && item.completedAt && (
-                            <span className="text-[10px] text-emerald-400">
-                              Xong lúc: {new Date(item.completedAt).toLocaleDateString("vi-VN")}
+                            <span className="tabular text-caption text-muted-foreground">
+                              Xong lúc: {fmtVNDate(item.completedAt)}
                             </span>
                           )}
                         </div>
                       </div>
-                    </div>
 
-                    <Button
-                      size="xs"
-                      variant={isDone ? "outline" : "default"}
-                      className={`text-[11px] h-7 shrink-0 ${isDone ? "text-muted-foreground" : "bg-primary text-primary-foreground"}`}
-                      onClick={() => handleToggleTaskStatus(item.taskId, item.status)}
-                      disabled={updatingTaskId === item.taskId}
-                    >
-                      {updatingTaskId === item.taskId ? (
-                        <Loader2 className="size-3 animate-spin" />
-                      ) : isDone ? (
-                        "Đánh dấu chưa xong"
-                      ) : (
-                        "Hoàn thành"
-                      )}
-                    </Button>
-                  </div>
+                      <Button
+                        size="sm"
+                        variant={isDone ? "ghost" : "outline"}
+                        className="shrink-0 self-start"
+                        onClick={() => handleToggleTaskStatus(item.taskId, item.status)}
+                        disabled={updatingTaskId === item.taskId}
+                      >
+                        {updatingTaskId === item.taskId ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : isDone ? (
+                          "Đánh dấu chưa xong"
+                        ) : (
+                          "Hoàn thành"
+                        )}
+                      </Button>
+                    </div>
+                  </li>
                 )
               })}
-            </div>
+            </ol>
 
-            <DialogFooter className="mt-4 pt-3 border-t border-border">
-              <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setSelectedEmpProgress(null)}>
+            <DialogFooter className="border-t border-border pt-4">
+              <Button variant="outline" onClick={() => setSelectedEmpProgress(null)}>
                 Đóng
               </Button>
             </DialogFooter>
@@ -670,45 +761,53 @@ export function OnboardingManagementTab() {
       {/* MODAL 2: TẠO / SỬA NHIỆM VỤ MẪU */}
       <Dialog open={taskModalOpen} onOpenChange={setTaskModalOpen}>
         <DialogHeader>
-          <DialogTitle className="text-base font-bold">
-            {editingTask ? "Chỉnh Sửa Nhiệm Vụ Mẫu" : "Thêm Nhiệm Vụ Mẫu Mới"}
+          <DialogTitle>
+            {editingTask ? "Chỉnh sửa nhiệm vụ mẫu" : "Thêm nhiệm vụ mẫu mới"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
+          <DialogDescription>
             Nhiệm vụ chuẩn hóa để gán vào quy trình hội nhập cho nhân viên mới
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 flex flex-col gap-3 text-xs">
+        <div className="mt-5 flex flex-col gap-4 text-body-sm">
+          {dialogError && (
+            <div className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-tint px-3 py-2 text-body-sm text-danger">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {dialogError}
+            </div>
+          )}
           <div>
-            <label className="font-semibold text-foreground">
-              Tiêu đề nhiệm vụ <span className="text-destructive">*</span>
+            <label htmlFor="task-title" className="font-medium text-foreground">
+              Tiêu đề nhiệm vụ <span className="text-danger">*</span>
             </label>
             <Input
+              id="task-title"
               value={taskForm.title}
               onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
               placeholder="VD: Nộp sơ yếu lý lịch & bằng cấp công chứng"
-              className="mt-1 text-xs"
+              className="mt-1.5 h-9"
             />
           </div>
 
           <div>
-            <label className="font-semibold text-foreground">Mô tả chi tiết</label>
+            <label htmlFor="task-desc" className="font-medium text-foreground">Mô tả chi tiết</label>
             <textarea
-              rows={2}
+              id="task-desc"
+              rows={3}
               value={taskForm.description}
               onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
               placeholder="Hướng dẫn cách thực hiện hoặc nộp cho ai..."
-              className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+              className={`mt-1.5 py-2 ${FIELD_CLASS}`}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="font-semibold text-foreground">Phân loại</label>
+              <label htmlFor="task-category" className="font-medium text-foreground">Phân loại</label>
               <select
+                id="task-category"
                 value={taskForm.category}
                 onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+                className={`mt-1.5 h-9 ${FIELD_CLASS}`}
               >
                 <option value="paperwork">Hồ sơ & Giấy tờ</option>
                 <option value="equipment">Thiết bị & Tài khoản</option>
@@ -718,50 +817,40 @@ export function OnboardingManagementTab() {
             </div>
 
             <div>
-              <label className="font-semibold text-foreground">Thời hạn (ngày)</label>
+              <label htmlFor="task-due" className="font-medium text-foreground">Thời hạn (ngày)</label>
               <Input
+                id="task-due"
                 type="number"
                 min={1}
                 max={90}
                 value={taskForm.dueAfterDays}
                 onChange={(e) => setTaskForm({ ...taskForm, dueAfterDays: Number(e.target.value) || 7 })}
-                className="mt-1 text-xs"
+                className="tabular mt-1.5 h-9"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="isRequired"
               checked={taskForm.isRequired}
               onChange={(e) => setTaskForm({ ...taskForm, isRequired: e.target.checked })}
-              className="size-4 rounded border-border"
+              className="size-4 rounded-sm border-input accent-primary"
             />
-            <label htmlFor="isRequired" className="font-semibold text-foreground cursor-pointer">
+            <label htmlFor="isRequired" className="cursor-pointer font-medium text-foreground">
               Nhiệm vụ bắt buộc hoàn thành
             </label>
           </div>
         </div>
 
-        <DialogFooter className="mt-6 flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs flex-1"
-            onClick={() => setTaskModalOpen(false)}
-            disabled={taskBusy}
-          >
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setTaskModalOpen(false)} disabled={taskBusy}>
             Hủy
           </Button>
-          <Button
-            size="sm"
-            className="text-xs flex-1 bg-primary text-primary-foreground gap-1.5"
-            onClick={handleSaveTask}
-            disabled={taskBusy || !taskForm.title.trim()}
-          >
-            {taskBusy && <Loader2 className="size-3.5 animate-spin" />}
-            {editingTask ? "Cập Nhật" : "Tạo Mới"}
+          <Button onClick={handleSaveTask} disabled={taskBusy || !taskForm.title.trim()}>
+            {taskBusy && <Loader2 className="size-4 animate-spin" />}
+            {editingTask ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogFooter>
       </Dialog>

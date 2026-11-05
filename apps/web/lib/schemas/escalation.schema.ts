@@ -16,7 +16,8 @@ export const EscalationCaseSchema = z.object({
   lastMessage: z.string().nullable(),
   lastMessageAt: z.string().nullable(),
   messageCount: z.number(),
-  metadata: EscalationCaseMetadataSchema.nullable(),
+  // nullish: phiên chưa có tin kèm metadata (API bỏ trường) không được làm hỏng cả danh sách
+  metadata: EscalationCaseMetadataSchema.nullish(),
 })
 
 export const EscalationQueueSchema = z.array(EscalationCaseSchema)

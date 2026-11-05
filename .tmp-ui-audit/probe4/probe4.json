@@ -1,0 +1,32 @@
+{
+  "loginError": {
+    "text": "HR Multi-Agent Đăng nhập Quản trị nhân sự và trợ lý AI cho doanh nghiệp của bạn. Tiếp tục với Google Tiếp tục với Facebook hoặc Email hoặc mật khẩu không đúng Email công việc Mật khẩu Nhớ đăng nhập trong 30 ngày Đăng nhập Tài khoản mẫu Quản trị viên hr-admin@company.com Nhân viên employee1@company.com Hệ thống nội bộ — chỉ dành cho nhân viên đã được cấp quyền.",
+    "alert": [
+      "Email hoặc mật khẩu không đúng"
+    ]
+  },
+  "table1024": {
+    "tableW": 976,
+    "wrapClass": "relative w-full overflow-auto",
+    "wrapOverflowX": "auto",
+    "wrapClient": 734,
+    "wrapScroll": 976,
+    "mainScroll": {
+      "client": 784,
+      "scroll": 969,
+      "overflowX": "auto"
+    },
+    "lastHeader": [
+      "Trạng thái",
+      "Ngày vào",
+      "Thao tác"
+    ]
+  },
+  "employees375": {
+    "h1": "Hồ sơ nhân sự",
+    "text": "Hồ sơ nhân sự Quản lý hồ sơ nhân viên, duyệt đơn và theo dõi tiến độ hội nhập Danh sách nhân sự (31) Duyệt đơn Lộ trình hội nhập Tất cả phòng ban Chăm sóc khách hàng Human Resources Information Technology Kinh doanh Thiết kế 31 nhân sự Xuất Excel Thêm nhân viên Nhân viên Email Phòng ban Chức danh Trạng thái Ngày vào Thao tác VD Nguyễn Văn Dang EMP0031 dangnguyen182005@gmail.com Information Technology Lập trình viên Cao cấp Thử việc 25/9/2026 DM Ninh Thị Diễm My EMP030 emp030@company.com Chăm sóc khách hàng Nhân viên CSKH Nghỉ phép 24/8/2026 TT Ông Thanh Tùng EMP029 emp029@company.com Kinh doanh Nhân viên Kinh doanh Thử việc 17/8/2026 KC Lại Thị Kim Chi EMP028 emp028@company.com Kinh doanh Nh",
+    "tables": 1,
+    "tableW": 976.203125,
+    "overflow": false
+  }
+}

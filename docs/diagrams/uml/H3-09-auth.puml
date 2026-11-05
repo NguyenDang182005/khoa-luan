@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+actor "Người dùng" as U
+participant "Web Portal" as W
+participant "Firebase Auth" as F
+participant "NestJS\nAuthService" as A
+database "PostgreSQL" as DB
+alt Đăng nhập email và mật khẩu
+  U -> W : Nhập email, mật khẩu
+  activate W
+  W -> A : POST /auth/login
+  activate A
+  A -> DB : Tìm User, kiểm tra isActive, lockedUntil
+  A -> A : bcrypt.compare
+  opt Sai mật khẩu
+    A -> DB : Tăng failedLoginAttempts,\nkhóa 15 phút khi đủ 5 lần
+    A --> W : 401 Unauthorized
+  end
+else Đăng nhập Google hoặc Facebook
+  U -> W : Chọn nhà cung cấp OAuth
+  W -> F : signInWithPopup
+  activate F
+  F --> W : idToken
+  deactivate F
+  W -> A : POST /auth/firebase
+  A -> F : verifyIdToken
+  A -> DB : Email phải có sẵn trong whitelist
+end
+A -> DB : Tạo RefreshToken 30 ngày, ghi LoginHistory
+A --> W : accessToken (chứa sid) và refreshToken
+deactivate A
+W -> A : Gọi API kèm Bearer token
+activate A
+A -> DB : JwtStrategy kiểm tra sid còn hiệu lực, đọc lại role
+A --> W : Dữ liệu theo quyền ADMIN hoặc EMPLOYEE
+deactivate A
+deactivate W
+@enduml

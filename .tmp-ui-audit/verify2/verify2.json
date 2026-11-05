@@ -1,0 +1,58 @@
+{
+  "employees375": {
+    "h1": "Hồ sơ nhân sự",
+    "tableW": 403,
+    "headers": [
+      "Nhân viên",
+      "Trạng thái",
+      "Thao tác"
+    ],
+    "bodyOverflow": false,
+    "tabs": [
+      {
+        "text": "Danh sách nhân sự\n(31)",
+        "right": 186
+      },
+      {
+        "text": "Duyệt đơn",
+        "right": 275
+      },
+      {
+        "text": "Lộ trình hội nhập",
+        "right": 408
+      }
+    ]
+  },
+  "composer": {
+    "hasTextarea": true,
+    "hasSend": true,
+    "container": {
+      "top": 741,
+      "bottom": 864,
+      "right": 1324
+    },
+    "send": {
+      "top": 819,
+      "bottom": 855,
+      "right": 1313
+    },
+    "inside": true
+  },
+  "pii": {
+    "tableW": 1084,
+    "cardW": 1084,
+    "lastCellText": "Chưa mask"
+  },
+  "login": {
+    "demoText": [
+      "Quản trị viênhr-admin@company.com",
+      "hr-admin@company.com",
+      "Nhân viênemployee1@company.com",
+      "employee1@company.com"
+    ],
+    "cardWidths": [
+      306,
+      306
+    ]
+  }
+}

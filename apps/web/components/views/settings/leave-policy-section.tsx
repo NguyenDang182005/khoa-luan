@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { CalendarDays, Loader2 } from "lucide-react"
+import { CalendarDays, Loader2, CheckCircle2, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -72,8 +72,8 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <CalendarDays className="size-4 text-agent-teal" /> Chính Sách Phép Năm
+        <CardTitle className="flex items-center gap-2">
+          <CalendarDays className="size-4 text-primary" /> Chính sách phép năm
         </CardTitle>
         <CardDescription>
           Chu kỳ theo năm dương lịch (01/01 – 31/12). Số dư phép = ngày phép chuẩn/năm (tính tỷ lệ pro-rate nếu vào làm trong năm) − số ngày đã dùng.
@@ -81,56 +81,78 @@ export function LeavePolicySection({ onDirtyChange }: { onDirtyChange?: (dirty: 
       </CardHeader>
       <CardContent>
         {!policy ? (
-          <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="flex h-16 items-center justify-center gap-2 text-body-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Đang tải...
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div title="Số ngày phép chuẩn mỗi năm (mặc định 12)">
-                <label className="text-[11px] font-semibold text-muted-foreground">Ngày phép chuẩn/năm</label>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+              <div>
+                <label htmlFor="leave-quota" className="text-body-sm font-medium text-secondary-foreground">
+                  Ngày phép chuẩn/năm
+                </label>
                 <Input
+                  id="leave-quota"
                   type="number"
                   min={0}
                   max={365}
                   value={String(policy.annualQuotaDays)}
                   onChange={(e) => setPolicy({ ...policy, annualQuotaDays: Number(e.target.value) })}
-                  className="mt-1 h-8 text-xs font-mono"
+                  className="mt-1.5 tabular"
                 />
+                <p className="mt-1 text-caption text-muted-foreground">Số ngày phép chuẩn mỗi năm (mặc định 12)</p>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground">Ghi chú chính sách</label>
+                <label htmlFor="leave-note" className="text-body-sm font-medium text-secondary-foreground">
+                  Ghi chú chính sách
+                </label>
                 <Input
+                  id="leave-note"
                   value={policy.note ?? ""}
                   placeholder="VD: Áp dụng theo Bộ luật Lao động 2019"
                   onChange={(e) => setPolicy({ ...policy, note: e.target.value })}
-                  className="mt-1 h-8 text-xs"
+                  className="mt-1.5"
                 />
               </div>
-              <div className="md:col-span-2 flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3">
-                <Switch
-                  checked={policy.prorateByJoinMonth}
-                  onCheckedChange={(v) => setPolicy({ ...policy, prorateByJoinMonth: v })}
-                />
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-sunken p-4 md:col-span-2">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">Tính theo tháng vào làm</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-body font-medium text-foreground">Tính theo tháng vào làm</p>
+                  <p className="mt-0.5 text-caption text-muted-foreground">
                     Năm đầu: 12 × (số tháng làm việc / 12). VD: vào 01/07 → 6 ngày.
                   </p>
                 </div>
+                <Switch
+                  checked={policy.prorateByJoinMonth}
+                  onCheckedChange={(v) => setPolicy({ ...policy, prorateByJoinMonth: v })}
+                  aria-label="Tính theo tháng vào làm"
+                />
               </div>
             </div>
-            {msg && <p className="mt-3 text-[11px] text-emerald-400">{msg}</p>}
-            {error && <p className="mt-3 text-[11px] text-agent-coral">{error}</p>}
-            <div className="mt-3 flex items-center gap-3">
-              <Button size="sm" className="gap-1.5" onClick={save} disabled={busy || !dirty}>
-                {busy && <Loader2 className="size-3.5 animate-spin" />} Lưu Chính Sách Phép
-              </Button>
-              {dirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
-            </div>
+            {msg && (
+              <p className="mt-4 flex items-center gap-1.5 text-body-sm text-success">
+                <CheckCircle2 className="size-4 shrink-0" /> {msg}
+              </p>
+            )}
+            {error && (
+              <p className="mt-4 flex items-center gap-1.5 text-body-sm text-danger">
+                <AlertTriangle className="size-4 shrink-0" /> {error}
+              </p>
+            )}
           </>
         )}
       </CardContent>
+      {policy && (
+        <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 rounded-b-lg border-t border-border bg-card px-5 py-4 sm:px-6">
+          {dirty && (
+            <span className="mr-auto flex items-center gap-1.5 text-body-sm text-warning">
+              <span className="size-2 rounded-full bg-warning" aria-hidden="true" /> Có thay đổi chưa lưu
+            </span>
+          )}
+          <Button onClick={save} disabled={busy || !dirty}>
+            {busy && <Loader2 className="size-4 animate-spin" />} Lưu thay đổi
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

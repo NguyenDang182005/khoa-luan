@@ -9,6 +9,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  RefreshCw,
+  LogOut,
+  Info,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,6 +29,22 @@ import {
 import { settingsApi } from "@/lib/api/settings.api"
 import type { SecurityPolicy, SessionInfo, LoginHistoryEntry } from "@/lib/schemas/settings.schema"
 import { authApi } from "@/lib/api/auth.api"
+import { useAuth } from "@/lib/auth-context"
+
+/** Đọc claim `sid` (id phiên) từ access token đang lưu — decode base64url, lỗi thì trả null */
+function readCurrentSessionId(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    const token = localStorage.getItem("hr_auth_token") ?? sessionStorage.getItem("hr_auth_token")
+    const part = token?.split(".")[1]
+    if (!part) return null
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=")
+    const payload = JSON.parse(atob(b64)) as { sid?: unknown }
+    return typeof payload.sid === "string" ? payload.sid : null
+  } catch {
+    return null
+  }
+}
 
 /** Rút gọn User-Agent thành mô tả dễ đọc: "Chrome · Windows" */
 function describeUserAgent(ua: string | null): string {
@@ -74,6 +93,12 @@ function fmtDateTime(iso: string | null | undefined): string {
 }
 
 export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
+  const { user } = useAuth()
+  const [currentSid, setCurrentSid] = useState<string | null>(null)
+  useEffect(() => {
+    setCurrentSid(readCurrentSessionId())
+  }, [])
+
   // ── Chính sách bảo mật ──
   const [policy, setPolicy] = useState<SecurityPolicy | null>(null)
   const [policySaved, setPolicySaved] = useState<SecurityPolicy | null>(null)
@@ -102,6 +127,12 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
   const [sessionsBusy, setSessionsBusy] = useState(false)
   const [revokingId, setRevokingId] = useState<string | null>(null)
   const [sessionsMsg, setSessionsMsg] = useState<string | null>(null)
+
+  // Danh sách gồm phiên của mọi user — "Đăng xuất thiết bị khác" chỉ tác động phiên của chính mình
+  const myOtherSessionCount = useMemo(
+    () => (sessions ?? []).filter((s) => s.userId === user?.id && s.id !== currentSid).length,
+    [sessions, user?.id, currentSid],
+  )
 
   // ── Lịch sử đăng nhập ──
   const [history, setHistory] = useState<LoginHistoryEntry[] | null>(null)
@@ -188,8 +219,9 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
     }
   }
 
-  const doRevoke = async (sessionId: string) => {
+  const doRevoke = async (sessionId: string, email: string) => {
     if (revokingId) return
+    if (!confirm(`Thu hồi phiên đăng nhập của ${email}? Thiết bị đó sẽ bị đăng xuất.`)) return
     setRevokingId(sessionId)
     setSessionsMsg(null)
     try {
@@ -211,6 +243,7 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
 
   const doRevokeOthers = async () => {
     if (sessionsBusy) return
+    if (!confirm(`Đăng xuất ${myOtherSessionCount} phiên khác của bạn? Phiên hiện tại được giữ lại.`)) return
     setSessionsBusy(true)
     setSessionsMsg(null)
     try {
@@ -236,13 +269,15 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
     { key: "requireSpecial", label: "Ký tự đặc biệt (!@#...)" },
   ]
 
+  const labelCls = "text-body-sm font-medium text-secondary-foreground"
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 lg:gap-6">
       {/* 1. Chính sách mật khẩu & khóa tài khoản */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="size-4 text-agent-teal" /> Chính Sách Bảo Mật
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="size-4 text-primary" /> Chính sách bảo mật
           </CardTitle>
           <CardDescription>
             Áp dụng khi đổi mật khẩu và khi đăng nhập. Thay đổi lưu vào DB kèm nhật ký kiểm tra.
@@ -250,113 +285,136 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
         </CardHeader>
         <CardContent>
           {!policy ? (
-            <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div className="flex h-16 items-center justify-center gap-2 text-body-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Đang tải...
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                <div title="Độ dài tối thiểu của mật khẩu mới">
-                  <label className="text-[11px] font-semibold text-muted-foreground">Độ dài tối thiểu</label>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="sec-min-length" className={labelCls}>Độ dài tối thiểu</label>
                   <Input
+                    id="sec-min-length"
                     type="number"
                     min={4}
                     max={128}
                     value={String(policy.passwordMinLength)}
                     onChange={(e) => setPolicy({ ...policy, passwordMinLength: Number(e.target.value) })}
-                    className="mt-1 h-8 text-xs font-mono"
+                    className="mt-1.5 tabular"
                   />
+                  <p className="mt-1 text-caption text-muted-foreground">Độ dài tối thiểu của mật khẩu mới</p>
                 </div>
-                <div title="0 = không bắt buộc đổi định kỳ">
-                  <label className="text-[11px] font-semibold text-muted-foreground">Buộc đổi mỗi (ngày)</label>
+                <div>
+                  <label htmlFor="sec-max-age" className={labelCls}>Buộc đổi mỗi (ngày)</label>
                   <Input
+                    id="sec-max-age"
                     type="number"
                     min={0}
                     max={3650}
                     value={String(policy.passwordMaxAgeDays)}
                     onChange={(e) => setPolicy({ ...policy, passwordMaxAgeDays: Number(e.target.value) })}
-                    className="mt-1 h-8 text-xs font-mono"
+                    className="mt-1.5 tabular"
                   />
+                  <p className="mt-1 text-caption text-muted-foreground">0 = không bắt buộc đổi định kỳ</p>
                 </div>
-                <div title="Khóa tài khoản tạm thời sau N lần sai mật khẩu liên tiếp">
-                  <label className="text-[11px] font-semibold text-muted-foreground">Khóa sau N lần sai</label>
+                <div>
+                  <label htmlFor="sec-max-failed" className={labelCls}>Khóa sau N lần sai</label>
                   <Input
+                    id="sec-max-failed"
                     type="number"
                     min={1}
                     max={50}
                     value={String(policy.maxFailedAttempts)}
                     onChange={(e) => setPolicy({ ...policy, maxFailedAttempts: Number(e.target.value) })}
-                    className="mt-1 h-8 text-xs font-mono"
+                    className="mt-1.5 tabular"
                   />
+                  <p className="mt-1 text-caption text-muted-foreground">
+                    Khóa tài khoản tạm thời sau N lần sai mật khẩu liên tiếp
+                  </p>
                 </div>
-                <div title="Thời gian khóa tạm trước khi thử lại được">
-                  <label className="text-[11px] font-semibold text-muted-foreground">Khóa trong (phút)</label>
+                <div>
+                  <label htmlFor="sec-lockout" className={labelCls}>Khóa trong (phút)</label>
                   <Input
+                    id="sec-lockout"
                     type="number"
                     min={1}
                     max={1440}
                     value={String(policy.lockoutMinutes)}
                     onChange={(e) => setPolicy({ ...policy, lockoutMinutes: Number(e.target.value) })}
-                    className="mt-1 h-8 text-xs font-mono"
+                    className="mt-1.5 tabular"
                   />
+                  <p className="mt-1 text-caption text-muted-foreground">Thời gian khóa tạm trước khi thử lại được</p>
                 </div>
               </div>
 
-              <div className="mt-3">
-                <label className="text-[11px] font-semibold text-muted-foreground">Yêu cầu ký tự trong mật khẩu</label>
-                <div className="mt-1.5 grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div className="mt-6">
+                <p className={labelCls}>Yêu cầu ký tự trong mật khẩu</p>
+                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
                   {policyToggles.map(({ key, label }) => (
-                    <div key={key} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3">
-                      <Switch checked={policy[key]} onCheckedChange={(v) => setPolicy({ ...policy, [key]: v })} />
-                      <span className="text-xs text-foreground">{label}</span>
+                    <div
+                      key={key}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-sunken px-4 py-3"
+                    >
+                      <span className="text-body text-foreground">{label}</span>
+                      <Switch
+                        checked={policy[key]}
+                        onCheckedChange={(v) => setPolicy({ ...policy, [key]: v })}
+                        aria-label={label}
+                      />
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3">
+              <div className="mt-4 flex items-start justify-between gap-4 rounded-lg border border-border bg-sunken p-4">
+                <div>
+                  <label htmlFor="ttl-switch" className="text-body font-medium text-foreground">
+                    Thời hạn phiên ngắn (24 giờ)
+                  </label>
+                  <p className="mt-0.5 text-caption text-muted-foreground">
+                    Hiện tại: <span className="font-medium text-secondary-foreground tabular">{policy.accessTokenTtlHours}h</span> — áp dụng cho lần đăng nhập
+                    sau. Bật để siết còn 24h.
+                  </p>
+                </div>
                 <Switch
                   id="ttl-switch"
                   checked={policy.accessTokenTtlHours <= 24}
                   onCheckedChange={(v) => setPolicy({ ...policy, accessTokenTtlHours: v ? 24 : 720 })}
                 />
-                <div>
-                  <label htmlFor="ttl-switch" className="text-xs font-semibold text-foreground">
-                    Thời hạn phiên ngắn (24 giờ)
-                  </label>
-                  <p className="text-[11px] text-muted-foreground">
-                    Hiện tại: <span className="font-mono">{policy.accessTokenTtlHours}h</span> — áp dụng cho lần đăng nhập
-                    sau. Bật để siết còn 24h.
-                  </p>
-                </div>
               </div>
 
               {policyMsg && (
-                <p className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
-                  <CheckCircle2 className="size-3.5" /> {policyMsg}
+                <p className="mt-4 flex items-center gap-1.5 text-body-sm text-success">
+                  <CheckCircle2 className="size-4 shrink-0" /> {policyMsg}
                 </p>
               )}
               {policyError && (
-                <p className="mt-3 flex items-center gap-1.5 text-[11px] text-agent-coral">
-                  <AlertTriangle className="size-3.5" /> {policyError}
+                <p className="mt-4 flex items-center gap-1.5 text-body-sm text-danger">
+                  <AlertTriangle className="size-4 shrink-0" /> {policyError}
                 </p>
               )}
-              <div className="mt-3 flex items-center gap-3">
-                <Button size="sm" className="gap-1.5" onClick={savePolicy} disabled={policyBusy || !policyDirty}>
-                  {policyBusy && <Loader2 className="size-3.5 animate-spin" />} Lưu Chính Sách
-                </Button>
-                {policyDirty && <span className="text-[11px] text-agent-amber">● Có thay đổi chưa lưu</span>}
-              </div>
             </>
           )}
         </CardContent>
+        {policy && (
+          <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 rounded-b-lg border-t border-border bg-card px-5 py-4 sm:px-6">
+            {policyDirty && (
+              <span className="mr-auto flex items-center gap-1.5 text-body-sm text-warning">
+                <span className="size-2 rounded-full bg-warning" aria-hidden="true" /> Có thay đổi chưa lưu
+              </span>
+            )}
+            <Button onClick={savePolicy} disabled={policyBusy || !policyDirty}>
+              {policyBusy && <Loader2 className="size-4 animate-spin" />} Lưu thay đổi
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* 2. Đổi mật khẩu */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <KeyRound className="size-4 text-agent-amber" /> Đổi Mật Khẩu
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="size-4 text-primary" /> Đổi mật khẩu
           </CardTitle>
           <CardDescription>
             {policy
@@ -366,131 +424,156 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Mật khẩu hiện tại</label>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+            <div className="md:col-span-2 md:max-w-[calc(50%-12px)]">
+              <label htmlFor="pw-current" className={labelCls}>Mật khẩu hiện tại</label>
               <Input
+                id="pw-current"
                 type="password"
                 value={currentPw}
                 onChange={(e) => setCurrentPw(e.target.value)}
                 autoComplete="current-password"
-                className="mt-1 h-8 text-xs"
+                className="mt-1.5"
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Mật khẩu mới</label>
+              <label htmlFor="pw-new" className={labelCls}>Mật khẩu mới</label>
               <Input
+                id="pw-new"
                 type="password"
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
                 autoComplete="new-password"
-                className="mt-1 h-8 text-xs"
+                className="mt-1.5"
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Xác nhận mật khẩu mới</label>
+              <label htmlFor="pw-confirm" className={labelCls}>Xác nhận mật khẩu mới</label>
               <Input
+                id="pw-confirm"
                 type="password"
                 value={confirmPw}
                 onChange={(e) => setConfirmPw(e.target.value)}
                 autoComplete="new-password"
-                className="mt-1 h-8 text-xs"
+                className="mt-1.5"
               />
             </div>
           </div>
           {pwMsg && (
-            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
-              <CheckCircle2 className="size-3.5" /> {pwMsg}
+            <p className="mt-4 flex items-center gap-1.5 text-body-sm text-success">
+              <CheckCircle2 className="size-4 shrink-0" /> {pwMsg}
             </p>
           )}
           {pwError && (
-            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-agent-coral">
-              <AlertTriangle className="size-3.5" /> {pwError}
+            <p className="mt-4 flex items-center gap-1.5 text-body-sm text-danger">
+              <AlertTriangle className="size-4 shrink-0" /> {pwError}
             </p>
           )}
-          <Button size="sm" className="mt-3 gap-1.5" onClick={submitPassword} disabled={pwBusy}>
-            {pwBusy && <Loader2 className="size-3.5 animate-spin" />} Đổi Mật Khẩu
-          </Button>
         </CardContent>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4 sm:px-6">
+          <Button variant="outline" onClick={submitPassword} disabled={pwBusy}>
+            {pwBusy && <Loader2 className="size-4 animate-spin" />} Đổi mật khẩu
+          </Button>
+        </div>
       </Card>
 
       {/* 3. Phiên đăng nhập đang hoạt động */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <MonitorSmartphone className="size-4 text-agent-blue" /> Phiên Đăng Nhập Đang Hoạt Động
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2">
+                <MonitorSmartphone className="size-4 text-primary" /> Phiên đăng nhập đang hoạt động
               </CardTitle>
-              <CardDescription>
-                {sessions ? `${sessions.length} phiên active. Thu hồi → thiết bị bị đăng xuất ngay ở request kế tiếp.` : "Đang tải..."}
+              <CardDescription className="mt-1">
+                {sessions ? (
+                  <>
+                    <span className="tabular">{sessions.length}</span> phiên active. Thu hồi → thiết bị bị đăng xuất ngay
+                    ở request kế tiếp.
+                  </>
+                ) : (
+                  "Đang tải..."
+                )}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={loadAll} disabled={sessionsBusy}>
-                {sessionsBusy && <Loader2 className="size-3.5 animate-spin" />} Tải Lại
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={loadAll} disabled={sessionsBusy}>
+                {sessionsBusy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />} Tải lại
               </Button>
               <Button
                 size="sm"
                 variant="destructive"
-                className="gap-1.5"
                 onClick={doRevokeOthers}
-                disabled={sessionsBusy || (sessions?.length ?? 0) <= 1}
+                disabled={sessionsBusy || myOtherSessionCount === 0}
               >
-                Đăng Xuất Thiết Bị Khác
+                <LogOut className="size-4" /> Đăng xuất thiết bị khác
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {sessionsMsg && <p className="mb-3 text-[11px] text-agent-amber">{sessionsMsg}</p>}
+          {sessionsMsg && (
+            <p className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-sunken px-4 py-3 text-body-sm text-secondary-foreground">
+              <Info className="size-4 shrink-0 text-info" /> {sessionsMsg}
+            </p>
+          )}
           {!sessions ? (
-            <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div className="flex h-16 items-center justify-center gap-2 text-body-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Đang tải phiên đăng nhập...
             </div>
           ) : sessions.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Không có phiên nào đang hoạt động.</p>
+            <p className="py-6 text-center text-body-sm text-muted-foreground">Không có phiên nào đang hoạt động.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Người dùng</TableHead>
-                  <TableHead>Thiết bị</TableHead>
-                  <TableHead>IP</TableHead>
-                  <TableHead>Đăng nhập lúc</TableHead>
-                  <TableHead>Hết hạn</TableHead>
-                  <TableHead className="text-right">Hành động</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessions.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <p className="text-xs font-medium text-foreground">{s.user.email}</p>
-                      <Badge variant={s.user.role === "ADMIN" ? "blue" : "teal"} className="mt-1">
-                        {s.user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{describeUserAgent(s.userAgent)}</TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">{s.ip ?? "--"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{fmtDateTime(s.createdAt)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{fmtDateTime(s.expiresAt)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="xs"
-                        variant="destructive"
-                        className="gap-1"
-                        onClick={() => doRevoke(s.id)}
-                        disabled={revokingId === s.id}
-                      >
-                        {revokingId === s.id && <Loader2 className="size-3 animate-spin" />}
-                        Thu hồi
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <Table className="min-w-[760px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Người dùng</TableHead>
+                    <TableHead>Thiết bị</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead>Đăng nhập lúc</TableHead>
+                    <TableHead>Hết hạn</TableHead>
+                    <TableHead className="text-right">Hành động</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {sessions.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell>
+                        <p className="font-medium text-foreground">{s.user.email}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                          <Badge variant={s.user.role === "ADMIN" ? "default" : "secondary"}>{s.user.role}</Badge>
+                          {s.id === currentSid && (
+                            <Badge variant="success">
+                              <span className="size-1.5 rounded-full bg-success" aria-hidden="true" /> Phiên hiện tại
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-secondary-foreground">{describeUserAgent(s.userAgent)}</TableCell>
+                      <TableCell className="font-mono text-caption text-muted-foreground">{s.ip ?? "--"}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground tabular">{fmtDateTime(s.createdAt)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground tabular">{fmtDateTime(s.expiresAt)}</TableCell>
+                      <TableCell className="text-right">
+                        {s.id === currentSid ? (
+                          <span className="text-caption text-muted-foreground">Đang dùng</span>
+                        ) : (
+                          <Button
+                            size="xs"
+                            variant="destructive"
+                            onClick={() => doRevoke(s.id, s.user.email)}
+                            disabled={revokingId === s.id}
+                          >
+                            {revokingId === s.id && <Loader2 className="size-3.5 animate-spin" />}
+                            Thu hồi
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -498,45 +581,50 @@ export function SecuritySection({ onDirtyChange }: { onDirtyChange?: (dirty: boo
       {/* 4. Lịch sử đăng nhập */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <History className="size-4 text-muted-foreground" /> Lịch Sử Đăng Nhập
+          <CardTitle className="flex items-center gap-2">
+            <History className="size-4 text-primary" /> Lịch sử đăng nhập
           </CardTitle>
           <CardDescription>20 sự kiện gần nhất — cả đăng nhập thành công và thất bại.</CardDescription>
         </CardHeader>
         <CardContent>
           {!history ? (
-            <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div className="flex h-16 items-center justify-center gap-2 text-body-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Đang tải...
             </div>
           ) : history.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Chưa có sự kiện nào.</p>
+            <p className="py-6 text-center text-body-sm text-muted-foreground">Chưa có sự kiện nào.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Kết quả</TableHead>
-                  <TableHead>Lý do (nếu thất bại)</TableHead>
-                  <TableHead>IP</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell className="text-xs text-muted-foreground">{fmtDateTime(h.createdAt)}</TableCell>
-                    <TableCell className="text-xs text-foreground">{h.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={h.success ? "success" : "coral"}>{h.success ? "Thành công" : "Thất bại"}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {h.reason ? (REASON_LABELS[h.reason] ?? h.reason) : "--"}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">{h.ip ?? "--"}</TableCell>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <Table className="min-w-[720px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Thời gian</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Kết quả</TableHead>
+                    <TableHead>Lý do (nếu thất bại)</TableHead>
+                    <TableHead>IP</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {history.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell className="whitespace-nowrap text-muted-foreground tabular">{fmtDateTime(h.createdAt)}</TableCell>
+                      <TableCell className="text-foreground">{h.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={h.success ? "success" : "destructive"}>
+                          {h.success ? <CheckCircle2 /> : <AlertTriangle />}
+                          {h.success ? "Thành công" : "Thất bại"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {h.reason ? (REASON_LABELS[h.reason] ?? h.reason) : "--"}
+                      </TableCell>
+                      <TableCell className="font-mono text-caption text-muted-foreground">{h.ip ?? "--"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

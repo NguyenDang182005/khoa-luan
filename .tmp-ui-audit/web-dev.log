@@ -1,0 +1,15 @@
+
+> web@0.1.0 dev C:\Users\Admin\Documents\admin\khoa-luan\apps\web
+> next dev --port 3000
+
+▲ Next.js 16.3.0 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.78:3000
+- Environments: .env.local
+✓ Ready in 1017ms
+✓ Running next.config.js took 19ms
+
+ GET / 200 in 1589ms (next.js: 936ms, application-code: 654ms)
+ GET / 200 in 80ms (next.js: 29ms, application-code: 52ms)
+ GET / 200 in 50ms (next.js: 7ms, application-code: 43ms)
+ GET / 200 in 62ms (next.js: 13ms, application-code: 50ms)

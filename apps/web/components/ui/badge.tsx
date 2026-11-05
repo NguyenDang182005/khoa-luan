@@ -3,29 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex h-[22px] items-center gap-1 rounded-full border border-transparent px-2 text-caption font-medium whitespace-nowrap transition-colors [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-        success:
-          "border-transparent bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-        warning:
-          "border-transparent bg-amber-500/15 text-amber-400 border-amber-500/20",
-        teal:
-          "border-transparent bg-agent-teal/15 text-agent-teal border-agent-teal/20",
-        blue:
-          "border-transparent bg-agent-blue/15 text-agent-blue border-agent-blue/20",
-        amber:
-          "border-transparent bg-agent-amber/15 text-agent-amber border-agent-amber/20",
-        coral:
-          "border-transparent bg-agent-coral/15 text-agent-coral border-agent-coral/20",
+        default: "bg-primary-tint text-accent-foreground",
+        secondary: "bg-muted text-secondary-foreground",
+        destructive: "bg-danger-tint text-danger",
+        outline: "border-border bg-card text-secondary-foreground",
+        success: "bg-success-tint text-success",
+        warning: "bg-warning-tint text-warning",
+        info: "bg-info-tint text-info",
+        ai: "bg-ai-tint text-ai",
+        // Agent — teal=WF01 · blue=WF02 · amber=WF03 · coral=WF04
+        teal: "rounded-sm bg-agent-wf01-tint text-agent-wf01",
+        blue: "rounded-sm bg-agent-wf02-tint text-agent-wf02",
+        amber: "rounded-sm bg-agent-wf03-tint text-agent-wf03",
+        coral: "rounded-sm bg-agent-wf04-tint text-agent-wf04",
       },
     },
     defaultVariants: {

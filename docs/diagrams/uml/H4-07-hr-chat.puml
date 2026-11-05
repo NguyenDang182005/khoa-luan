@@ -1,0 +1,44 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+actor "Nhân viên" as E
+participant "Web Portal" as W
+participant "NestJS\nAgentsService" as A
+participant "n8n WF01\nRouter" as R
+participant "n8n WF02\nHR Agent" as H
+participant "DeepSeek" as G
+participant "NestJS\n/n8n API" as T
+E -> W : "Lương tháng 8 của tôi bao nhiêu?"
+activate W
+W -> A : POST /agents/chat
+activate A
+A -> A : Kiểm tra AiAgentConfig.enabled,\ntimeout 90 giây
+A -> R : POST /webhook/chat (x-api-key)
+activate R
+R -> R : Che PII, phân loại HR_QA,\nkhông gọi LLM
+R -> H : Execute Workflow
+activate H
+H -> T : Lấy hoặc tạo phiên, lưu tin nhắn
+H -> G : Prompt hệ thống, lịch sử, câu hỏi
+activate G
+G --> H : Yêu cầu gọi GetPayrollContext
+deactivate G
+H -> T : GET /n8n/payroll-context/EMP003?month=8&year=2026
+activate T
+T --> H : Phiếu lương do Rule Engine tính sẵn
+deactivate T
+H -> G : Kết quả công cụ
+activate G
+G --> H : Câu trả lời diễn giải số liệu
+deactivate G
+H -> T : Lưu câu trả lời, phát sự kiện ai:activity
+H --> R : answer
+deactivate H
+R --> A : answer, intent
+deactivate R
+A --> W : Câu trả lời
+deactivate A
+W --> E : Hiển thị câu trả lời
+deactivate W
+@enduml

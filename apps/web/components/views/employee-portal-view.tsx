@@ -17,21 +17,36 @@ import type { PayrollRecord } from "@/lib/schemas/payroll.schema"
 import * as React from "react"
 import {
   Clock,
-  Calendar,
+  CalendarCheck,
   MapPin,
-  CheckCircle2,
-  Bot,
+  LocateFixed,
+  Check,
+  CircleCheck,
+  CircleX,
+  CircleAlert,
+  Hourglass,
+  Ban,
   Sparkles,
   X,
-  CreditCard,
+  Wallet,
   Loader2,
   AlertTriangle,
+  LogIn,
+  LogOut,
+  Plus,
+  ArrowRight,
+  ChevronDown,
+  Inbox,
+  Send,
+  RotateCcw,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { todayVN, leaveTypeLabel, payrollStatusLabel, vnd } from "@/lib/utils"
+import { RichText } from "@/components/ui/rich-text"
+import { todayVN, leaveTypeLabel, requestDurationLabel, payrollStatusLabel, vnd, fmtVNDate } from "@/lib/utils"
 import { settingsApi } from "@/lib/api/settings.api"
 import { MonthlyTimesheetStrip } from "@/components/portal/monthly-timesheet-strip"
 
@@ -43,6 +58,8 @@ const OFFICE_FALLBACK = {
   lng: Number(process.env.NEXT_PUBLIC_OFFICE_LNG ?? 106.7218),
   radiusM: Number(process.env.NEXT_PUBLIC_OFFICE_RADIUS_M ?? 200),
 }
+// Mock tạm: bỏ kiểm tra bán kính và cho check-in cả khi không lấy được GPS (khớp ATTENDANCE_GEOFENCE_MOCK ở API)
+const GEOFENCE_MOCK = process.env.NEXT_PUBLIC_GEOFENCE_MOCK === "true"
 
 const LEAVE_TYPE_OPTIONS = [
   LeaveTypeEnum.enum.ANNUAL,
@@ -260,6 +277,13 @@ export function EmployeePortalView() {
     setGpsMessage(null)
     setGpsBusy(true)
     try {
+      if (GEOFENCE_MOCK) {
+        const pos = await getPosition().catch(() => null)
+        await attendanceApi.checkIn(pos?.coords.latitude, pos?.coords.longitude)
+        setGpsMessage("Check-in thành công!")
+        await loadAll()
+        return
+      }
       const pos = await getPosition()
       const distance = Math.round(haversineMeters(pos.coords.latitude, pos.coords.longitude, office.lat, office.lng))
       if (distance > office.radiusM) {
@@ -343,6 +367,9 @@ export function EmployeePortalView() {
         if (!errs[key]) errs[key] = issue.message
       }
       setLeaveErrors(errs)
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>('#leave-form [aria-invalid="true"]')?.focus(),
+      )
       return
     }
     setLeaveSubmitting(true)
@@ -350,7 +377,7 @@ export function EmployeePortalView() {
       await leaveApi.create(parsed.data)
       setShowLeaveModal(false)
       setReason("")
-      setLeaveSuccess("Đã gửi đơn nghỉ phép. Đơn đang chờ quản lý duyệt.")
+      setLeaveSuccess(`Đã gửi đơn ${leaveTypeLabel(leaveType)}. Đơn đang chờ quản lý duyệt.`)
       await loadAll()
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
@@ -362,356 +389,439 @@ export function EmployeePortalView() {
 
   const gross = payslip ? payslip.baseSalary + payslip.allowances + payslip.overtimePay + payslip.bonus : 0
 
+  // ── Hiển thị (chỉ phục vụ giao diện) ────────────────────────────────────
+  const payslipRef = React.useRef<HTMLDivElement>(null)
+  const shortName = empName.trim().split(/\s+/).filter(Boolean).pop() ?? ""
+  const todayRaw = nowDate.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })
+  const todayLabel = todayRaw.charAt(0).toLocaleUpperCase("vi-VN") + todayRaw.slice(1)
+  const usedDays = leaveBalance ? Math.max(0, leaveBalance.totalDays - leaveBalance.remainingDays) : 0
+  const remainingPct = leaveBalance
+    ? Math.min(100, (leaveBalance.remainingDays / Math.max(1, leaveBalance.totalDays)) * 100)
+    : 0
+  const requestedDays = (() => {
+    if (!startDate || !endDate) return 0
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0
+    return Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1)
+  })()
+  const pendingCount = leaveHistory.filter((l) => l.status === "PENDING").length
+  const onboardingPct = onboarding && onboarding.total > 0 ? Math.round((onboarding.completed / onboarding.total) * 100) : 0
+  const payslipPeriod = payslip
+    ? `${String(payslip.month).padStart(2, "0")}/${payslip.year}`
+    : `${String(selectedMonth).padStart(2, "0")}/${selectedYear}`
+
+  const openLeaveModal = () => { setShowLeaveModal(true); setLeaveErrors({}); setLeaveSuccess(null) }
+  const openPayslipDetails = () => {
+    setShowPayslipDetails(true)
+    requestAnimationFrame(() => payslipRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+  }
+
   return (
-    <div className="relative flex flex-col gap-6 p-6">
-      {/* Top Banner */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Bàn Làm Việc Cá Nhân (Employee Portal)
-          </h1>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            Xin chào, {empName || "bạn"} ({posTitle || "—"} • Mã NV: {empCode || "—"}{deptName ? ` • ${deptName}` : ""})
+    <div className="relative flex flex-col gap-6 pb-28">
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-h1 font-semibold text-foreground">Xin chào, {shortName || "bạn"}</h1>
+          <p className="mt-1 text-body text-muted-foreground">
+            {posTitle || "—"}
+            {deptName ? ` • ${deptName.startsWith("Phòng") ? deptName : `Phòng ${deptName}`}` : ""}
+            {" • "}
+            <span className="font-mono text-body-sm">{empCode || "—"}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="teal" className="gap-1 px-3 py-1">
-            <span className="size-2 rounded-full bg-agent-teal animate-pulse" />
-            Trợ lý AI Đang Trực Tuyến
-          </Badge>
-        </div>
+        <Badge variant="ai" className="h-8 gap-1.5 px-3 text-body-sm">
+          <span className="size-2 animate-pulse rounded-full bg-ai" />
+          Trợ lý AI đang trực tuyến
+        </Badge>
       </div>
 
       {leaveSuccess && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">
+        <div role="status" className="flex items-start gap-2 rounded-lg border border-success/20 bg-success-tint px-4 py-3 text-body-sm text-success">
+          <CircleCheck className="mt-0.5 size-4 shrink-0" />
           {leaveSuccess}
         </div>
       )}
 
-      {/* Row 1: 3 Quick Action Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* GPS Geofencing Attendance Card — dữ liệu thật từ attendance API */}
-        <Card className="border-primary/30">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-              Chấm Công Định Vị GPS Hôm Nay
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Clock className="size-4" />
+      {/* Row 1: 3 thẻ thao tác nhanh */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6 xl:grid-cols-3">
+        {/* Chấm công GPS — dữ liệu thật từ attendance API */}
+        <Card className="flex flex-col p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary">
+                <MapPin className="size-[18px]" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-body font-semibold text-foreground">Chấm công GPS</h2>
+                <p className="text-caption text-muted-foreground">{todayLabel}</p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {todayRecord?.checkIn ? (
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-foreground">{timeHM(todayRecord.checkIn)}</span>
-                <Badge variant="success" className="text-[10px]">Đã Check-in</Badge>
-              </div>
+            {!todayRecord?.checkIn ? (
+              <Badge variant="warning"><Clock />Chưa check-in</Badge>
+            ) : !todayRecord.checkOut ? (
+              <Badge variant="success"><CircleCheck />Đã check-in</Badge>
             ) : (
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-muted-foreground">--:--</span>
-                <Badge variant="warning" className="text-[10px]">Chưa Check-in</Badge>
-              </div>
+              <Badge variant="success"><CircleCheck />Hoàn tất ngày công</Badge>
             )}
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <MapPin className="size-3 text-emerald-400" /> {office.name} (bán kính {office.radiusM}m)
+          </div>
+          <dl className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-md border border-border-subtle bg-sunken p-3">
+              <dt className="text-caption text-muted-foreground">Giờ vào</dt>
+              <dd className="mt-0.5 text-h2 font-semibold tabular text-foreground">{timeHM(todayRecord?.checkIn)}</dd>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-sunken p-3">
+              <dt className="text-caption text-muted-foreground">Giờ ra</dt>
+              <dd className="mt-0.5 text-h2 font-semibold tabular text-foreground">{timeHM(todayRecord?.checkOut)}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 flex items-center gap-1.5 text-caption text-muted-foreground">
+            <LocateFixed className="size-3.5 shrink-0" />
+            Vùng hợp lệ: {office.name} · bán kính {office.radiusM} m
+          </p>
+          {gpsMessage && (
+            <p role="status" className="mt-2 flex items-center gap-1.5 text-caption text-success">
+              <CircleCheck className="size-3.5 shrink-0" /> {gpsMessage}
             </p>
-            <div className="mt-3 flex flex-col gap-2">
-              {!todayRecord?.checkIn ? (
-                <Button size="sm" className="w-full text-xs gap-1.5 bg-primary text-primary-foreground" onClick={handleCheckIn} disabled={gpsBusy || !employeeId}>
-                  {gpsBusy && <Loader2 className="size-3.5 animate-spin" />} Check-in (GPS)
-                </Button>
-              ) : !todayRecord?.checkOut ? (
-                <Button size="sm" variant="outline" className="w-full text-xs gap-1.5 border-agent-amber/40 text-agent-amber hover:bg-agent-amber/10" onClick={handleCheckOut} disabled={gpsBusy}>
-                  {gpsBusy && <Loader2 className="size-3.5 animate-spin" />} Chấm Công Ra (Check-out)
-                </Button>
-              ) : (
-                <div className="rounded-lg bg-emerald-500/10 p-2 text-center text-xs font-semibold text-emerald-400">
-                  ✓ Đã check-out lúc {timeHM(todayRecord.checkOut)}
-                  {typeof todayRecord.workHours === "number" ? ` • ${todayRecord.workHours.toFixed(1)}h` : ""}
-                </div>
-              )}
-              {gpsMessage && <p className="text-[11px] text-emerald-400">{gpsMessage}</p>}
-              {gpsError && (
-                <p className="flex items-start gap-1 text-[11px] text-agent-coral">
-                  <AlertTriangle className="mt-0.5 size-3 shrink-0" /> {gpsError}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Annual Leaves Card — số thật từ leave balance */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-              Phép Năm Còn Lại
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-agent-teal/10 text-agent-teal">
-              <Calendar className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-agent-teal">
-              {dataLoading ? "..." : (leaveBalance?.remainingDays ?? "--")}{" "}
-              <span className="text-xs font-normal text-muted-foreground">/ {leaveBalance?.totalDays ?? "--"} ngày</span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-muted mt-2 overflow-hidden">
-              <div
-                className="h-full bg-agent-teal rounded-full transition-all"
-                style={{ width: `${leaveBalance ? Math.min(100, (leaveBalance.remainingDays / Math.max(1, leaveBalance.totalDays)) * 100) : 0}%` }}
-              />
-            </div>
-            <div className="mt-3">
-              <Button
-                size="sm"
-                className="w-full text-xs bg-primary text-primary-foreground"
-                onClick={() => { setShowLeaveModal(true); setLeaveErrors({}); setLeaveSuccess(null) }}
-              >
-                Tạo Đơn Nghỉ Phép
+          )}
+          {gpsError && (
+            <p role="alert" className="mt-2 flex items-start gap-1.5 text-caption text-danger">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> {gpsError}
+            </p>
+          )}
+          <div className="mt-auto pt-5">
+            {!todayRecord?.checkIn ? (
+              <Button size="lg" className="h-11 w-full" onClick={handleCheckIn} disabled={gpsBusy || !employeeId}>
+                {gpsBusy ? <Loader2 className="animate-spin" /> : <LogIn />}
+                {gpsBusy ? "Đang lấy vị trí GPS…" : "Check-in"}
               </Button>
-            </div>
-          </CardContent>
+            ) : !todayRecord.checkOut ? (
+              <Button size="lg" variant="outline" className="h-11 w-full" onClick={handleCheckOut} disabled={gpsBusy}>
+                {gpsBusy ? <Loader2 className="animate-spin" /> : <LogOut />}
+                {gpsBusy ? "Đang check-out…" : "Check-out"}
+              </Button>
+            ) : (
+              <Button size="lg" variant="outline" className="h-11 w-full" disabled>
+                <Check />
+                Đã hoàn tất hôm nay
+                {typeof todayRecord.workHours === "number" ? ` · ${todayRecord.workHours.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} h` : ""}
+              </Button>
+            )}
+          </div>
         </Card>
 
-        {/* Latest Payslip — phiếu lương thật từ /payroll/me */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">
-              {payslip
-                ? `Phiếu Lương Tháng ${String(payslip.month).padStart(2, "0")}/${payslip.year}`
-                : `Phiếu Lương Tháng ${String(selectedMonth).padStart(2, "0")}/${selectedYear}`}
-            </CardTitle>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-              <CreditCard className="size-4" />
+        {/* Phép năm — số thật từ leave balance */}
+        <Card className="flex flex-col p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-success-tint text-success">
+              <CalendarCheck className="size-[18px]" />
+            </span>
+            <div>
+              <h2 className="text-body font-semibold text-foreground">Phép năm còn lại</h2>
+              <p className="text-caption text-muted-foreground">Năm {selectedYear}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            {payslip ? (
-              <>
-                <div className="text-2xl font-bold font-mono text-emerald-400">{vnd(payslip.netSalary)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Trạng thái: {payrollStatusLabel(payslip.status)}</p>
-                <div className="mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full text-xs"
-                    onClick={() => setShowPayslipDetails(!showPayslipDetails)}
-                  >
-                    {showPayslipDetails ? "Ẩn Chi Tiết" : "Xem Chi Tiết"}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {dataLoading
-                  ? "Đang tải phiếu lương..."
-                  : `Chưa có phiếu lương kỳ ${String(selectedMonth).padStart(2, "0")}/${selectedYear}. Phiếu xuất hiện sau khi HR chạy Rule Engine.`}
+          </div>
+          {dataLoading && !leaveBalance ? (
+            <div className="mt-5 flex flex-col gap-3">
+              <div className="skeleton h-9 w-32 rounded-md" />
+              <div className="skeleton h-2 w-full rounded-full" />
+            </div>
+          ) : (
+            <>
+              <p className="mt-5 flex items-baseline gap-2">
+                <span className="text-display font-bold tabular text-foreground">
+                  {leaveBalance ? leaveBalance.remainingDays.toLocaleString("vi-VN") : "--"}
+                </span>
+                <span className="text-body text-muted-foreground">/ {leaveBalance?.totalDays ?? "--"} ngày</span>
               </p>
-            )}
-          </CardContent>
+              <div
+                className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={leaveBalance?.remainingDays ?? 0}
+                aria-valuemin={0}
+                aria-valuemax={leaveBalance?.totalDays ?? 0}
+                aria-label={`Còn ${leaveBalance?.remainingDays ?? 0} trên ${leaveBalance?.totalDays ?? 0} ngày phép`}
+              >
+                <div className="h-full rounded-full bg-success transition-[width]" style={{ width: `${remainingPct}%` }} />
+              </div>
+              <p className="mt-2 text-caption text-muted-foreground">
+                Đã dùng {usedDays.toLocaleString("vi-VN")} ngày
+                {pendingCount > 0 ? ` · ${pendingCount} đơn đang chờ duyệt` : ""}
+              </p>
+            </>
+          )}
+          <div className="mt-auto pt-5">
+            <Button size="lg" variant="outline" className="h-11 w-full" onClick={openLeaveModal}>
+              <Plus />
+              Tạo đơn mới
+            </Button>
+          </div>
+        </Card>
+
+        {/* Phiếu lương gần nhất — từ /payroll/me */}
+        <Card className="flex flex-col p-4 sm:p-5 md:col-span-2 xl:col-span-1">
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary">
+                <Wallet className="size-[18px]" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-body font-semibold text-foreground">Phiếu lương</h2>
+                <p className="text-caption text-muted-foreground">Kỳ tháng {payslipPeriod}</p>
+              </div>
+            </div>
+            {payslip && <PayrollStatusBadge status={payslip.status} />}
+          </div>
+          {payslip ? (
+            <>
+              <p className="mt-5 text-caption text-muted-foreground">Thực lĩnh</p>
+              <p className="break-words text-display font-bold tabular text-foreground">{vndSuffix(payslip.netSalary)}</p>
+              <p className="mt-1 text-caption text-muted-foreground">
+                Gross {vndSuffix(gross)}
+                {payslip.paidAt ? ` · chi trả ${formatDateVN(payslip.paidAt)}` : ""}
+              </p>
+              <div className="mt-auto pt-5">
+                <Button
+                  variant="ghost"
+                  className="w-full text-primary hover:bg-primary-tint hover:text-primary"
+                  onClick={openPayslipDetails}
+                  aria-controls="payslip-details"
+                >
+                  Xem chi tiết
+                  <ArrowRight />
+                </Button>
+              </div>
+            </>
+          ) : dataLoading ? (
+            <div className="mt-5 flex flex-col gap-2">
+              <div className="skeleton h-4 w-20 rounded-md" />
+              <div className="skeleton h-9 w-48 rounded-md" />
+            </div>
+          ) : (
+            <p className="mt-5 text-body-sm text-muted-foreground">
+              Chưa có phiếu lương kỳ {payslipPeriod}. Phiếu xuất hiện sau khi HR tính lương.
+            </p>
+          )}
         </Card>
       </div>
 
-      {/* Expandable Payslip Breakdown — số liệu thật */}
-      {showPayslipDetails && payslip && (
-        <Card className="border-border/80 animate-in fade-in duration-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle className="text-sm font-semibold">
-                Chi Tiết Phiếu Lương Điện Tử (Kỳ {String(payslip.month).padStart(2, "0")}/{payslip.year})
-              </CardTitle>
-              <CardDescription>Bảng phân rã các khoản thu nhập và giảm trừ theo luật</CardDescription>
+      {/* Row 2: Bảng công (trái) + Đơn & Hội nhập (phải) */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[400px_1fr] lg:gap-6">
+        <MonthlyTimesheetStrip
+          employeeId={employeeId}
+          month={selectedMonth}
+          year={selectedYear}
+          onMonthChange={handleMonthChange}
+          attendanceRecords={monthlyAttendance}
+          loading={timesheetLoading}
+        />
+
+        <div className="grid min-w-0 gap-4 lg:gap-6">
+          {/* Đơn của tôi */}
+          <Card>
+            <div className="flex items-start justify-between gap-3 p-5 pb-4 sm:p-6 sm:pb-4">
+              <div className="min-w-0">
+                <h2 className="text-h3 font-semibold text-foreground">Đơn của tôi</h2>
+                <p className="text-body-sm text-muted-foreground">Nghỉ phép, tăng ca, công tác và trạng thái duyệt</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={openLeaveModal} aria-label="Tạo đơn mới">
+                <Plus />
+                <span className="hidden sm:inline">Tạo đơn</span>
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-5 pt-2">
-              <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Lương thực tế</span>
-                <p className="font-mono font-bold text-foreground mt-1">{vnd(payslip.baseSalary)}</p>
-                <p className="text-[10px] text-muted-foreground">{payslip.actualWorkingDays}/{payslip.workingDays} ngày công</p>
+            {leaveHistory.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 border-t border-border-subtle px-6 py-10 text-center">
+                <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Inbox className="size-5" />
+                </span>
+                <p className="text-body font-semibold text-foreground">Bạn chưa gửi đơn nào</p>
+                <p className="text-body-sm text-muted-foreground">Đơn nghỉ phép, tăng ca, công tác sẽ hiện ở đây.</p>
               </div>
-              <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Làm thêm giờ ({payslip.overtimeHours}h)</span>
-                <p className="font-mono font-bold text-emerald-400 mt-1">+{vnd(payslip.overtimePay)}</p>
+            ) : (
+              <ul className="divide-y divide-border-subtle border-t border-border-subtle">
+                {leaveHistory.map((leave) => (
+                  <li key={leave.id} className="flex items-start gap-3 px-5 py-3.5 sm:px-6">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body font-medium text-foreground">{leaveTypeLabel(leave.type)}</p>
+                      <p className="text-caption text-muted-foreground tabular">
+                        {leave.startDate === leave.endDate
+                          ? formatDateVN(leave.startDate)
+                          : `${formatDateVN(leave.startDate)} → ${formatDateVN(leave.endDate)}`}
+                        {" · "}
+                        {requestDurationLabel(leave)}
+                      </p>
+                      {leave.reason && (
+                        <p className="mt-0.5 line-clamp-2 break-words text-caption text-muted-foreground">{leave.reason}</p>
+                      )}
+                      {leave.rejectionReason && (
+                        <p className="mt-1 break-words text-caption text-danger">Lý do từ chối: {leave.rejectionReason}</p>
+                      )}
+                    </div>
+                    <LeaveStatusBadge status={leave.status} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          {/* Lộ trình hội nhập */}
+          <Card className="p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-h3 font-semibold text-foreground">Lộ trình hội nhập</h2>
+                <p className="text-body-sm text-muted-foreground">
+                  {onboarding && onboarding.total > 0
+                    ? `${onboarding.completed}/${onboarding.total} hạng mục đã hoàn thành`
+                    : "Tiến độ hội nhập sẽ hiển thị tại đây"}
+                </p>
               </div>
-              <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Phụ cấp + Thưởng</span>
-                <p className="font-mono font-bold text-foreground mt-1">+{vnd(payslip.allowances + payslip.bonus)}</p>
-              </div>
-              <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Tổng Gross</span>
-                <p className="font-mono font-bold text-foreground mt-1">{vnd(gross)}</p>
-                {(payslip.bhxhBenefit ?? 0) > 0 && (
-                  <p className="text-[10px] text-emerald-500">
-                    Trợ cấp BHXH (cơ quan BHXH trả): +{vnd(payslip.bhxhBenefit!)}
-                  </p>
-                )}
-              </div>
-              <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Bảo hiểm (BHXH/BHYT/BHTN)</span>
-                <p className="font-mono font-bold text-agent-coral mt-1">-{vnd(payslip.deductions)}</p>
-                <p className="text-[10px] text-muted-foreground">Thuế TNCN: {vnd(payslip.tax)}</p>
-                {(payslip.advance ?? 0) > 0 && (
-                  <p className="text-[10px] text-agent-coral">Tạm ứng: -{vnd(payslip.advance!)}</p>
-                )}
-              </div>
+              {onboarding && onboarding.total > 0 && (
+                <span className="text-body-sm font-semibold tabular text-foreground">{onboardingPct}%</span>
+              )}
             </div>
-          </CardContent>
+            {!onboarding || onboarding.items.length === 0 ? (
+              dataLoading ? (
+                <div className="mt-4 flex flex-col gap-3">
+                  <div className="skeleton h-2 w-full rounded-full" />
+                  <div className="skeleton h-5 w-3/4 rounded-md" />
+                  <div className="skeleton h-5 w-2/3 rounded-md" />
+                </div>
+              ) : (
+                <p className="mt-4 text-body-sm text-muted-foreground">Chưa có lộ trình hội nhập nào được gán cho bạn.</p>
+              )
+            ) : (
+              <>
+                <div
+                  className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={onboardingPct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Tiến độ hội nhập ${onboardingPct}%`}
+                >
+                  <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${onboardingPct}%` }} />
+                </div>
+                <ol className="mt-4 grid">
+                  {onboarding.items.map((item, idx) => (
+                    <li key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
+                      {idx < onboarding.items.length - 1 && (
+                        <span
+                          aria-hidden="true"
+                          className={`absolute bottom-0 left-[11px] top-6 w-px ${item.isCompleted ? "bg-primary/30" : "bg-border"}`}
+                        />
+                      )}
+                      <span
+                        className={`relative flex size-6 shrink-0 items-center justify-center rounded-full ${
+                          item.isCompleted ? "bg-primary text-primary-foreground" : "border-2 border-input bg-card"
+                        }`}
+                      >
+                        {item.isCompleted && <Check className="size-3.5" />}
+                        <span className="sr-only">{item.isCompleted ? "Đã hoàn thành" : "Chưa hoàn thành"}</span>
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <div className="min-w-0">
+                          <p className={`text-body-sm ${item.isCompleted ? "text-secondary-foreground" : "font-medium text-foreground"}`}>
+                            {item.title}
+                          </p>
+                          {item.description && (
+                            <p className="break-words text-caption text-muted-foreground">{item.description}</p>
+                          )}
+                        </div>
+                        <Badge variant={item.isCompleted ? "success" : "secondary"}>
+                          {item.isCompleted
+                            ? `Hoàn thành${item.completedAt ? ` ${new Date(item.completedAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}` : ""}`
+                            : "Chờ xử lý"}
+                        </Badge>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* Chi tiết phiếu lương (accordion) — số liệu thật */}
+      {payslip && (
+        <Card ref={payslipRef} className="scroll-mt-20">
+          <button
+            type="button"
+            onClick={() => setShowPayslipDetails(!showPayslipDetails)}
+            aria-expanded={showPayslipDetails}
+            aria-controls="payslip-details"
+            className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg p-5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/20 sm:p-6"
+          >
+            <div className="min-w-0">
+              <h2 className="text-h3 font-semibold text-foreground">Chi tiết phiếu lương tháng {payslipPeriod}</h2>
+              <p className="text-body-sm text-muted-foreground">Các khoản thu nhập và giảm trừ theo luật</p>
+            </div>
+            <ChevronDown
+              className={`size-5 shrink-0 text-muted-foreground transition-transform ${showPayslipDetails ? "rotate-180" : ""}`}
+            />
+          </button>
+          {showPayslipDetails && (
+            <div id="payslip-details" className="overflow-x-auto px-5 pb-6 sm:px-6">
+              <Table className="min-w-[560px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Khoản mục</TableHead>
+                    <TableHead className="text-right">Thu nhập</TableHead>
+                    <TableHead className="text-right">Giảm trừ</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="tabular">
+                  <PayslipRow
+                    label="Lương thực tế"
+                    income={payslip.baseSalary}
+                    note={`${payslip.actualWorkingDays}/${payslip.workingDays} ngày công`}
+                  />
+                  <PayslipRow
+                    label="Làm thêm giờ"
+                    income={payslip.overtimePay}
+                    note={`${payslip.overtimeHours.toLocaleString("vi-VN")} giờ`}
+                  />
+                  <PayslipRow label="Phụ cấp + Thưởng" income={payslip.allowances + payslip.bonus} />
+                  <PayslipRow label="Tổng gross" income={gross} strong />
+                  <PayslipRow label="Bảo hiểm (BHXH/BHYT/BHTN)" deduction={payslip.deductions} />
+                  <PayslipRow label="Thuế TNCN" deduction={payslip.tax} />
+                  {(payslip.advance ?? 0) > 0 && <PayslipRow label="Tạm ứng" deduction={payslip.advance!} />}
+                  {(payslip.bhxhBenefit ?? 0) > 0 && (
+                    <PayslipRow
+                      label="Trợ cấp BHXH"
+                      income={payslip.bhxhBenefit!}
+                      note="Cơ quan BHXH chi trả, không nằm trong lương công ty"
+                    />
+                  )}
+                  <TableRow className="font-semibold hover:bg-transparent">
+                    <TableCell>Thực lĩnh</TableCell>
+                    <TableCell className="text-right text-primary" colSpan={2}>{vndSuffix(payslip.netSalary)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </Card>
       )}
 
-      {/* ── ROW: Lịch chấm công (trái) + Đơn nghỉ & Hội nhập (phải) ── */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-
-        {/* Lịch chấm công — tự kéo dài bằng chiều cao hàng */}
-        <div className="shrink-0 flex flex-col">
-          <MonthlyTimesheetStrip
-            employeeId={employeeId}
-            month={selectedMonth}
-            year={selectedYear}
-            onMonthChange={handleMonthChange}
-            attendanceRecords={monthlyAttendance}
-            loading={timesheetLoading}
-          />
-        </div>
-
-        {/* Cột phải: Đơn nghỉ phép + Lộ trình hội nhập — 2 ô ngang */}
-        <div className="grid grid-cols-2 gap-4 flex-1 min-w-0 items-stretch">
-
-          {/* Đơn nghỉ phép của tôi */}
-          <Card className="border-border h-full">
-            <CardHeader className="pb-3">
-              <div>
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Calendar className="size-4 text-agent-teal" />
-                  Đơn Nghỉ Phép Của Tôi
-                </CardTitle>
-                <CardDescription className="text-xs">Lịch sử các đơn đã gửi và trạng thái phê duyệt</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {leaveHistory.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Bạn chưa gửi đơn nghỉ phép nào.</p>
-              ) : (
-                <div className="flex flex-col gap-2.5 text-xs">
-                  {leaveHistory.map((leave) => (
-                    <div
-                      key={leave.id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border bg-muted/15 p-3 hover:bg-muted/30 transition-colors gap-2"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Calendar className="size-4" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{leaveTypeLabel(leave.type)}</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border">
-                              {leave.totalDays} ngày
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {formatDateVN(leave.startDate)} → {formatDateVN(leave.endDate)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground italic mt-0.5">&ldquo;{leave.reason}&rdquo;</p>
-                          {leave.rejectionReason && (
-                            <p className="text-[11px] text-rose-400 mt-1">Lý do từ chối: {leave.rejectionReason}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <Badge
-                          variant={
-                            leave.status === "APPROVED"
-                              ? "success"
-                              : leave.status === "REJECTED"
-                              ? "destructive"
-                              : leave.status === "CANCELLED"
-                              ? "secondary"
-                              : "warning"
-                          }
-                          className="text-xs"
-                        >
-                          {leave.status === "APPROVED"
-                            ? "Đã duyệt"
-                            : leave.status === "REJECTED"
-                            ? "Từ chối"
-                            : leave.status === "CANCELLED"
-                            ? "Đã hủy"
-                            : "Chờ duyệt"}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Lộ Trình Hội Nhập */}
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-emerald-400" />
-                Lộ Trình Hội Nhập Của Bạn (Onboarding Journey)
-              </CardTitle>
-              <CardDescription>
-                {onboarding
-                  ? `Hoàn thành ${onboarding.completed}/${onboarding.total} hạng mục`
-                  : "Tiến độ hội nhập sẽ hiển thị tại đây"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!onboarding || onboarding.items.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  {dataLoading ? "Đang tải lộ trình..." : "Chưa có lộ trình hội nhập nào được gán cho bạn."}
-                </p>
-              ) : (
-                <div className="flex flex-col gap-3 text-xs">
-                  {onboarding.items.map((item, idx) => (
-                    <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className={`size-5 ${item.isCompleted ? "text-emerald-400" : "text-muted-foreground"}`} />
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {idx + 1}. {item.title}
-                          </p>
-                          {item.description && (
-                            <p className="text-[11px] text-muted-foreground">{item.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <Badge variant={item.isCompleted ? "success" : "secondary"}>
-                        {item.isCompleted
-                          ? `Hoàn thành${item.completedAt ? ` ${new Date(item.completedAt).toLocaleDateString("vi-VN")}` : ""}`
-                          : "Chờ xử lý"}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-        </div>{/* end cột phải */}
-      </div>{/* end flex row */}
-
-
-      {/* Leave Application Modal — form hoạt động thật */}
-      <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal}>
+      {/* Modal tạo đơn — form hoạt động thật */}
+      <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal} className="max-w-[520px]">
         <DialogHeader>
-          <DialogTitle>Tạo Đơn Xin Nghỉ Phép</DialogTitle>
-          <DialogDescription>
-            Đơn của bạn sẽ được gửi tới Quản lý trực tiếp và nạp vào ngữ cảnh AI
-          </DialogDescription>
+          <DialogTitle>Tạo đơn mới</DialogTitle>
+          <DialogDescription>Đơn sẽ được gửi tới quản lý trực tiếp để duyệt.</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3 py-3 text-xs">
+        <div id="leave-form" className="mt-5 grid gap-4">
           <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Loại nghỉ phép</label>
+            <label htmlFor="lv-type" className={labelCls}>
+              Loại đơn <span className="text-danger">*</span>
+            </label>
             <select
+              id="lv-type"
               value={leaveType}
               onChange={(e) => setLeaveType(e.target.value)}
-              className="w-full mt-1 rounded-lg border border-border bg-input/40 p-2 text-foreground outline-none"
+              className={fieldCls}
             >
               {LEAVE_TYPE_OPTIONS.map((t) => (
                 <option key={t} value={t}>{leaveTypeLabel(t)}</option>
@@ -719,145 +829,320 @@ export function EmployeePortalView() {
             </select>
           </div>
           {leaveType === LeaveTypeEnum.enum.OT ? (
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground">Ngày và số giờ tăng ca</label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="lv-ot-date" className={labelCls}>
+                  Ngày tăng ca <span className="text-danger">*</span>
+                </label>
                 <input
+                  id="lv-ot-date"
                   type="date"
                   value={otDate}
                   onChange={(e) => setOtDate(e.target.value)}
-                  className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+                  aria-invalid={!!leaveErrors.overtimeDate || undefined}
+                  className={fieldCls}
                 />
+                <FieldError message={leaveErrors.overtimeDate} />
+              </div>
+              <div>
+                <label htmlFor="lv-ot-hours" className={labelCls}>
+                  Số giờ tăng ca <span className="text-danger">*</span>
+                </label>
                 <input
+                  id="lv-ot-hours"
                   type="number"
                   min={0.5}
                   max={24}
                   step={0.5}
                   value={otHours}
-                  placeholder="Số giờ"
+                  placeholder="Ví dụ: 2"
                   onChange={(e) => setOtHours(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
+                  aria-invalid={!!leaveErrors.overtimeHours || undefined}
+                  className={fieldCls}
                 />
+                <FieldError message={leaveErrors.overtimeHours} />
               </div>
-              {leaveErrors.overtimeHours && <p className="mt-1 text-agent-coral">{leaveErrors.overtimeHours}</p>}
             </div>
           ) : (
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Thời gian nghỉ</label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <input
-                type="date"
-                value={startDate}
-                min={today}
-                onChange={(e) => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value) }}
-                className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
-              />
-              <input
-                type="date"
-                value={endDate}
-                min={startDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs"
-              />
-            </div>
-            {leaveErrors.startDate && <p className="mt-1 text-agent-coral">{leaveErrors.startDate}</p>}
-            {leaveErrors.endDate && <p className="mt-1 text-agent-coral">{leaveErrors.endDate}</p>}
-          </div>
+            <fieldset>
+              <legend className={labelCls}>
+                {leaveType === LeaveTypeEnum.enum.BUSINESS_TRIP
+                  ? "Thời gian công tác"
+                  : leaveType === LeaveTypeEnum.enum.LATE_PERMISSION
+                  ? "Ngày đến muộn / về sớm"
+                  : "Thời gian nghỉ"}{" "}
+                <span className="text-danger">*</span>
+              </legend>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="lv-from" className="mb-1 block text-caption text-muted-foreground">Từ ngày</label>
+                  <input
+                    id="lv-from"
+                    type="date"
+                    lang="vi-VN"
+                    value={startDate}
+                    min={today}
+                    onChange={(e) => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value) }}
+                    aria-invalid={!!leaveErrors.startDate || undefined}
+                    className={fieldCls}
+                  />
+                  <FieldError message={leaveErrors.startDate} />
+                </div>
+                <div>
+                  <label htmlFor="lv-to" className="mb-1 block text-caption text-muted-foreground">Đến ngày</label>
+                  <input
+                    id="lv-to"
+                    type="date"
+                    lang="vi-VN"
+                    value={endDate}
+                    min={startDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    aria-invalid={!!leaveErrors.endDate || undefined}
+                    className={fieldCls}
+                  />
+                  <FieldError message={leaveErrors.endDate} />
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md bg-sunken px-3 py-2 text-body-sm">
+                <span className="text-secondary-foreground">
+                  Đã chọn: <span className="font-medium text-foreground">{fmtVNDate(startDate)}</span>
+                  {" → "}
+                  <span className="font-medium text-foreground">{fmtVNDate(endDate)}</span>
+                </span>
+                <span className="text-secondary-foreground">
+                  Số ngày theo lịch: <span className="font-semibold text-foreground tabular">{requestedDays}</span>
+                  {leaveType === LeaveTypeEnum.enum.ANNUAL && leaveBalance && (
+                    <span className="ml-2 text-caption text-muted-foreground">
+                      · Phép còn lại sau khi gửi (ước tính):{" "}
+                      <span className="font-medium text-foreground tabular">
+                        {Math.max(0, leaveBalance.remainingDays - requestedDays)}
+                      </span>
+                      /{leaveBalance.totalDays}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </fieldset>
           )}
           <div>
-            <label className="text-[11px] font-semibold text-muted-foreground">Lý do nghỉ phép (tối thiểu 10 ký tự)</label>
+            <label htmlFor="lv-reason" className={labelCls}>
+              Lý do <span className="text-danger">*</span>
+            </label>
             <textarea
+              id="lv-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Nhập lý do nghỉ phép..."
-              rows={2}
-              className="w-full mt-1 rounded-lg border border-border bg-input/40 p-2 text-foreground text-xs outline-none"
+              placeholder={leaveType === LeaveTypeEnum.enum.OT ? "Nội dung công việc làm thêm…" : "Ví dụ: Về quê dự đám cưới người thân"}
+              rows={3}
+              aria-invalid={!!leaveErrors.reason || undefined}
+              aria-describedby="lv-reason-help"
+              className={`${fieldCls} h-auto resize-none py-2.5`}
             />
-            {leaveErrors.reason && <p className="mt-1 text-agent-coral">{leaveErrors.reason}</p>}
+            {leaveErrors.reason ? (
+              <FieldError id="lv-reason-help" message={leaveErrors.reason} />
+            ) : (
+              <p id="lv-reason-help" className="mt-1 text-caption text-muted-foreground">Tối thiểu 10 ký tự.</p>
+            )}
           </div>
-          {leaveErrors.form && <p className="text-agent-coral">{leaveErrors.form}</p>}
+          {leaveErrors.form && (
+            <div role="alert" className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-tint px-3 py-2.5 text-body-sm text-danger">
+              <CircleAlert className="mt-0.5 size-4 shrink-0" />
+              {leaveErrors.form}
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setShowLeaveModal(false)}>Hủy</Button>
-          <Button variant="default" onClick={handleLeaveSubmit} disabled={leaveSubmitting} className="gap-1.5">
-            {leaveSubmitting && <Loader2 className="size-3.5 animate-spin" />}
-            Gửi Đơn Xin Phép
+          <Button variant="outline" size="lg" onClick={() => setShowLeaveModal(false)}>Huỷ</Button>
+          <Button size="lg" onClick={handleLeaveSubmit} disabled={leaveSubmitting}>
+            {leaveSubmitting && <Loader2 className="animate-spin" />}
+            Gửi đơn
           </Button>
         </DialogFooter>
       </Dialog>
 
-      {/* FLOATING HR AI ASSISTANT WIDGET — chat thật qua NestJS */}
-      <div className="fixed bottom-6 right-6 z-50">
-        {!floatingChatOpen ? (
-          <Button
-            onClick={() => setFloatingChatOpen(true)}
-            className="size-14 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 p-0 shadow-2xl hover:scale-105 transition-transform"
-            aria-label="Mở trợ lý HR AI"
-          >
-            <Bot className="size-7 text-white" />
-          </Button>
-        ) : (
-          <div className="flex h-[450px] w-80 flex-col rounded-2xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200">
-            {/* Widget Header */}
-            <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 p-3 rounded-t-2xl">
-              <div className="flex items-center gap-2">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Sparkles className="size-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground">Trợ Lý HR AI (WF02)</h4>
-                  <p className="text-[10px] text-muted-foreground">Sẵn sàng 24/7 • Gemini 3.1 Flash Lite</p>
-                </div>
+      {/* Nút Trợ lý HR AI nổi — chat thật qua NestJS */}
+      <button
+        type="button"
+        onClick={() => setFloatingChatOpen(!floatingChatOpen)}
+        aria-label={floatingChatOpen ? "Đóng trợ lý HR AI" : "Mở trợ lý HR AI"}
+        aria-expanded={floatingChatOpen}
+        aria-controls="portal-ai-panel"
+        className="fixed bottom-4 right-4 z-20 flex size-14 cursor-pointer items-center justify-center rounded-full bg-ai text-white shadow-pop outline-none transition hover:brightness-110 focus-visible:ring-3 focus-visible:ring-ring/30 sm:bottom-6 sm:right-6"
+      >
+        {floatingChatOpen ? <X className="size-6" /> : <Sparkles className="size-6" />}
+      </button>
+
+      {floatingChatOpen && (
+        <div
+          aria-hidden="true"
+          onClick={() => setFloatingChatOpen(false)}
+          className="fixed inset-0 z-40 bg-[var(--overlay)] animate-in fade-in-0 duration-150 sm:hidden"
+        />
+      )}
+      {floatingChatOpen && (
+        <div
+          id="portal-ai-panel"
+          role="dialog"
+          aria-label="Trợ lý HR AI"
+          className="fixed inset-x-0 bottom-0 z-50 flex h-[78dvh] flex-col rounded-t-xl border border-border bg-card shadow-modal animate-in fade-in-0 slide-in-from-bottom-2 duration-200 sm:inset-x-auto sm:bottom-24 sm:right-6 sm:h-[560px] sm:w-[400px] sm:rounded-xl"
+        >
+          {/* Header */}
+          <div className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-ai-tint text-ai">
+              <Sparkles className="size-[18px]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-body font-semibold text-foreground">Trợ lý HR AI</p>
+              <p className="truncate text-caption text-muted-foreground">Hỏi đáp lương, phép, chính sách</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePortalNewSession}
+              disabled={isChatting}
+              title="Đóng phiên hiện tại và bắt đầu phiên mới"
+            >
+              <RotateCcw />
+              <span className="hidden sm:inline">Phiên mới</span>
+              <span className="sr-only sm:hidden">Phiên mới</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setFloatingChatOpen(false)} aria-label="Đóng trợ lý">
+              <X className="size-5" />
+            </Button>
+          </div>
+
+          {/* Messages */}
+          <div className="grid flex-1 content-start gap-3 overflow-y-auto p-4" aria-live="polite">
+            {chatMessages.map((m, idx) => (
+              <div
+                key={idx}
+                className={
+                  m.role === "user"
+                    ? "max-w-[85%] justify-self-end rounded-lg rounded-tr-sm bg-primary-tint px-3.5 py-2.5 text-body-sm text-accent-foreground"
+                    : "max-w-[85%] justify-self-start rounded-lg rounded-tl-sm border border-border bg-card px-3.5 py-2.5 text-body-sm text-foreground"
+                }
+              >
+                <RichText text={m.text} className="text-body-sm" />
               </div>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={handlePortalNewSession} disabled={isChatting} title="Đóng phiên hiện tại và bắt đầu phiên mới">
-                Phiên mới
-              </Button>
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setFloatingChatOpen(false)} aria-label="Đóng chat">
-                <X className="size-4" />
-              </Button>
-            </div>
+            ))}
+            {isChatting && (
+              <div
+                className="flex max-w-[85%] items-center gap-1 justify-self-start rounded-lg rounded-tl-sm border border-border bg-card px-3.5 py-3"
+                aria-label="Trợ lý đang trả lời"
+                role="status"
+              >
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="size-1.5 animate-pulse rounded-full bg-muted-foreground"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5 text-xs">
-              {chatMessages.map((m, idx) => (
-                <div
-                  key={idx}
-                  className={`rounded-xl p-2.5 leading-relaxed max-w-[85%] ${
-                    m.role === "user"
-                      ? "self-end bg-primary text-primary-foreground"
-                      : "self-start bg-muted/60 text-foreground border border-border"
-                  }`}
+          {/* Composer */}
+          <div className="shrink-0 border-t border-border p-3">
+            <label htmlFor="portal-ai-input" className="sr-only">Nhập câu hỏi</label>
+            <div className="overflow-hidden rounded-md border border-input bg-card transition-[border-color,box-shadow] duration-150 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20">
+              <textarea
+                id="portal-ai-input"
+                rows={2}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSendChat()
+                  }
+                }}
+                placeholder="Hỏi chính sách, ngày phép…"
+                disabled={isChatting}
+                className="min-h-[56px] w-full resize-none border-0 bg-transparent px-3 py-2.5 text-body text-foreground outline-none placeholder:text-subtle-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <div className="flex justify-end border-t border-border-subtle px-2 py-1.5">
+                <Button
+                  size="icon"
+                  className="size-8"
+                  onClick={handleSendChat}
+                  disabled={isChatting || !chatInput.trim()}
+                  aria-label="Gửi"
+                  title="Gửi tin nhắn (Enter)"
                 >
-                  <p className="whitespace-pre-wrap">{m.text}</p>
-                  {m.latency && <p className="mt-1 text-[9px] opacity-60">⚡ {m.latency}ms</p>}
-                </div>
-              ))}
-              {isChatting && (
-                <div className="self-start rounded-xl bg-muted/60 border border-border p-2.5 text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="size-3 animate-spin" /> Đang phân tích câu hỏi...
-                </div>
-              )}
-            </div>
-
-            {/* Chat Input */}
-            <div className="border-t border-border p-2.5 bg-composer rounded-b-2xl">
-              <div className="flex items-center gap-1.5">
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
-                  placeholder="Hỏi chính sách, ngày phép..."
-                  className="flex-1 rounded-lg border border-border bg-input/40 px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
-                  disabled={isChatting}
-                />
-                <Button size="xs" className="h-7 px-2.5 text-xs bg-primary text-primary-foreground" onClick={handleSendChat} disabled={isChatting || !chatInput.trim()}>
-                  Gửi
+                  <Send className="size-4" />
                 </Button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+// ── Hỗ trợ hiển thị ───────────────────────────────────────────────────────
+const labelCls = "mb-1.5 block text-body-sm font-medium text-foreground"
+const fieldCls =
+  "flex h-10 w-full rounded-md border border-input bg-card px-3 text-body text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-subtle-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 aria-invalid:border-danger aria-invalid:ring-3 aria-invalid:ring-danger/15 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60"
+
+/** Giữ helper cũ để các chỗ gọi không phải đổi: vnd() đã trả "28.500.000 ₫" */
+function vndSuffix(amount: number): string {
+  return vnd(amount)
+}
+
+function FieldError({ message, id }: { message?: string; id?: string }) {
+  if (!message) return null
+  return (
+    <p id={id} role="alert" className="mt-1 flex items-start gap-1 text-caption text-danger">
+      <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
+      {message}
+    </p>
+  )
+}
+
+function LeaveStatusBadge({ status }: { status: LeaveRequest["status"] }) {
+  switch (status) {
+    case "APPROVED":
+      return <Badge variant="success" className="shrink-0"><CircleCheck />Đã duyệt</Badge>
+    case "REJECTED":
+      return <Badge variant="destructive" className="shrink-0"><CircleX />Từ chối</Badge>
+    case "CANCELLED":
+      return <Badge variant="secondary" className="shrink-0"><Ban />Đã huỷ</Badge>
+    default:
+      return <Badge variant="warning" className="shrink-0"><Hourglass />Chờ duyệt</Badge>
+  }
+}
+
+function PayrollStatusBadge({ status }: { status: PayrollRecord["status"] }) {
+  const label = payrollStatusLabel(status)
+  switch (status) {
+    case "PAID":
+      return <Badge variant="success" className="shrink-0"><CircleCheck />{label}</Badge>
+    case "APPROVED":
+      return <Badge variant="info" className="shrink-0"><CircleCheck />{label}</Badge>
+    case "CANCELLED":
+      return <Badge variant="secondary" className="shrink-0"><Ban />{label}</Badge>
+    default:
+      return <Badge variant="warning" className="shrink-0"><Hourglass />{label}</Badge>
+  }
+}
+
+function PayslipRow({
+  label, income, deduction, note, strong,
+}: {
+  label: string; income?: number; deduction?: number; note?: string; strong?: boolean
+}) {
+  return (
+    <TableRow className={strong ? "font-semibold" : undefined}>
+      <TableCell className="h-12">{label}</TableCell>
+      <TableCell className={`h-12 text-right ${income === undefined ? "text-muted-foreground" : ""}`}>
+        {income === undefined ? "—" : vndSuffix(income)}
+      </TableCell>
+      <TableCell className={`h-12 text-right ${deduction === undefined ? "text-muted-foreground" : ""}`}>
+        {deduction === undefined ? "—" : `-${vndSuffix(deduction)}`}
+      </TableCell>
+      <TableCell className="h-12 font-normal text-muted-foreground">{note ?? ""}</TableCell>
+    </TableRow>
   )
 }

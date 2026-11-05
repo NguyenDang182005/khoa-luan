@@ -1,0 +1,3 @@
+⚠ Warning: Next.js ignored pnpm-workspace.yaml in C:\Users\Admin because it is outside the current Git repository (C:\Users\Admin\Documents\admin\khoa-luan).
+ To use this directory, set `turbopack.root` in your Next.js config.
+

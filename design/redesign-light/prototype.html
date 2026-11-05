@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HR Multi-Agent · Light Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+
+<style type="text/tailwindcss">
+/* ============================================================
+   TOKENS — giữ nguyên tên biến của apps/web/app/globals.css
+   ============================================================ */
+:root {
+  color-scheme: light;
+  --background: #F7F8FA;
+  --foreground: #101828;
+  --card: #FFFFFF;
+  --card-foreground: #101828;
+  --popover: #FFFFFF;
+  --popover-foreground: #101828;
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #1D4ED8;
+  --primary-tint: #EFF4FF;
+  --secondary: #F2F4F7;
+  --secondary-foreground: #344054;
+  --muted: #F2F4F7;
+  --muted-foreground: #667085;
+  --subtle-foreground: #98A2B3;
+  --accent: #EFF4FF;
+  --accent-foreground: #1D4ED8;
+  --destructive: #B42318;
+  --destructive-foreground: #FFFFFF;
+  --destructive-tint: #FEF3F2;
+  --border: #E4E7EC;
+  --border-subtle: #F2F4F7;
+  --input: #D0D5DD;
+  --ring: #2563EB;
+  --surface-sunken: #F9FAFB;
+
+  --success: #067647; --success-tint: #ECFDF3;
+  --warning: #B54708; --warning-tint: #FFFAEB;
+  --danger:  #B42318; --danger-tint:  #FEF3F2;
+  --info:    #026AA2; --info-tint:    #F0F9FF;
+  --ai:      #7C3AED; --ai-tint:      #F5F3FF;
+
+  /* Agent — giữ tên cũ (teal/blue/amber/coral) để không phải đổi call-site, chỉ đổi giá trị */
+  --agent-teal: #7C3AED;   --agent-teal-tint: #F5F3FF;   /* WF01 Router */
+  --agent-blue: #2563EB;   --agent-blue-tint: #EFF4FF;   /* WF02 HR QA */
+  --agent-amber: #B54708;  --agent-amber-tint: #FFFAEB;  /* WF03 Training */
+  --agent-coral: #C01048;  --agent-coral-tint: #FFF1F3;  /* WF04 CSKH */
+
+  --chart-grid: #EAECF0;
+  --chart-1: #2563EB; --chart-2: #0E9384; --chart-3: #DC6803; --chart-4: #7C3AED; --chart-5: #C01048;
+
+  /* Shell */
+  --shell: #FFFFFF;
+  --rail: #FFFFFF;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #344054;
+  --sidebar-accent: #EFF4FF;
+  --sidebar-accent-foreground: #1D4ED8;
+  --sidebar-border: #E4E7EC;
+
+  --radius: 12px;
+  --shadow-xs: 0 1px 2px rgba(16,24,40,.04);
+  --shadow-sm: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.04);
+  --shadow-pop: 0 12px 24px -4px rgba(16,24,40,.12);
+  --shadow-modal: 0 20px 48px -12px rgba(16,24,40,.18);
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sunken: var(--surface-sunken);
+  --color-success: var(--success);  --color-success-tint: var(--success-tint);
+  --color-warning: var(--warning);  --color-warning-tint: var(--warning-tint);
+  --color-danger: var(--danger);    --color-danger-tint: var(--danger-tint);
+  --color-info: var(--info);        --color-info-tint: var(--info-tint);
+  --color-ai: var(--ai);            --color-ai-tint: var(--ai-tint);
+  --color-agent-teal: var(--agent-teal);   --color-agent-teal-tint: var(--agent-teal-tint);
+  --color-agent-blue: var(--agent-blue);   --color-agent-blue-tint: var(--agent-blue-tint);
+  --color-agent-amber: var(--agent-amber); --color-agent-amber-tint: var(--agent-amber-tint);
+  --color-agent-coral: var(--agent-coral); --color-agent-coral-tint: var(--agent-coral-tint);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-1: var(--chart-1); --color-chart-2: var(--chart-2); --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4); --color-chart-5: var(--chart-5);
+  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+  --shadow-xs: var(--shadow-xs); --shadow-sm: var(--shadow-sm);
+  --shadow-pop: var(--shadow-pop); --shadow-modal: var(--shadow-modal);
+  /* Thang chữ: Display 30/36 · H1 24/32 · H2 20/28 · H3 16/24 · Body 14/22 · Body-sm 13/20 · Caption 12/18 · Micro 11/16 */
+  --text-display: 30px; --text-display--line-height: 36px;
+  --text-h1: 24px; --text-h1--line-height: 32px;
+  --text-h2: 20px; --text-h2--line-height: 28px;
+  --text-h3: 16px; --text-h3--line-height: 24px;
+  --text-body: 14px; --text-body--line-height: 22px;
+  --text-body-sm: 13px; --text-body-sm--line-height: 20px;
+  --text-caption: 12px; --text-caption--line-height: 18px;
+  --text-micro: 11px; --text-micro--line-height: 16px;
+}
+
+@layer base {
+  html, body { background: var(--background); color: var(--foreground); }
+  body { font-family: var(--font-sans); font-size: 14px; line-height: 22px; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,.2), 0 0 0 1px var(--primary); border-radius: 8px; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; } }
+}
+
+@layer components {
+  /* Button */
+  .btn { @apply inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md text-body-sm font-semibold whitespace-nowrap cursor-pointer select-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-lg { @apply h-11 px-4 text-body; }
+  .btn-sm { @apply h-8 px-3; }
+  .btn-primary { @apply bg-primary text-primary-foreground hover:bg-primary-hover; }
+  .btn-outline { @apply bg-card text-secondary-foreground border border-input hover:bg-sunken; }
+  .btn-ghost { @apply text-secondary-foreground hover:bg-muted; }
+  .btn-danger { @apply bg-card text-danger border border-danger/40 hover:bg-danger-tint; }
+  .icon-btn { @apply inline-flex items-center justify-center size-9 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors duration-150; }
+  /* Card */
+  .card { @apply bg-card border border-border rounded-lg; }
+  .card-pad { @apply p-5 sm:p-6; }
+  /* Badge */
+  .badge { @apply inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full text-caption font-medium whitespace-nowrap; }
+  .badge-tag { @apply rounded-sm; }
+  .badge-success { @apply bg-success-tint text-success; }
+  .badge-warning { @apply bg-warning-tint text-warning; }
+  .badge-danger  { @apply bg-danger-tint text-danger; }
+  .badge-info    { @apply bg-info-tint text-info; }
+  .badge-ai      { @apply bg-ai-tint text-ai; }
+  .badge-neutral { @apply bg-muted text-secondary-foreground; }
+  .badge-primary { @apply bg-primary-tint text-accent-foreground; }
+  .dot { @apply size-1.5 rounded-full bg-current shrink-0; }
+  /* Form */
+  .field-label { @apply block text-body-sm font-medium text-secondary-foreground mb-1.5; }
+  .input { @apply w-full h-10 rounded-md border border-input bg-card px-3 text-body text-foreground placeholder:text-subtle-foreground transition-shadow duration-150 focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,.2)]; }
+  .input[aria-invalid="true"] { @apply border-danger focus:shadow-[0_0_0_3px_rgba(180,35,24,.15)]; }
+  .field-error { @apply mt-1.5 text-caption text-danger flex items-center gap-1; }
+  .field-help { @apply mt-1.5 text-caption text-muted-foreground; }
+  /* Typography helpers */
+  .page-title { @apply text-h1 font-semibold text-foreground; }
+  .page-sub { @apply text-body text-muted-foreground; }
+  .card-title { @apply text-h3 font-semibold text-foreground; }
+  .card-sub { @apply text-body-sm text-muted-foreground; }
+  .eyebrow { @apply text-micro font-medium uppercase tracking-[0.04em] text-muted-foreground; }
+  /* Nav */
+  .nav-item { @apply flex items-center gap-3 h-10 px-3 rounded-md text-body font-medium text-[var(--sidebar-foreground)] hover:bg-muted cursor-pointer transition-colors duration-150 w-full text-left; }
+  .nav-item[aria-current="page"] { @apply bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]; }
+  .nav-item[aria-current="page"] svg { @apply text-primary; }
+  .nav-item svg { @apply size-[18px] shrink-0 text-muted-foreground; }
+  /* Skeleton */
+  .skel { @apply bg-muted rounded-md relative overflow-hidden; }
+  .skel::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent); animation: shimmer 1.4s infinite; }
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+@keyframes blink { 0%,80%,100% { opacity:.25 } 40% { opacity:1 } }
+
+/* Sidebar thu gọn 72px */
+.sidebar-collapsed #sidebar { width: 72px; }
+.sidebar-collapsed #sidebar .nav-label, .sidebar-collapsed #sidebar .nav-group-title, .sidebar-collapsed #sidebar .brand-text { display: none; }
+.sidebar-collapsed #sidebar .nav-item { justify-content: center; padding: 0; }
+.sidebar-collapsed #collapse-icon { transform: rotate(180deg); }
+svg.lucide { stroke-width: 1.75; }
+</style>
+</head>
+
+<body class="min-h-dvh">
+
+<!-- ================================================================
+     MÀN 1 · ĐĂNG NHẬP
+     ================================================================ -->
+<section id="screen-login" class="min-h-dvh flex flex-col items-center justify-center px-4 py-10"
+  style="background: radial-gradient(1200px 600px at 0% 0%, rgba(37,99,235,.04), transparent 60%), var(--background)">
+  <main class="card w-full max-w-[420px] p-6 sm:p-10 rounded-xl shadow-sm">
+    <div class="flex items-center gap-2.5">
+      <span class="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground"><i data-lucide="users-round" class="size-5"></i></span>
+      <span class="text-body font-semibold">HR Multi-Agent</span>
+    </div>
+    <h1 class="mt-6 text-h1 font-semibold">Đăng nhập</h1>
+    <p class="mt-1 text-body text-muted-foreground">Quản trị nhân sự và trợ lý AI cho doanh nghiệp của bạn.</p>
+
+    <div class="mt-6 grid gap-3">
+      <button class="btn btn-outline btn-lg w-full" type="button">
+        <svg class="size-[18px]" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Tiếp tục với Google
+      </button>
+      <button class="btn btn-outline btn-lg w-full" type="button">
+        <svg class="size-[18px]" viewBox="0 0 24 24" aria-hidden="true"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+        Tiếp tục với Facebook
+      </button>
+    </div>
+
+    <div class="my-6 flex items-center gap-3 text-caption text-muted-foreground"><span class="h-px flex-1 bg-border"></span>hoặc<span class="h-px flex-1 bg-border"></span></div>
+
+    <div id="login-error" role="alert" class="hidden mb-4 flex items-start gap-2 rounded-md border border-danger/20 bg-danger-tint px-3 py-2.5 text-body-sm text-danger">
+      <i data-lucide="circle-alert" class="size-4 mt-0.5 shrink-0"></i><span>Email hoặc mật khẩu không đúng. Vui lòng thử lại.</span>
+    </div>
+
+    <form id="login-form" class="grid gap-4" novalidate>
+      <div>
+        <label for="email" class="field-label">Email công việc</label>
+        <div class="relative">
+          <i data-lucide="mail" class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-subtle-foreground pointer-events-none"></i>
+          <input id="email" type="email" autocomplete="username" class="input h-11 pl-9" placeholder="ten@congty.vn" />
+        </div>
+      </div>
+      <div>
+        <label for="password" class="field-label">Mật khẩu</label>
+        <div class="relative">
+          <i data-lucide="lock" class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-subtle-foreground pointer-events-none"></i>
+          <input id="password" type="password" autocomplete="current-password" class="input h-11 pl-9 pr-11" placeholder="Nhập mật khẩu" />
+          <button type="button" id="toggle-pw" class="icon-btn absolute right-1 top-1/2 -translate-y-1/2" aria-label="Hiện mật khẩu"><i data-lucide="eye" class="size-4"></i></button>
+        </div>
+      </div>
+      <label class="flex items-center gap-2.5 text-body-sm text-secondary-foreground cursor-pointer min-h-6">
+        <input type="checkbox" class="size-4 rounded accent-[var(--primary)]" checked /> Nhớ đăng nhập trong 30 ngày
+      </label>
+      <button type="submit" id="login-submit" class="btn btn-primary btn-lg w-full">Đăng nhập</button>
+    </form>
+
+    <!-- Chỉ render khi NEXT_PUBLIC_SHOW_DEMO_LOGIN !== 'false' -->
+    <div class="mt-6 rounded-md bg-muted p-4">
+      <p class="text-body-sm font-medium text-secondary-foreground">Tài khoản mẫu</p>
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" data-demo="admin" class="btn btn-outline btn-sm justify-start"><i data-lucide="shield-check" class="size-4 text-primary"></i>Quản trị viên</button>
+        <button type="button" data-demo="employee" class="btn btn-outline btn-sm justify-start"><i data-lucide="user" class="size-4 text-primary"></i>Nhân viên</button>
+      </div>
+    </div>
+  </main>
+  <p class="mt-6 text-caption text-muted-foreground">© 2026 HR Multi-Agent Platform · Bảo mật · Điều khoản</p>
+</section>
+
+<!-- ================================================================
+     SHELL · SIDEBAR + HEADER
+     ================================================================ -->
+<div id="app" class="hidden min-h-dvh lg:flex">
+  <div id="drawer-overlay" class="fixed inset-0 z-30 bg-[rgba(16,24,40,.4)] hidden lg:hidden"></div>
+
+  <aside id="sidebar" class="fixed lg:sticky top-0 z-40 h-dvh w-60 shrink-0 -translate-x-full lg:translate-x-0 bg-[var(--sidebar)] border-r border-border flex flex-col transition-[transform,width] duration-200 ease-[var(--ease-out)]">
+    <div class="h-16 px-4 flex items-center gap-2.5 border-b border-border">
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"><i data-lucide="users-round" class="size-[18px]"></i></span>
+      <span class="brand-text text-body font-semibold truncate">HR Multi-Agent</span>
+    </div>
+    <nav id="nav" aria-label="Điều hướng chính" class="flex-1 overflow-y-auto px-3 py-4 grid content-start gap-5"></nav>
+    <div class="p-3 border-t border-border hidden lg:block">
+      <button id="collapse-btn" class="nav-item" aria-label="Thu gọn thanh bên"><i id="collapse-icon" data-lucide="panel-left-close" class="transition-transform"></i><span class="nav-label">Thu gọn</span></button>
+    </div>
+  </aside>
+
+  <div class="flex-1 min-w-0 flex flex-col">
+    <header class="sticky top-0 z-20 h-16 bg-[var(--shell)] border-b border-border flex items-center gap-3 px-4 lg:px-8">
+      <button id="menu-btn" class="icon-btn lg:hidden" aria-label="Mở menu"><i data-lucide="menu" class="size-5"></i></button>
+      <nav aria-label="Breadcrumb" class="min-w-0 flex items-center gap-1.5 text-body-sm">
+        <span id="crumb-group" class="hidden sm:inline text-muted-foreground">Tổng quan</span>
+        <i data-lucide="chevron-right" class="hidden sm:inline size-4 text-subtle-foreground"></i>
+        <span id="crumb-page" class="font-medium text-foreground truncate">Bảng điều hành</span>
+      </nav>
+      <div class="ml-auto flex items-center gap-1 sm:gap-2">
+        <button id="search-btn" class="hidden md:flex items-center gap-2 h-9 w-[320px] rounded-md border border-input bg-card px-3 text-body-sm text-subtle-foreground hover:bg-sunken cursor-pointer">
+          <i data-lucide="search" class="size-4"></i>Tìm kiếm nhanh<kbd class="ml-auto rounded-sm border border-border bg-muted px-1.5 text-micro font-mono text-muted-foreground">Ctrl K</kbd>
+        </button>
+        <button class="icon-btn md:hidden" aria-label="Tìm kiếm" onclick="openSearch()"><i data-lucide="search" class="size-5"></i></button>
+        <button class="icon-btn relative" aria-label="Thông báo, có 3 mục chưa đọc">
+          <i data-lucide="bell" class="size-5"></i><span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-card"></span>
+        </button>
+        <div class="relative">
+          <button id="user-btn" class="flex items-center gap-2.5 rounded-md pl-1 pr-2 h-10 hover:bg-muted cursor-pointer" aria-haspopup="menu" aria-expanded="false">
+            <span id="user-avatar" class="flex size-8 items-center justify-center rounded-full bg-primary-tint text-accent-foreground text-caption font-semibold">TH</span>
+            <span class="hidden sm:block text-left leading-tight">
+              <span id="user-name" class="block text-body-sm font-semibold">Nguyễn Thu Hà</span>
+              <span id="user-role" class="block text-caption text-muted-foreground">Quản trị viên</span>
+            </span>
+            <i data-lucide="chevron-down" class="hidden sm:block size-4 text-muted-foreground"></i>
+          </button>
+          <div id="user-menu" role="menu" class="hidden absolute right-0 mt-2 w-56 card shadow-pop p-1.5 z-50">
+            <button role="menuitem" class="nav-item h-9 text-body-sm"><i data-lucide="user"></i>Hồ sơ của tôi</button>
+            <div class="my-1 h-px bg-border"></div>
+            <button role="menuitem" class="nav-item h-9 text-body-sm text-danger" onclick="logout()"><i data-lucide="log-out" class="!text-danger"></i>Đăng xuất</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="flex-1 w-full max-w-[1440px] mx-auto px-4 md:px-6 xl:px-8 py-6 lg:py-8">
+
+      <!-- ============================================================
+           MÀN 2 · BẢNG ĐIỀU HÀNH
+           ============================================================ -->
+      <section id="screen-dashboard" class="hidden">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 class="page-title">Bảng điều hành</h1>
+            <p class="page-sub mt-1">Tình hình nhân sự, chấm công và hoạt động AI trong kỳ.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="badge badge-neutral h-8 px-3 text-body-sm"><i data-lucide="calendar" class="size-4"></i>Tháng 11/2026</span>
+            <span class="badge badge-success h-8 px-3 text-body-sm"><span class="dot animate-pulse"></span>Realtime</span>
+          </div>
+        </div>
+        <!-- Prototype-only: đổi trạng thái để xem loading / empty / error -->
+        <div class="mt-4 inline-flex rounded-md border border-border bg-card p-0.5 text-caption" role="group" aria-label="Xem trạng thái (chỉ prototype)">
+          <button data-state="data" class="state-btn px-2.5 h-7 rounded-sm font-medium">Dữ liệu</button>
+          <button data-state="loading" class="state-btn px-2.5 h-7 rounded-sm font-medium">Đang tải</button>
+          <button data-state="empty" class="state-btn px-2.5 h-7 rounded-sm font-medium">Trống</button>
+          <button data-state="error" class="state-btn px-2.5 h-7 rounded-sm font-medium">Lỗi</button>
+        </div>
+
+        <div id="dash-error" class="hidden mt-6 card card-pad flex flex-wrap items-center gap-3 border-danger/30 bg-danger-tint">
+          <i data-lucide="circle-alert" class="size-5 text-danger"></i>
+          <div class="flex-1 min-w-48"><p class="font-semibold text-danger">Không tải được dữ liệu bảng điều hành</p><p class="text-body-sm text-secondary-foreground">Máy chủ API (cổng 3001) không phản hồi. Dữ liệu cũ vẫn được giữ.</p></div>
+          <button class="btn btn-outline" onclick="setDashState('data')"><i data-lucide="rotate-cw" class="size-4"></i>Thử lại</button>
+        </div>
+
+        <!-- KPI -->
+        <div id="kpis" class="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6"></div>
+
+        <!-- Charts -->
+        <div class="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+          <div class="card card-pad xl:col-span-2">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div><h2 class="card-title">Chấm công 7 ngày gần nhất</h2><p class="card-sub">Số nhân sự đúng giờ và đi muộn mỗi ngày</p></div>
+              <div class="flex items-center gap-4 text-caption text-muted-foreground">
+                <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-chart-1"></span>Đúng giờ</span>
+                <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-chart-3"></span>Đi muộn</span>
+              </div>
+            </div>
+            <div id="area-chart" class="mt-4 h-[300px] relative" role="img" aria-label="Biểu đồ vùng: tỷ lệ đúng giờ duy trì trên 85% trong 7 ngày"></div>
+          </div>
+          <div class="card card-pad">
+            <h2 class="card-title">Phân bổ nhân lực</h2><p class="card-sub">Cơ cấu theo phòng ban</p>
+            <div id="donut" class="mt-4"></div>
+          </div>
+        </div>
+
+        <!-- Lists -->
+        <div class="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+          <div class="card">
+            <div class="card-pad pb-4 flex items-start justify-between gap-3">
+              <div><h2 class="card-title">Đơn chờ duyệt</h2><p class="card-sub">Cần HR Admin hoặc quản lý trực tiếp xử lý</p></div>
+              <span id="pending-count" class="badge badge-warning">4 đơn</span>
+            </div>
+            <ul id="pending-list" class="divide-y divide-border-subtle border-t border-border-subtle"></ul>
+          </div>
+          <div class="card">
+            <div class="card-pad pb-4 flex items-start justify-between gap-3">
+              <div><h2 class="card-title">Hoạt động AI</h2><p class="card-sub">Thống kê theo từng agent</p></div>
+              <span class="badge badge-success"><span class="dot animate-pulse"></span>Đang kết nối</span>
+            </div>
+            <ul id="ai-list" class="divide-y divide-border-subtle border-t border-border-subtle"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           MÀN 3 · CỔNG NHÂN VIÊN
+           ============================================================ -->
+      <section id="screen-portal" class="hidden pb-20">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 class="page-title">Xin chào, Thu Hà</h1>
+            <p class="page-sub mt-1">Chuyên viên Tuyển dụng · Phòng Nhân sự · <span class="font-mono text-body-sm">NV-0142</span></p>
+          </div>
+          <span class="badge badge-ai h-8 px-3 text-body-sm"><span class="dot"></span>Trợ lý AI đang trực tuyến</span>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+          <!-- Chấm công -->
+          <div class="card card-pad flex flex-col">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="flex size-9 items-center justify-center rounded-md bg-primary-tint text-primary"><i data-lucide="map-pin" class="size-[18px]"></i></span>
+                <div><h2 class="text-body font-semibold">Chấm công GPS</h2><p class="text-caption text-muted-foreground">Thứ Năm, 12/11/2026</p></div>
+              </div>
+              <span id="ci-badge" class="badge badge-warning"><i data-lucide="clock" class="size-3.5"></i>Chưa check-in</span>
+            </div>
+            <dl class="mt-5 grid grid-cols-2 gap-3">
+              <div class="rounded-md bg-sunken border border-border-subtle p-3"><dt class="text-caption text-muted-foreground">Giờ vào</dt><dd id="ci-in" class="mt-0.5 text-h2 font-semibold tabular">--:--</dd></div>
+              <div class="rounded-md bg-sunken border border-border-subtle p-3"><dt class="text-caption text-muted-foreground">Giờ ra</dt><dd id="ci-out" class="mt-0.5 text-h2 font-semibold tabular">--:--</dd></div>
+            </dl>
+            <p id="ci-loc" class="mt-3 text-caption text-muted-foreground flex items-center gap-1.5"><i data-lucide="locate" class="size-3.5"></i>Vùng hợp lệ: Văn phòng Hà Nội · bán kính 200 m</p>
+            <button id="ci-btn" class="btn btn-primary btn-lg w-full mt-auto pt-0 translate-y-0" style="margin-top:20px"><i data-lucide="log-in" class="size-4"></i>Check-in</button>
+          </div>
+
+          <!-- Phép năm -->
+          <div class="card card-pad flex flex-col">
+            <div class="flex items-center gap-3">
+              <span class="flex size-9 items-center justify-center rounded-md bg-success-tint text-success"><i data-lucide="calendar-check" class="size-[18px]"></i></span>
+              <div><h2 class="text-body font-semibold">Phép năm còn lại</h2><p class="text-caption text-muted-foreground">Năm 2026</p></div>
+            </div>
+            <p class="mt-5 flex items-baseline gap-2"><span class="text-display font-bold tabular">8,5</span><span class="text-body text-muted-foreground">/ 12 ngày</span></p>
+            <div class="mt-3 h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow="3.5" aria-valuemin="0" aria-valuemax="12" aria-label="Đã dùng 3,5 trên 12 ngày phép"><div class="h-full w-[29%] rounded-full bg-success"></div></div>
+            <p class="mt-2 text-caption text-muted-foreground">Đã dùng 3,5 ngày · 1 đơn đang chờ duyệt</p>
+            <button class="btn btn-outline btn-lg w-full" style="margin-top:auto" onclick="openLeave()"><i data-lucide="plus" class="size-4"></i>Tạo đơn mới</button>
+          </div>
+
+          <!-- Phiếu lương -->
+          <div class="card card-pad flex flex-col md:col-span-2 xl:col-span-1">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="flex size-9 items-center justify-center rounded-md bg-primary-tint text-primary"><i data-lucide="wallet" class="size-[18px]"></i></span>
+                <div><h2 class="text-body font-semibold">Phiếu lương gần nhất</h2><p class="text-caption text-muted-foreground">Kỳ tháng 10/2026</p></div>
+              </div>
+              <span class="badge badge-success"><i data-lucide="circle-check" class="size-3.5"></i>Đã chi trả</span>
+            </div>
+            <p class="mt-5 text-caption text-muted-foreground">Thực lĩnh</p>
+            <p class="text-display font-bold tabular">28.500.000 ₫</p>
+            <p class="mt-1 text-caption text-muted-foreground">Gross 34.200.000 ₫ · chi trả 05/11/2026</p>
+            <button class="btn btn-ghost w-full mt-auto text-primary hover:bg-primary-tint" style="margin-top:20px" onclick="document.getElementById('payslip').open=true;document.getElementById('payslip').scrollIntoView({behavior:'smooth'})">Xem chi tiết<i data-lucide="arrow-right" class="size-4"></i></button>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4 lg:gap-6 items-start">
+          <!-- Lịch chấm công -->
+          <div class="card card-pad">
+            <div class="flex items-center justify-between">
+              <div><h2 class="card-title">Bảng công tháng 11</h2><p class="card-sub">Nhấn vào ngày để xem chi tiết</p></div>
+              <div class="flex gap-1"><button class="icon-btn" aria-label="Tháng trước"><i data-lucide="chevron-left" class="size-4"></i></button><button class="icon-btn" aria-label="Tháng sau"><i data-lucide="chevron-right" class="size-4"></i></button></div>
+            </div>
+            <div class="mt-4 grid grid-cols-7 text-center text-caption text-muted-foreground font-medium"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+            <div id="calendar" class="mt-1 grid grid-cols-7 gap-1 relative"></div>
+            <div class="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-caption text-muted-foreground">
+              <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-success"></span>Đúng giờ</span>
+              <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-warning"></span>Đi muộn</span>
+              <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-info"></span>Nghỉ phép</span>
+              <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-danger"></span>Vắng</span>
+            </div>
+            <dl class="mt-4 pt-4 border-t border-border-subtle grid grid-cols-3 text-center">
+              <div><dt class="text-caption text-muted-foreground">Ngày công</dt><dd class="text-h3 font-semibold tabular">8,0</dd></div>
+              <div><dt class="text-caption text-muted-foreground">Đi muộn</dt><dd class="text-h3 font-semibold tabular">1</dd></div>
+              <div><dt class="text-caption text-muted-foreground">Vắng</dt><dd class="text-h3 font-semibold tabular">0</dd></div>
+            </dl>
+          </div>
+
+          <div class="grid gap-4 lg:gap-6">
+            <!-- Đơn của tôi -->
+            <div class="card">
+              <div class="card-pad pb-4 flex items-start justify-between gap-3">
+                <div><h2 class="card-title">Đơn của tôi</h2><p class="card-sub">Nghỉ phép, tăng ca, công tác và trạng thái duyệt</p></div>
+                <button class="btn btn-primary" onclick="openLeave()"><i data-lucide="plus" class="size-4"></i><span class="hidden sm:inline">Tạo đơn</span></button>
+              </div>
+              <ul id="my-requests" class="divide-y divide-border-subtle border-t border-border-subtle"></ul>
+            </div>
+            <!-- Hội nhập -->
+            <div class="card card-pad">
+              <div class="flex items-start justify-between gap-3">
+                <div><h2 class="card-title">Lộ trình hội nhập</h2><p class="card-sub">3/5 hạng mục đã hoàn thành</p></div>
+                <span class="text-body-sm font-semibold tabular">60%</span>
+              </div>
+              <div class="mt-3 h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="Tiến độ hội nhập 60%"><div class="h-full w-3/5 rounded-full bg-primary"></div></div>
+              <ol id="onboarding" class="mt-4 grid gap-0"></ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phiếu lương accordion -->
+        <details id="payslip" class="card mt-6 group">
+          <summary class="card-pad flex items-center justify-between gap-3 cursor-pointer list-none">
+            <div><h2 class="card-title">Chi tiết phiếu lương tháng 10/2026</h2><p class="card-sub">Các khoản thu nhập và giảm trừ theo luật</p></div>
+            <i data-lucide="chevron-down" class="size-5 text-muted-foreground transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div class="px-5 sm:px-6 pb-6 overflow-x-auto">
+            <table class="w-full min-w-[560px] text-body-sm">
+              <thead><tr class="bg-sunken text-caption font-medium text-muted-foreground"><th class="h-11 px-3 text-left rounded-l-md">Khoản mục</th><th class="px-3 text-right">Thu nhập</th><th class="px-3 text-right">Giảm trừ</th><th class="px-3 text-right">Chịu thuế</th><th class="px-3 text-left rounded-r-md">Ghi chú</th></tr></thead>
+              <tbody class="tabular">
+                <tr class="border-b border-border-subtle"><td class="h-12 px-3">Lương thực tế</td><td class="px-3 text-right">30.000.000</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-right">30.000.000</td><td class="px-3 text-muted-foreground">22/22 ngày công</td></tr>
+                <tr class="border-b border-border-subtle"><td class="h-12 px-3">Phụ cấp + Thưởng</td><td class="px-3 text-right">4.200.000</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-right">3.470.000</td><td class="px-3 text-muted-foreground">Ăn trưa miễn thuế 730.000</td></tr>
+                <tr class="border-b border-border-subtle"><td class="h-12 px-3">Bảo hiểm (BHXH/BHYT/BHTN)</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-right">3.150.000</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-muted-foreground">10,5% lương đóng BH</td></tr>
+                <tr class="border-b border-border-subtle"><td class="h-12 px-3">Giảm trừ gia cảnh</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-right">11.000.000</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-muted-foreground">Bản thân</td></tr>
+                <tr class="border-b border-border-subtle"><td class="h-12 px-3">Thuế TNCN</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-right">2.550.000</td><td class="px-3 text-right text-muted-foreground">—</td><td class="px-3 text-muted-foreground">Biểu lũy tiến</td></tr>
+                <tr class="font-semibold"><td class="h-12 px-3">Thực lĩnh</td><td class="px-3 text-right text-primary" colspan="3">28.500.000 ₫</td><td class="px-3"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Day popover -->
+<div id="day-pop" role="dialog" aria-label="Chi tiết ngày công" class="hidden fixed z-50 w-64 card shadow-pop p-4"></div>
+
+<!-- Search (Ctrl/Cmd+K) -->
+<div id="search-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4">
+  <div class="absolute inset-0 bg-[rgba(16,24,40,.4)]" onclick="closeSearch()"></div>
+  <div class="relative w-full max-w-[560px] card rounded-xl shadow-modal" role="dialog" aria-modal="true" aria-label="Tìm kiếm nhanh">
+    <div class="flex items-center gap-2 px-4 h-14 border-b border-border">
+      <i data-lucide="search" class="size-[18px] text-muted-foreground"></i>
+      <input id="search-input" class="flex-1 bg-transparent outline-none text-body placeholder:text-subtle-foreground focus-visible:shadow-none" placeholder="Tìm trang, nhân viên, chức năng…" />
+      <kbd class="rounded-sm border border-border bg-muted px-1.5 text-micro font-mono text-muted-foreground">Esc</kbd>
+    </div>
+    <ul id="search-results" class="p-2 max-h-80 overflow-y-auto"></ul>
+  </div>
+</div>
+
+<!-- Modal tạo đơn -->
+<div id="leave-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+  <div class="absolute inset-0 bg-[rgba(16,24,40,.4)]" onclick="closeLeave()"></div>
+  <form id="leave-form" novalidate class="relative w-full sm:max-w-[520px] bg-card border border-border rounded-t-xl sm:rounded-xl shadow-modal max-h-[92dvh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="leave-title">
+    <div class="px-6 pt-6 pb-4 flex items-start justify-between gap-3">
+      <div><h2 id="leave-title" class="text-h2 font-semibold">Tạo đơn mới</h2><p class="text-body-sm text-muted-foreground mt-0.5">Đơn sẽ được gửi tới quản lý trực tiếp để duyệt.</p></div>
+      <button type="button" class="icon-btn -mr-2" aria-label="Đóng" onclick="closeLeave()"><i data-lucide="x" class="size-5"></i></button>
+    </div>
+    <div class="px-6 grid gap-4">
+      <div>
+        <label for="lv-type" class="field-label">Loại đơn <span class="text-danger">*</span></label>
+        <select id="lv-type" class="input">
+          <option value="ANNUAL">Nghỉ phép năm</option><option value="SICK">Nghỉ ốm</option><option value="OT">Tăng ca</option>
+          <option value="LATE_PERMISSION">Xin đi muộn</option><option value="BUSINESS_TRIP">Công tác</option><option value="UNPAID">Nghỉ không lương</option><option value="OTHER">Khác</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label for="lv-from" class="field-label">Từ ngày <span class="text-danger">*</span></label><input id="lv-from" type="date" class="input" value="2026-11-16" /></div>
+        <div><label for="lv-to" class="field-label">Đến ngày <span class="text-danger">*</span></label><input id="lv-to" type="date" class="input" value="2026-11-16" aria-describedby="lv-to-err" /><p id="lv-to-err" class="field-error hidden"><i data-lucide="circle-alert" class="size-3.5"></i>Ngày kết thúc phải sau ngày bắt đầu.</p></div>
+      </div>
+      <div>
+        <label for="lv-reason" class="field-label">Lý do <span class="text-danger">*</span></label>
+        <textarea id="lv-reason" rows="3" class="input h-auto py-2.5 resize-none" placeholder="Ví dụ: Về quê dự đám cưới người thân" aria-describedby="lv-reason-help"></textarea>
+        <p id="lv-reason-help" class="field-help">Tối thiểu 10 ký tự.</p>
+      </div>
+    </div>
+    <div class="px-6 py-4 mt-6 border-t border-border flex justify-end gap-2 sticky bottom-0 bg-card">
+      <button type="button" class="btn btn-outline btn-lg sm:h-10" onclick="closeLeave()">Huỷ</button>
+      <button type="submit" class="btn btn-primary btn-lg sm:h-10">Gửi đơn</button>
+    </div>
+  </form>
+</div>
+
+<!-- Nút AI nổi + panel -->
+<button id="ai-fab" class="hidden fixed right-4 bottom-4 sm:right-6 sm:bottom-6 z-40 size-14 rounded-full bg-ai text-white shadow-pop items-center justify-center cursor-pointer hover:brightness-110 transition" aria-label="Mở Trợ lý HR AI" aria-expanded="false">
+  <i data-lucide="sparkles" class="size-6"></i>
+</button>
+<div id="ai-panel" class="hidden fixed z-50 inset-x-0 bottom-0 sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-[400px] h-[78dvh] sm:h-[560px] bg-card border border-border rounded-t-xl sm:rounded-xl shadow-modal flex flex-col" role="dialog" aria-label="Trợ lý HR AI">
+  <div class="flex items-center gap-3 px-4 h-16 border-b border-border">
+    <span class="flex size-9 items-center justify-center rounded-md bg-ai-tint text-ai"><i data-lucide="sparkles" class="size-[18px]"></i></span>
+    <div class="flex-1 min-w-0"><p class="text-body font-semibold">Trợ lý HR AI</p><p class="text-caption text-muted-foreground">Hỏi đáp lương, phép, chính sách · WF02</p></div>
+    <button class="icon-btn" aria-label="Đóng trợ lý" onclick="toggleAi(false)"><i data-lucide="x" class="size-5"></i></button>
+  </div>
+  <div id="ai-thread" class="flex-1 overflow-y-auto p-4 grid content-start gap-3" aria-live="polite">
+    <div class="max-w-[85%] rounded-lg rounded-tl-sm border border-border bg-card px-3.5 py-2.5 text-body-sm">Chào Thu Hà, mình có thể giúp gì về phép, lương hoặc chính sách công ty?<p class="mt-1 text-micro text-subtle-foreground">09:12</p></div>
+  </div>
+  <form id="ai-form" class="border-t border-border p-3 grid gap-2">
+    <label for="ai-input" class="sr-only">Nhập câu hỏi</label>
+    <textarea id="ai-input" rows="2" class="input h-auto py-2 resize-none" placeholder="Nhập câu hỏi cho trợ lý…"></textarea>
+    <div class="flex items-center gap-2">
+      <div class="flex-1 flex gap-1.5 overflow-x-auto">
+        <button type="button" class="ai-chip badge badge-neutral h-7 px-2.5 cursor-pointer hover:bg-border shrink-0">Tôi còn bao nhiêu ngày phép?</button>
+        <button type="button" class="ai-chip badge badge-neutral h-7 px-2.5 cursor-pointer hover:bg-border shrink-0">Khi nào trả lương?</button>
+      </div>
+      <button type="submit" class="btn btn-primary size-9 px-0" aria-label="Gửi"><i data-lucide="send" class="size-4"></i></button>
+    </div>
+  </form>
+</div>
+
+<!-- Toast -->
+<div id="toast-root" class="fixed top-4 right-4 z-[60] grid gap-2 w-[min(360px,calc(100vw-2rem))]" aria-live="polite"></div>
+
+<script>
+/* ---------------- Dữ liệu mẫu ---------------- */
+const NAV = {
+  ADMIN: [
+    { group: "Tổng quan", items: [{ id: "dashboard", label: "Bảng điều hành", icon: "layout-dashboard" }] },
+    { group: "Nhân sự", items: [{ id: "employees", label: "Hồ sơ nhân sự", icon: "users" }, { id: "payroll", label: "Bảng lương & thuế", icon: "wallet" }] },
+    { group: "Vận hành AI", items: [{ id: "ai-agents", label: "Trợ lý AI", icon: "sparkles" }, { id: "cskh-escalation", label: "Tiếp quản CSKH", icon: "headset", count: 2 }] },
+    { group: "Phát triển", items: [{ id: "training-analytics", label: "Đào tạo & Radar AI", icon: "radar" }] },
+    { group: "Cá nhân", items: [{ id: "portal", label: "Cổng nhân viên", icon: "id-card" }] },
+    { group: "Hệ thống", items: [{ id: "settings", label: "Cài đặt", icon: "settings" }] },
+  ],
+  EMPLOYEE: [
+    { group: "Của tôi", items: [{ id: "portal", label: "Cổng nhân viên", icon: "id-card" }, { id: "my-training", label: "Kết quả đào tạo", icon: "graduation-cap" }, { id: "ai-agents", label: "Trợ lý AI", icon: "sparkles" }] },
+  ],
+};
+const KPIS = [
+  { label: "Tổng quân số", value: "248", unit: "nhân sự", sub: "Đang quản lý trong hệ thống", icon: "users", tint: "bg-primary-tint text-primary", delta: "+6 so với T10", deltaTone: "badge-success" },
+  { label: "Tỷ lệ đi làm hôm nay", value: "94,2%", sub: "214 đúng giờ · 9 đi muộn · 11 nghỉ phép", icon: "clock", tint: "bg-success-tint text-success" },
+  { label: "Quỹ lương tháng", value: "6,82 tỷ ₫", sub: "Tổng thực lĩnh, mọi trạng thái", icon: "wallet", tint: "bg-warning-tint text-warning" },
+  { label: "AI tự giải quyết", value: "87%", sub: "1.342 câu hỏi · 18 ca chuyển người", icon: "sparkles", tint: "bg-ai-tint text-ai", delta: "+3 điểm", deltaTone: "badge-success" },
+];
+const AREA = [["06/11",205,14],["07/11",0,0],["08/11",0,0],["09/11",210,11],["10/11",208,15],["11/11",216,8],["12/11",214,9]].filter(d => d[1]);
+const DEPTS = [["Kinh doanh",86,"var(--chart-1)"],["CSKH",64,"var(--chart-2)"],["Vận hành",48,"var(--chart-3)"],["Nhân sự",22,"var(--chart-4)"],["Khác",28,"var(--chart-5)"]];
+const PENDING = [
+  ["Nguyễn Thu Hà","Nhân sự","Nghỉ phép năm","16/11/2026 · 1 ngày","Về quê dự đám cưới người thân"],
+  ["Trần Minh Quân","Kinh doanh","Tăng ca","13/11/2026 · 3 giờ","Chốt hợp đồng khách hàng FPT"],
+  ["Lê Bảo Ngọc","CSKH","Nghỉ ốm","12/11/2026 · 1 ngày","Sốt, có giấy khám bệnh viện Bạch Mai"],
+  ["Phạm Đức Anh","Vận hành","Công tác","18–20/11/2026","Kiểm tra kho Đà Nẵng"],
+];
+const AI = [
+  ["WF01","Router Agent","Phân loại intent và định tuyến","teal",1342,0,"Vừa xong",820],
+  ["WF02","HR QA Agent","Hỏi đáp lương, phép, chính sách","blue",716,6,"2 phút trước",1640],
+  ["WF03","Training Agent","Chấm bài tự luận và radar kỹ năng","amber",184,0,"1 giờ trước",2310],
+  ["WF04","CSKH Zalo Agent","Trả lời khách hàng qua Zalo OA","coral",442,12,"Vừa xong",1180],
+];
+const MY_REQ = [
+  ["Nghỉ phép năm","16/11/2026 · 1 ngày","warning","Chờ duyệt","hourglass"],
+  ["Tăng ca","28/10/2026 · 2 giờ","success","Đã duyệt","circle-check"],
+  ["Xin đi muộn","15/10/2026","danger","Từ chối","circle-x"],
+];
+const ONBOARD = [["Ký hợp đồng lao động",true,"02/11/2026"],["Nhận thiết bị & tài khoản",true,"02/11/2026"],["Đào tạo văn hoá công ty",true,"05/11/2026"],["Khoá học quy trình tuyển dụng",false,"Hạn 20/11/2026"],["Đánh giá cuối thử việc",false,"Hạn 31/12/2026"]];
+// status theo ngày tháng 11/2026 (đến hôm nay 12/11)
+const ATT = { 2:"ok",3:"ok",4:"late",5:"ok",6:"ok",9:"ok",10:"leave",11:"ok",12:"ok" };
+const ATT_META = { ok:["Đúng giờ","bg-success","08:02","17:35"], late:["Đi muộn","bg-warning","08:47","17:40"], leave:["Nghỉ phép","bg-info","—","—"], absent:["Vắng","bg-danger","—","—"] };
+const TODAY = 12;
+
+/* ---------------- Helpers ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const icons = () => lucide.createIcons({ attrs: { "stroke-width": 1.75 } });
+const initials = n => n.split(" ").slice(-2).map(w => w[0]).join("").toUpperCase();
+function toast(msg, tone = "success") {
+  const icon = { success: "circle-check", danger: "circle-alert", info: "info" }[tone];
+  const el = document.createElement("div");
+  el.className = "card shadow-pop px-4 py-3 flex items-start gap-3 text-body-sm transition-opacity duration-200";
+  el.innerHTML = `<i data-lucide="${icon}" class="size-[18px] mt-0.5 text-${tone}"></i><span class="flex-1">${msg}</span>`;
+  $("#toast-root").append(el); icons();
+  setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.remove(), 200); }, 3500);
+}
+
+/* ---------------- Router & role ---------------- */
+let role = "ADMIN";
+const PAGE_META = { dashboard: ["Tổng quan","Bảng điều hành"], portal: [null,"Cổng nhân viên"] };
+function renderNav(active) {
+  $("#nav").innerHTML = NAV[role].map(g => `
+    <div class="grid gap-0.5">
+      <p class="nav-group-title eyebrow px-3 mb-1">${g.group}</p>
+      ${g.items.map(i => `<button class="nav-item" data-nav="${i.id}" ${i.id === active ? 'aria-current="page"' : ""} title="${i.label}">
+        <i data-lucide="${i.icon}"></i><span class="nav-label flex-1 truncate">${i.label}</span>
+        ${i.count ? `<span class="nav-label badge badge-danger h-5 px-1.5 tabular" aria-label="${i.count} phiên chờ">${i.count}</span>` : ""}
+      </button>`).join("")}
+    </div>`).join("");
+  $$("[data-nav]").forEach(b => b.onclick = () => {
+    const id = b.dataset.nav;
+    if (id === "dashboard" || id === "portal") go(id);
+    else toast(`“${b.title}” sẽ được thiết kế ở đợt 2 sau khi bạn duyệt.`, "info");
+    closeDrawer();
+  });
+  icons();
+}
+let current = null;
+function go(h) { current = h; try { history.replaceState(null, "", "#" + h); } catch {} route(); }
+function route() {
+  const h = current ?? (location.hash.slice(1) || "login");
+  const isApp = h !== "login";
+  $("#screen-login").classList.toggle("hidden", isApp);
+  $("#app").classList.toggle("hidden", !isApp);
+  $("#ai-fab").classList.toggle("hidden", h !== "portal"); $("#ai-fab").classList.toggle("flex", h === "portal");
+  if (h !== "portal") toggleAi(false);
+  if (!isApp) return;
+  if (role === "EMPLOYEE" && h === "dashboard") { go("portal"); return; }
+  $("#screen-dashboard").classList.toggle("hidden", h !== "dashboard");
+  $("#screen-portal").classList.toggle("hidden", h !== "portal");
+  const group = role === "EMPLOYEE" ? "Của tôi" : (h === "portal" ? "Cá nhân" : "Tổng quan");
+  $("#crumb-group").textContent = group;
+  $("#crumb-page").textContent = PAGE_META[h][1];
+  document.title = `${PAGE_META[h][1]} · HR Multi-Agent`;
+  $("#user-role").textContent = role === "ADMIN" ? "Quản trị viên" : "Nhân viên";
+  renderNav(h);
+  $("#main").scrollTo?.(0, 0);
+}
+window.addEventListener("hashchange", () => { current = null; route(); });
+
+/* ---------------- Login ---------------- */
+$$("[data-demo]").forEach(b => b.onclick = () => {
+  $("#email").value = b.dataset.demo === "admin" ? "admin@hr-system.com" : "thuha@hr-system.com";
+  $("#password").value = "demo1234"; role = b.dataset.demo === "admin" ? "ADMIN" : "EMPLOYEE";
+});
+$("#toggle-pw").onclick = e => {
+  const p = $("#password"); const show = p.type === "password"; p.type = show ? "text" : "password";
+  e.currentTarget.setAttribute("aria-label", show ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+  e.currentTarget.innerHTML = `<i data-lucide="${show ? "eye-off" : "eye"}" class="size-4"></i>`; icons();
+};
+$("#login-form").onsubmit = e => {
+  e.preventDefault();
+  const ok = $("#email").value && $("#password").value.length >= 4;
+  $("#login-error").classList.toggle("hidden", ok); $("#login-error").classList.toggle("flex", !ok);
+  $("#email").setAttribute("aria-invalid", !ok); $("#password").setAttribute("aria-invalid", !ok);
+  if (!ok) return;
+  if ($("#email").value.startsWith("thuha")) role = "EMPLOYEE";
+  const btn = $("#login-submit"); btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader-circle" class="size-4 animate-spin"></i>Đang đăng nhập…`; icons();
+  setTimeout(() => {
+    btn.disabled = false; btn.textContent = "Đăng nhập";
+    $("#user-role").textContent = role === "ADMIN" ? "Quản trị viên" : "Nhân viên";
+    go(role === "ADMIN" ? "dashboard" : "portal");
+  }, 600);
+};
+function logout() { $("#user-menu").classList.add("hidden"); role = "ADMIN"; go("login"); }
+
+/* ---------------- Shell ---------------- */
+function openDrawer() { $("#sidebar").classList.remove("-translate-x-full"); $("#drawer-overlay").classList.remove("hidden"); }
+function closeDrawer() { if (innerWidth < 1024) { $("#sidebar").classList.add("-translate-x-full"); $("#drawer-overlay").classList.add("hidden"); } }
+$("#menu-btn").onclick = openDrawer; $("#drawer-overlay").onclick = closeDrawer;
+$("#collapse-btn").onclick = () => {
+  const c = document.body.classList.toggle("sidebar-collapsed");
+  try { localStorage.setItem("hr-sidebar-collapsed", c ? "1" : "0"); } catch {}
+  $("#collapse-btn").setAttribute("aria-label", c ? "Mở rộng thanh bên" : "Thu gọn thanh bên");
+};
+try { if (localStorage.getItem("hr-sidebar-collapsed") === "1") document.body.classList.add("sidebar-collapsed"); } catch {}
+$("#user-btn").onclick = e => { const m = $("#user-menu"); m.classList.toggle("hidden"); e.currentTarget.setAttribute("aria-expanded", !m.classList.contains("hidden")); };
+
+/* Search */
+function openSearch() { $("#search-modal").classList.remove("hidden"); $("#search-input").value = ""; renderSearch(""); setTimeout(() => $("#search-input").focus(), 0); }
+function closeSearch() { $("#search-modal").classList.add("hidden"); }
+function renderSearch(q) {
+  const all = NAV[role].flatMap(g => g.items.map(i => ({ ...i, group: g.group })));
+  const res = all.filter(i => i.label.toLowerCase().includes(q.toLowerCase()));
+  $("#search-results").innerHTML = res.length ? res.map(i => `<li><button class="nav-item h-10" data-go="${i.id}"><i data-lucide="${i.icon}"></i><span class="flex-1">${i.label}</span><span class="text-caption text-muted-foreground">${i.group}</span></button></li>`).join("")
+    : `<li class="p-6 text-center text-body-sm text-muted-foreground">Không tìm thấy kết quả cho “${q}”.</li>`;
+  $$("[data-go]").forEach(b => b.onclick = () => { closeSearch(); $(`[data-nav="${b.dataset.go}"]`)?.click(); });
+  icons();
+}
+$("#search-btn").onclick = openSearch; $("#search-input").oninput = e => renderSearch(e.target.value);
+addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !$("#app").classList.contains("hidden")) { e.preventDefault(); openSearch(); }
+  if (e.key === "Escape") { closeSearch(); closeLeave(); toggleAi(false); $("#day-pop").classList.add("hidden"); $("#user-menu").classList.add("hidden"); }
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest("#user-btn, #user-menu")) $("#user-menu").classList.add("hidden");
+  if (!e.target.closest("#day-pop, [data-day]")) $("#day-pop").classList.add("hidden");
+});
+
+/* ---------------- Dashboard ---------------- */
+function renderKpis(state) {
+  $("#kpis").innerHTML = KPIS.map(k => state === "loading"
+    ? `<div class="card card-pad"><div class="skel size-9"></div><div class="skel h-4 w-28 mt-4"></div><div class="skel h-8 w-24 mt-2"></div><div class="skel h-3 w-40 mt-3"></div></div>`
+    : `<div class="card card-pad">
+        <div class="flex items-start justify-between gap-2">
+          <span class="flex size-9 items-center justify-center rounded-md ${k.tint}"><i data-lucide="${k.icon}" class="size-[18px]"></i></span>
+          ${k.delta && state === "data" ? `<span class="badge ${k.deltaTone}"><i data-lucide="trending-up" class="size-3.5"></i>${k.delta}</span>` : ""}
+        </div>
+        <p class="mt-4 text-body-sm text-muted-foreground">${k.label}</p>
+        <p class="mt-1 text-[28px] leading-9 font-semibold tabular">${state === "empty" ? "0" : k.value}${k.unit ? `<span class="ml-1.5 text-body-sm font-normal text-muted-foreground">${k.unit}</span>` : ""}</p>
+        <p class="mt-1 text-caption text-muted-foreground">${state === "empty" ? "Chưa có dữ liệu trong kỳ" : k.sub}</p>
+      </div>`).join("");
+}
+function renderArea(state) {
+  const el = $("#area-chart");
+  if (state === "loading") { el.innerHTML = `<div class="skel absolute inset-0"></div>`; return; }
+  if (state === "empty") { el.innerHTML = emptyState("chart-area", "Chưa có dữ liệu chấm công", "Dữ liệu sẽ xuất hiện khi nhân viên bắt đầu check-in trong kỳ."); return; }
+  const W = Math.max(el.clientWidth, 320), H = 300, pl = 40, pb = 28, pt = 8, max = 240;
+  const x = i => pl + i * (W - pl - 28) / (AREA.length - 1), y = v => pt + (H - pt - pb) * (1 - v / max);
+  const line = k => AREA.map((d, i) => `${i ? "L" : "M"}${x(i)},${y(d[k])}`).join("");
+  const area = k => `${line(k)}L${x(AREA.length - 1)},${y(0)}L${x(0)},${y(0)}Z`;
+  const grid = [0, 60, 120, 180, 240].map(v => `<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--chart-grid)" stroke-dasharray="3 3"/><text x="${pl - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="var(--muted-foreground)">${v}</text>`).join("");
+  const xs = AREA.map((d, i) => `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="12" fill="var(--muted-foreground)">${d[0]}</text>`).join("");
+  const hits = AREA.map((d, i) => `<rect x="${x(i) - 30}" y="0" width="60" height="${H - pb}" fill="transparent" data-i="${i}" tabindex="0" aria-label="${d[0]}: ${d[1]} đúng giờ, ${d[2]} đi muộn"/>`).join("");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="w-full h-full">
+    <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--chart-1)" stop-opacity=".16"/><stop offset="1" stop-color="var(--chart-1)" stop-opacity="0"/></linearGradient></defs>
+    ${grid}${xs}
+    <path d="${area(1)}" fill="url(#g1)"/><path d="${line(1)}" fill="none" stroke="var(--chart-1)" stroke-width="2"/>
+    <path d="${line(2)}" fill="none" stroke="var(--chart-3)" stroke-width="2" stroke-dasharray="0"/>
+    ${AREA.map((d, i) => `<circle cx="${x(i)}" cy="${y(d[2])}" r="3" fill="var(--chart-3)"/>`).join("")}
+    ${hits}</svg>
+    <div id="area-tip" class="hidden absolute card shadow-sm px-3 py-2 text-caption pointer-events-none"></div>`;
+  $$("#area-chart [data-i]").forEach(r => {
+    const show = () => { const d = AREA[r.dataset.i], t = $("#area-tip"); t.innerHTML = `<p class="font-semibold text-foreground">${d[0]}/2026</p><p class="flex items-center gap-1.5 mt-1"><span class="size-2 rounded-sm bg-chart-1"></span>Đúng giờ <b class="ml-auto pl-3 tabular">${d[1]}</b></p><p class="flex items-center gap-1.5"><span class="size-2 rounded-sm bg-chart-3"></span>Đi muộn <b class="ml-auto pl-3 tabular">${d[2]}</b></p>`; t.classList.remove("hidden"); t.style.left = Math.min(r.getBoundingClientRect().left - el.getBoundingClientRect().left + 34, el.clientWidth - 150) + "px"; t.style.top = "8px"; };
+    r.onmouseenter = show; r.onfocus = show; r.onmouseleave = r.onblur = () => $("#area-tip").classList.add("hidden");
+  });
+}
+function renderDonut(state) {
+  const el = $("#donut");
+  if (state === "loading") { el.innerHTML = `<div class="skel size-44 rounded-full mx-auto"></div><div class="skel h-3 w-full mt-6"></div><div class="skel h-3 w-3/4 mt-2"></div>`; return; }
+  if (state === "empty") { el.innerHTML = emptyState("pie-chart", "Chưa có nhân sự", "Thêm nhân viên để xem cơ cấu phòng ban.", "Thêm nhân viên"); return; }
+  const total = DEPTS.reduce((s, d) => s + d[1], 0), r = 70, c = 2 * Math.PI * r; let off = 0;
+  const segs = DEPTS.map(d => { const len = d[1] / total * c; const s = `<circle r="${r}" cx="90" cy="90" fill="none" stroke="${d[2]}" stroke-width="22" stroke-dasharray="${len - 2} ${c - len + 2}" stroke-dashoffset="${-off}" transform="rotate(-90 90 90)"/>`; off += len; return s; }).join("");
+  el.innerHTML = `<div class="relative mx-auto size-44"><svg viewBox="0 0 180 180" role="img" aria-label="Cơ cấu: Kinh doanh chiếm tỷ trọng lớn nhất 35%">${segs}</svg>
+    <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-h2 font-semibold tabular">${total}</span><span class="text-caption text-muted-foreground">nhân sự</span></div></div>
+    <ul class="mt-5 grid gap-2 text-body-sm">${DEPTS.map(d => `<li class="flex items-center gap-2"><span class="size-2.5 rounded-sm" style="background:${d[2]}"></span><span class="flex-1 text-secondary-foreground">${d[0]}</span><span class="tabular text-muted-foreground">${Math.round(d[1] / total * 100)}%</span><span class="w-8 text-right tabular font-medium">${d[1]}</span></li>`).join("")}</ul>`;
+}
+function emptyState(icon, title, desc, cta) {
+  return `<div class="h-full min-h-56 flex flex-col items-center justify-center text-center px-6 py-8">
+    <span class="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground"><i data-lucide="${icon}" class="size-5"></i></span>
+    <p class="mt-3 text-body font-semibold">${title}</p><p class="mt-1 text-body-sm text-muted-foreground max-w-72">${desc}</p>
+    ${cta ? `<button class="btn btn-outline mt-4">${cta}</button>` : ""}</div>`;
+}
+function renderPending(state) {
+  const el = $("#pending-list");
+  $("#pending-count").textContent = state === "empty" ? "0 đơn" : "4 đơn";
+  if (state === "loading") { el.innerHTML = [1, 2, 3].map(() => `<li class="px-6 py-4 flex gap-3"><div class="skel size-10 rounded-full"></div><div class="flex-1"><div class="skel h-4 w-40"></div><div class="skel h-3 w-56 mt-2"></div></div></li>`).join(""); return; }
+  if (state === "empty") { el.innerHTML = `<li>${emptyState("inbox", "Đã xử lý hết các đơn", "Đơn mới của nhân viên sẽ hiện ở đây.")}</li>`; return; }
+  el.innerHTML = PENDING.map(p => `<li class="px-5 sm:px-6 py-4 flex items-start gap-3 hover:bg-sunken">
+    <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-secondary-foreground text-body-sm font-semibold">${initials(p[0])}</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-body font-medium">${p[0]} <span class="font-normal text-muted-foreground">· ${p[1]}</span></p>
+      <p class="text-body-sm text-secondary-foreground"><span class="font-medium">${p[2]}</span> · ${p[3]}</p>
+      <p class="text-caption text-muted-foreground truncate">${p[4]}</p>
+    </div>
+    <button class="btn btn-outline btn-sm shrink-0" onclick="toast('Mở chi tiết đơn của ${p[0]} (dùng modal duyệt hiện có).','info')">Xem & duyệt</button></li>`).join("");
+}
+function renderAi(state) {
+  const el = $("#ai-list");
+  if (state === "loading") { el.innerHTML = [1, 2, 3, 4].map(() => `<li class="px-6 py-4"><div class="skel h-4 w-48"></div><div class="skel h-2 w-full mt-3"></div></li>`).join(""); return; }
+  if (state === "empty") { el.innerHTML = `<li>${emptyState("sparkles", "Chưa có hoạt động AI", "Khi nhân viên hoặc khách hàng nhắn tin, thống kê sẽ hiện ở đây.")}</li>`; return; }
+  const maxL = Math.max(...AI.map(a => a[7]));
+  el.innerHTML = AI.map(a => `<li class="px-5 sm:px-6 py-4">
+    <div class="flex items-center gap-3">
+      <span class="badge badge-tag bg-agent-${a[3]}-tint text-agent-${a[3]} font-semibold font-mono text-micro">${a[0]}</span>
+      <div class="flex-1 min-w-0"><p class="text-body font-medium truncate">${a[1]}</p><p class="text-caption text-muted-foreground truncate">${a[2]}</p></div>
+      <div class="text-right shrink-0"><p class="text-body font-semibold tabular">${a[4].toLocaleString("vi-VN")}</p><p class="text-caption text-muted-foreground">${a[6]}</p></div>
+    </div>
+    <div class="mt-3 flex items-center gap-3 text-caption text-muted-foreground">
+      <div class="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div class="h-full rounded-full bg-agent-${a[3]}" style="width:${a[7] / maxL * 100}%"></div></div>
+      <span class="tabular w-16 text-right">⌀ ${a[7].toLocaleString("vi-VN")} ms</span>
+      ${a[5] ? `<span class="badge badge-danger"><i data-lucide="user-round-check" class="size-3.5"></i>${a[5]} chuyển người</span>` : `<span class="badge badge-neutral">0 chuyển người</span>`}
+    </div></li>`).join("");
+}
+function setDashState(s) {
+  $$(".state-btn").forEach(b => { const on = b.dataset.state === s; b.className = `state-btn px-2.5 h-7 rounded-sm font-medium cursor-pointer ${on ? "bg-primary-tint text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`; b.setAttribute("aria-pressed", on); });
+  $("#dash-error").classList.toggle("hidden", s !== "error");
+  const view = s === "error" ? "data" : s;
+  renderKpis(view); renderArea(view); renderDonut(view); renderPending(view); renderAi(view); icons();
+}
+$$(".state-btn").forEach(b => b.onclick = () => setDashState(b.dataset.state));
+
+/* ---------------- Portal ---------------- */
+function renderCalendar() {
+  const first = new Date(2026, 10, 1).getDay(); // 0 = CN
+  const lead = (first + 6) % 7, days = 30; let html = "";
+  for (let i = 0; i < lead; i++) html += `<span></span>`;
+  for (let d = 1; d <= days; d++) {
+    const dow = (lead + d - 1) % 7, weekend = dow >= 5, st = ATT[d], future = d > TODAY;
+    const meta = st && ATT_META[st];
+    html += `<button data-day="${d}" class="relative aspect-square min-h-11 rounded-md flex flex-col items-center justify-center gap-1 text-body-sm tabular cursor-pointer transition-colors
+      ${d === TODAY ? "ring-2 ring-primary ring-inset font-semibold text-primary" : weekend || future ? "text-subtle-foreground" : "text-foreground"} hover:bg-muted"
+      aria-label="Ngày ${d}/11/2026${meta ? ": " + meta[0] : weekend ? ": cuối tuần" : ""}">
+      ${d}${meta ? `<span class="size-1.5 rounded-full ${meta[1]}"></span>` : `<span class="size-1.5"></span>`}</button>`;
+  }
+  $("#calendar").innerHTML = html;
+  $$("[data-day]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const d = +b.dataset.day, meta = ATT_META[ATT[d]], pop = $("#day-pop"), r = b.getBoundingClientRect();
+    pop.innerHTML = `<p class="text-body font-semibold">${String(d).padStart(2, "0")}/11/2026</p>` + (meta
+      ? `<span class="mt-2 badge ${{ "bg-success": "badge-success", "bg-warning": "badge-warning", "bg-info": "badge-info", "bg-danger": "badge-danger" }[meta[1]]}"><span class="dot"></span>${meta[0]}</span>
+         <dl class="mt-3 grid grid-cols-2 gap-2 text-body-sm"><div><dt class="text-caption text-muted-foreground">Giờ vào</dt><dd class="tabular font-medium">${meta[2]}</dd></div><div><dt class="text-caption text-muted-foreground">Giờ ra</dt><dd class="tabular font-medium">${meta[3]}</dd></div>
+         <div><dt class="text-caption text-muted-foreground">Tổng giờ</dt><dd class="tabular font-medium">${meta[2] === "—" ? "—" : "8,5 h"}</dd></div><div><dt class="text-caption text-muted-foreground">Tăng ca</dt><dd class="tabular font-medium">0 h</dd></div></dl>`
+      : `<p class="mt-1 text-body-sm text-muted-foreground">${d > TODAY ? "Chưa đến ngày." : "Không có dữ liệu chấm công."}</p>`);
+    pop.classList.remove("hidden");
+    pop.style.left = Math.max(8, Math.min(r.left, innerWidth - 272)) + "px";
+    pop.style.top = (r.bottom + 6 + 220 > innerHeight ? r.top - 6 - pop.offsetHeight : r.bottom + 6) + "px";
+  });
+}
+function renderPortalLists() {
+  $("#my-requests").innerHTML = MY_REQ.map(r => `<li class="px-5 sm:px-6 py-3.5 flex items-center gap-3">
+    <div class="flex-1 min-w-0"><p class="text-body font-medium">${r[0]}</p><p class="text-caption text-muted-foreground">${r[1]}</p></div>
+    <span class="badge badge-${r[2]}"><i data-lucide="${r[4]}" class="size-3.5"></i>${r[3]}</span></li>`).join("");
+  $("#onboarding").innerHTML = ONBOARD.map((o, i) => `<li class="relative flex gap-3 pb-4 last:pb-0">
+    ${i < ONBOARD.length - 1 ? `<span class="absolute left-[11px] top-6 bottom-0 w-px ${o[1] ? "bg-primary/30" : "bg-border"}"></span>` : ""}
+    <span class="relative flex size-6 shrink-0 items-center justify-center rounded-full ${o[1] ? "bg-primary text-white" : "border-2 border-input bg-card"}">${o[1] ? `<i data-lucide="check" class="size-3.5"></i>` : ""}</span>
+    <div class="flex-1 min-w-0 flex flex-wrap items-center justify-between gap-x-3"><p class="text-body-sm ${o[1] ? "text-secondary-foreground" : "font-medium"}">${o[0]}</p>
+    <span class="badge ${o[1] ? "badge-success" : "badge-neutral"}">${o[1] ? "Hoàn thành " + o[2] : o[2]}</span></div></li>`).join("");
+}
+let ciStep = 0;
+$("#ci-btn").onclick = () => {
+  const b = $("#ci-btn"); b.disabled = true; b.innerHTML = `<i data-lucide="loader-circle" class="size-4 animate-spin"></i>Đang lấy vị trí GPS…`; icons();
+  setTimeout(() => {
+    b.disabled = false;
+    if (ciStep === 0) {
+      $("#ci-in").textContent = "08:02"; $("#ci-badge").className = "badge badge-success"; $("#ci-badge").innerHTML = `<i data-lucide="circle-check" class="size-3.5"></i>Đã check-in`;
+      $("#ci-loc").innerHTML = `<i data-lucide="locate" class="size-3.5"></i>Trong vùng Văn phòng Hà Nội · cách 42 m`;
+      b.className = "btn btn-outline btn-lg w-full"; b.innerHTML = `<i data-lucide="log-out" class="size-4"></i>Check-out`; toast("Check-in thành công lúc 08:02.");
+    } else if (ciStep === 1) {
+      $("#ci-out").textContent = "17:35"; $("#ci-badge").innerHTML = `<i data-lucide="circle-check" class="size-3.5"></i>Hoàn tất ngày công`;
+      b.disabled = true; b.innerHTML = `<i data-lucide="check" class="size-4"></i>Đã hoàn tất hôm nay`; toast("Check-out thành công lúc 17:35.");
+    }
+    ciStep++; icons();
+  }, 700);
+};
+
+/* Leave modal */
+function openLeave() { $("#leave-modal").classList.remove("hidden"); setTimeout(() => $("#lv-type").focus(), 0); }
+function closeLeave() { $("#leave-modal").classList.add("hidden"); }
+function validateLeave() {
+  const badDate = $("#lv-to").value < $("#lv-from").value, reason = $("#lv-reason").value.trim(), badReason = reason.length < 10;
+  $("#lv-to").setAttribute("aria-invalid", badDate); $("#lv-to-err").classList.toggle("hidden", !badDate);
+  $("#lv-reason").setAttribute("aria-invalid", badReason);
+  const help = $("#lv-reason-help");
+  help.className = badReason ? "field-error" : "field-help";
+  help.innerHTML = badReason ? `<i data-lucide="circle-alert" class="size-3.5"></i>Lý do cần tối thiểu 10 ký tự (hiện có ${reason.length}).` : "Tối thiểu 10 ký tự.";
+  icons(); return !badDate && !badReason;
+}
+$("#lv-to").onblur = $("#lv-reason").onblur = validateLeave;
+$("#leave-form").onsubmit = e => {
+  e.preventDefault();
+  if (!validateLeave()) { $('[aria-invalid="true"]', $("#leave-form"))?.focus(); return; }
+  closeLeave(); toast("Đã gửi đơn. Quản lý trực tiếp sẽ nhận thông báo.");
+};
+
+/* AI panel */
+function toggleAi(open) {
+  $("#ai-panel").classList.toggle("hidden", !open); $("#ai-fab").setAttribute("aria-expanded", open);
+  if (open) setTimeout(() => $("#ai-input").focus(), 0);
+}
+$("#ai-fab").onclick = () => toggleAi($("#ai-panel").classList.contains("hidden"));
+$$(".ai-chip").forEach(c => c.onclick = () => { $("#ai-input").value = c.textContent; $("#ai-form").requestSubmit(); });
+$("#ai-form").onsubmit = e => {
+  e.preventDefault(); const q = $("#ai-input").value.trim(); if (!q) return; $("#ai-input").value = "";
+  const t = $("#ai-thread");
+  t.insertAdjacentHTML("beforeend", `<div class="justify-self-end max-w-[85%] rounded-lg rounded-tr-sm bg-primary-tint text-accent-foreground px-3.5 py-2.5 text-body-sm">${q.replace(/</g, "&lt;")}<p class="mt-1 text-micro opacity-70 text-right">09:14</p></div>
+    <div id="typing" class="max-w-[85%] rounded-lg rounded-tl-sm border border-border px-3.5 py-3 flex gap-1" aria-label="Trợ lý đang trả lời">${[0, 1, 2].map(i => `<span class="size-1.5 rounded-full bg-muted-foreground" style="animation:blink 1.2s ${i * .15}s infinite"></span>`).join("")}</div>`);
+  t.scrollTop = t.scrollHeight;
+  setTimeout(() => {
+    $("#typing").outerHTML = `<div class="max-w-[85%] rounded-lg rounded-tl-sm border border-border bg-card px-3.5 py-2.5 text-body-sm">(Prototype) Câu trả lời thật sẽ đến từ WF02 qua <code class="rounded-sm bg-muted px-1 font-mono text-micro">agentsApi.chat</code>.<p class="mt-1 text-micro text-subtle-foreground">09:14</p></div>`;
+    t.scrollTop = t.scrollHeight;
+  }, 1100);
+};
+
+/* Boot */
+renderCalendar(); renderPortalLists(); setDashState("data"); route(); icons();
+</script>
+</body>
+</html>

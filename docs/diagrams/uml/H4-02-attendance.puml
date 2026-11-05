@@ -1,0 +1,47 @@
+@startuml
+!include _style.iuml
+autonumber
+hide footbox
+actor "Nhân viên" as E
+participant "employee-portal-view" as W
+participant "SettingsService" as S
+participant "AttendanceService" as A
+database "PostgreSQL" as DB
+W -> S : GET /settings/geofence
+activate S
+S --> W : lat, lng, radiusM
+deactivate S
+E -> W : Bấm Check-in
+activate W
+W -> W : navigator.geolocation\nvà công thức Haversine
+alt Ngoài bán kính cho phép
+  W --> E : Từ chối, hiển thị khoảng cách
+else Trong bán kính
+  W -> A : POST /attendance/check-in (lat, lng)
+  activate A
+  A -> DB : Đọc OfficeGeofence, tính lại Haversine
+  A --> W : 403 nếu ngoài bán kính
+  A -> DB : Xác định dayType theo bảng holidays
+  A -> A : Ngày thường sau 08:30 là LATE,\nngược lại PRESENT
+  A -> DB : Đã có check-in hôm nay?
+  A --> W : 409 nếu đã check-in
+  A -> DB : INSERT attendance, hoặc UPDATE\nnếu đã có bản ghi (vd. ON_LEAVE)
+  A --> W : 201 Created
+  deactivate A
+end
+deactivate W
+E -> W : Bấm Check-out
+activate W
+W -> A : POST /attendance/check-out
+activate A
+alt Ngày thường
+  A -> A : workDays theo khung 8–12 và 13–17,\nlàm tròn lên bước 0,25 ngày
+  A -> A : overtime = max(giờ trước 08:00 + sau 17:00,\ngiờ đơn OT đã duyệt)
+else Cuối tuần / ngày lễ
+  A -> A : workDays = 0, toàn bộ giờ làm là overtime\n(trừ 1 giờ nghỉ trưa nếu qua 12:00–13:00)
+end
+A -> DB : UPDATE attendance
+A --> W : 201 Created
+deactivate A
+deactivate W
+@enduml

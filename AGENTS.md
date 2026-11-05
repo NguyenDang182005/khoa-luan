@@ -7,5 +7,5 @@
 
 ## 2. Tiêu chuẩn công nghệ
 - **Backend:** NestJS 11 (Port 3001), PostgreSQL (Port 5432), Prisma Client.
-- **Workflow & AI:** n8n (Port 5678), Google Gemini 3.1 Flash Lite (`maxOutputTokens: 1024`).
+- **Workflow & AI:** n8n (Port 5678), DeepSeek `deepseek-flash` cho agent WF02/03/04 (`maxTokens: 1024`); RAG embedding `gemini-embedding-001`.
 - **Giao tiếp n8n ↔ NestJS:** Header `x-api-key`.

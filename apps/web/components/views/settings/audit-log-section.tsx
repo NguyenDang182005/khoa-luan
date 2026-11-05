@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { History, Loader2 } from "lucide-react"
+import { History, Loader2, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,13 +16,13 @@ import {
 import { settingsApi } from "@/lib/api/settings.api"
 import type { AuditLogEntry } from "@/lib/schemas/settings.schema"
 
-const SECTION_LABELS: Record<string, { label: string; variant: "teal" | "blue" | "amber" | "warning" | "coral" }> = {
-  leave_policy: { label: "Phép năm", variant: "teal" },
-  security_policy: { label: "Bảo mật", variant: "blue" },
-  ai_agent: { label: "AI Agent", variant: "amber" },
-  salary_config: { label: "Lương & Thuế", variant: "warning" },
-  geofence: { label: "Vùng chấm công", variant: "coral" },
-  account: { label: "Tài khoản", variant: "teal" },
+const SECTION_LABELS: Record<string, { label: string; variant: "secondary" | "ai" }> = {
+  leave_policy: { label: "Phép năm", variant: "secondary" },
+  security_policy: { label: "Bảo mật", variant: "secondary" },
+  ai_agent: { label: "AI Agent", variant: "ai" },
+  salary_config: { label: "Lương & thuế", variant: "secondary" },
+  geofence: { label: "Vùng chấm công", variant: "secondary" },
+  account: { label: "Tài khoản", variant: "secondary" },
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -107,19 +107,20 @@ export function AuditLogSection() {
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <History className="size-4 text-agent-teal" /> Nhật Ký Thay Đổi Cài Đặt
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <History className="size-4 text-primary" /> Nhật ký thay đổi cài đặt
             </CardTitle>
-            <CardDescription>
-              Mọi thay đổi cấu hình được ghi tự động: ai sửa, field nào, giá trị cũ → mới. Chỉ xem, không sửa/xóa.
+            <CardDescription className="mt-1">
+              Mọi thay đổi cấu hình được ghi tự động: ai sửa, trường nào, giá trị cũ → mới. Chỉ xem, không sửa/xóa.
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Lọc theo mục"
+              className="h-8 rounded-md border border-input bg-card px-2.5 text-body-sm text-foreground transition-[border-color,box-shadow] duration-150 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20"
             >
               <option value="">Tất cả mục</option>
               {Object.entries(SECTION_LABELS).map(([key, { label }]) => (
@@ -128,62 +129,69 @@ export function AuditLogSection() {
                 </option>
               ))}
             </select>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => load(page, section)} disabled={busy}>
-              {busy && <Loader2 className="size-3.5 animate-spin" />} Tải Lại
+            <Button size="sm" variant="outline" onClick={() => load(page, section)} disabled={busy}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />} Tải lại
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         {!items ? (
-          <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="flex h-16 items-center justify-center gap-2 text-body-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Đang tải nhật ký...
           </div>
         ) : items.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Chưa có thay đổi nào được ghi nhận.</p>
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <History className="size-5" />
+            </span>
+            <p className="text-body font-semibold text-foreground">Chưa có thay đổi nào</p>
+            <p className="text-body-sm text-muted-foreground">Chưa có thay đổi nào được ghi nhận.</p>
+          </div>
         ) : (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Admin</TableHead>
-                  <TableHead>Mục</TableHead>
-                  <TableHead>Field</TableHead>
-                  <TableHead>Giá trị cũ → mới</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((it) => {
-                  const sec = SECTION_LABELS[it.section] ?? { label: it.section, variant: "default" as const }
-                  return (
-                    <TableRow key={it.id}>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{fmt(it.createdAt)}</TableCell>
-                      <TableCell className="text-xs text-foreground">{it.adminEmail}</TableCell>
-                      <TableCell>
-                        <Badge variant={sec.variant}>{sec.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-foreground">{FIELD_LABELS[it.field] ?? it.field}</TableCell>
-                      <TableCell className="text-xs">
-                        <span className="text-agent-coral line-through decoration-agent-coral/60">{fmtValue(it.oldValue)}</span>
-                        <span className="mx-1.5 text-muted-foreground">→</span>
-                        <span className="font-semibold text-emerald-400">{fmtValue(it.newValue)}</span>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <Table className="min-w-[760px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Thời gian</TableHead>
+                    <TableHead>Người sửa</TableHead>
+                    <TableHead>Mục</TableHead>
+                    <TableHead>Trường thay đổi</TableHead>
+                    <TableHead>Giá trị cũ → mới</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((it) => {
+                    const sec = SECTION_LABELS[it.section] ?? { label: it.section, variant: "secondary" as const }
+                    return (
+                      <TableRow key={it.id}>
+                        <TableCell className="whitespace-nowrap text-muted-foreground tabular">{fmt(it.createdAt)}</TableCell>
+                        <TableCell className="text-foreground">{it.adminEmail}</TableCell>
+                        <TableCell>
+                          <Badge variant={sec.variant}>{sec.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-foreground">{FIELD_LABELS[it.field] ?? it.field}</TableCell>
+                        <TableCell>
+                          <span className="font-mono text-caption text-muted-foreground line-through">{fmtValue(it.oldValue)}</span>
+                          <span className="mx-1.5 text-subtle-foreground" aria-hidden="true">→</span>
+                          <span className="font-mono text-caption font-medium text-foreground">{fmtValue(it.newValue)}</span>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
 
-            <div className="mt-3 flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-caption text-muted-foreground tabular">
                 Trang {page}/{pageCount} — {total} bản ghi
               </p>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1"
                   disabled={page <= 1 || busy}
                   onClick={() => load(page - 1, section)}
                 >
@@ -192,7 +200,6 @@ export function AuditLogSection() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1"
                   disabled={page >= pageCount || busy}
                   onClick={() => load(page + 1, section)}
                 >
