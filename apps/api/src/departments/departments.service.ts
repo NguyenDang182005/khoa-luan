@@ -29,7 +29,7 @@ export class DepartmentsService {
       include: {
         manager: { select: { id: true, fullName: true } },
         children: { include: { _count: { select: { employees: true } } } },
-        positions: true,
+        positions: { select: { id: true, title: true, code: true, level: true, departmentId: true } },
         _count: { select: { employees: true } },
       },
     });

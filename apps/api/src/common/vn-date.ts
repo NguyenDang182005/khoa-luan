@@ -37,13 +37,21 @@ export function vnMinutesOfDay(at: Date = new Date()): number {
   const [h, m] = at
     .toLocaleTimeString('en-GB', {
       timeZone: VN_TZ,
-      hour12: false,
+      hourCycle: 'h23',
       hour: '2-digit',
       minute: '2-digit',
     })
     .split(':')
     .map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
+  return ((h ?? 0) % 24) * 60 + (m ?? 0);
+}
+
+/** Tạo mốc thời điểm (Date) tại giờ:phút theo múi giờ Việt Nam (+07:00) của ngày `date`. */
+export function vnTimeOnDate(date: Date, hour: number, minute = 0): Date {
+  const ymd = vnDateString(date);
+  const hh = String(hour).padStart(2, '0');
+  const mm = String(minute).padStart(2, '0');
+  return new Date(`${ymd}T${hh}:${mm}:00.000+07:00`);
 }
 
 /**

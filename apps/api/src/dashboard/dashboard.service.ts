@@ -20,16 +20,20 @@ export class DashboardService {
         this.prisma.aiChatSession.count({ where: { type: 'CSKH', escalatedAt: { not: null } } }),
         this.prisma.aiChatMessage.findMany({
           where: { createdAt: { gte: weekAgo } },
-          select: { metadata: true },
+          select: { metadata: true, session: { select: { type: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
         }),
       ]);
 
     // Số workflow thực sự hoạt động trong 7 ngày qua: đếm distinct các
-    // discriminator mà n8n lưu trong metadata (intent | scenarioType | escalated)
+    // discriminator mà n8n lưu trong metadata (intent | scenarioType | escalated) hoặc session.type
     // — HR_QA → wf02, TRAINING/scenarioType → wf03, CSKH/escalated → wf04.
     const activeWorkflows = this.countActiveWorkflows(recentAiMessages);
 
-    const onTime = todayAttendances.filter(a => a.status === 'PRESENT').length;
+    const onTime = todayAttendances.filter(
+      a => a.status === 'PRESENT' || a.status === 'REMOTE' || a.status === 'HALF_DAY',
+    ).length;
     const late = todayAttendances.filter(a => a.status === 'LATE').length;
     const onLeave = todayAttendances.filter(a => a.status === 'ON_LEAVE').length;
     const todayTotal = totalEmployees;
@@ -69,10 +73,10 @@ export class DashboardService {
 
     const dayMap = new Map<string, { onTime: number; late: number; leave: number }>();
     for (const a of attendances) {
-      const key = `${String(a.date.getDate()).padStart(2, '0')}/${String(month).padStart(2, '0')}`;
+      const key = `${String(a.date.getUTCDate()).padStart(2, '0')}/${String(month).padStart(2, '0')}`;
       if (!dayMap.has(key)) dayMap.set(key, { onTime: 0, late: 0, leave: 0 });
       const entry = dayMap.get(key)!;
-      if (a.status === 'PRESENT') entry.onTime++;
+      if (a.status === 'PRESENT' || a.status === 'REMOTE' || a.status === 'HALF_DAY') entry.onTime++;
       else if (a.status === 'LATE') entry.late++;
       else if (a.status === 'ON_LEAVE') entry.leave++;
     }
@@ -169,9 +173,16 @@ export class DashboardService {
    *  - WF03 (Training): metadata.intent === 'TRAINING' hoặc có metadata.scenarioType
    *  - WF04 (Zalo CSKH): metadata.intent === 'CSKH' hoặc metadata.escalated === true
    *  Không có message nào → 0 (không hardcode số workflow). */
-  private countActiveWorkflows(messages: { metadata: unknown }[]): number {
+  private countActiveWorkflows(
+    messages: { metadata: unknown; session?: { type: string } }[],
+  ): number {
     const workflows = new Set<string>();
     for (const m of messages) {
+      const sType = m.session?.type;
+      if (sType === 'HR_QA') workflows.add('wf02');
+      else if (sType === 'TRAINING') workflows.add('wf03');
+      else if (sType === 'CSKH') workflows.add('wf04');
+
       const meta = m.metadata as Record<string, unknown> | null;
       if (!meta) continue;
       const intent = typeof meta.intent === 'string' ? meta.intent : undefined;

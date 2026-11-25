@@ -28,6 +28,22 @@ export class PrismaExceptionFilter implements ExceptionFilter {
       });
     }
 
+    if (exception.code === 'P2002') {
+      return response.status(HttpStatus.CONFLICT).json({
+        statusCode: HttpStatus.CONFLICT,
+        message: 'Dữ liệu đã tồn tại (trùng khóa duy nhất)',
+        path: request?.url,
+      });
+    }
+
+    if (exception.code === 'P2003') {
+      return response.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Tham chiếu dữ liệu không hợp lệ hoặc đang được sử dụng',
+        path: request?.url,
+      });
+    }
+
     this.logger.error(`Prisma ${exception.code}: ${exception.message}`);
     return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

@@ -73,9 +73,17 @@ export class AttendanceController {
   checkIn(@Request() req: any, @Body() dto: { lat?: number; lng?: number }) {
     // employeeId lấy từ JWT — không nhận từ body để không chấm hộ người khác.
     // Server tự tính khoảng cách tới geofence từ lat/lng.
+    const lat =
+      dto?.lat === undefined || dto?.lat === null || (dto.lat as unknown) === ''
+        ? undefined
+        : Number(dto.lat);
+    const lng =
+      dto?.lng === undefined || dto?.lng === null || (dto.lng as unknown) === ''
+        ? undefined
+        : Number(dto.lng);
     return this.attendanceService.checkInForUser(req.user.sub, {
-      lat: Number(dto.lat),
-      lng: Number(dto.lng),
+      lat,
+      lng,
     });
   }
 

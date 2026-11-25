@@ -4,13 +4,17 @@ hide empty description
 [*] --> PENDING : POST /leave
 PENDING --> APPROVED : ADMIN duyệt
 PENDING --> REJECTED : ADMIN từ chối kèm lý do
-PENDING --> CANCELLED : Người tạo đơn hủy
+PENDING --> CANCELLED : Người tạo hoặc ADMIN hủy
+APPROVED --> CANCELLED : ADMIN hủy (kỳ lương mở,\nxóa chấm công ON_LEAVE)
 APPROVED --> [*]
 REJECTED --> [*]
 CANCELLED --> [*]
-note right of APPROVED
-  Trong một transaction: kiểm tra lại
-  số dư phép năm và ghi các ngày làm việc
-  của đơn là ON_LEAVE
+note left of APPROVED
+  Chặn duyệt nếu kỳ lương đã chốt,
+  trùng đơn đã duyệt khác hoặc ngày
+  của đơn đã có chấm công.
+  Trong một transaction (khóa theo nhân viên):
+  kiểm tra số dư phép năm (tách theo năm)
+  rồi ghi ON_LEAVE (đơn đến muộn đổi LATE → PRESENT)
 end note
 @enduml

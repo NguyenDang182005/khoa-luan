@@ -4,6 +4,7 @@ import {
   EmployeeDetailSchema,
   DepartmentsListSchema,
   ActiveContractSchema,
+  ContractSchema,
   ResetPasswordResponseSchema,
 } from '../schemas/employee.schema'
 import type { Contract, EmployeeDetail } from '../schemas/employee.schema'
@@ -26,6 +27,30 @@ export interface CreateEmployeeInput {
   positionId: string
   phone?: string
   role?: 'ADMIN' | 'EMPLOYEE'
+  baseSalary?: number
+  allowances?: number
+}
+
+export type ContractType = 'FULL_TIME' | 'PART_TIME' | 'PROBATION' | 'FREELANCE' | 'INTERNSHIP'
+
+export interface CreateContractInput {
+  employeeId: string
+  contractNumber?: string
+  type: ContractType
+  startDate: string
+  endDate?: string
+  baseSalary: number
+  allowances?: number
+  signedDate?: string
+}
+
+export interface UpdateContractInput {
+  type?: ContractType
+  baseSalary?: number
+  allowances?: number
+  startDate?: string
+  endDate?: string | null
+  isActive?: boolean
 }
 
 export interface UpdateAccountInput {
@@ -113,6 +138,26 @@ export const contractsApi = {
     const { data } = await apiClient.get(`/contracts/active/${employeeId}`)
     return ActiveContractSchema.parse(data ?? null)
   },
+  /** Tạo hợp đồng mới (tự động đặt isActive=true và hủy hiệu lực hợp đồng cũ) */
+  create: async (input: CreateContractInput): Promise<Contract> => {
+    const { data } = await apiClient.post('/contracts', input)
+    return ContractSchema.parse(data)
+  },
+  /** Cập nhật thông tin/loại/trạng thái của một hợp đồng */
+  update: async (id: string, input: UpdateContractInput): Promise<Contract> => {
+    const { data } = await apiClient.patch(`/contracts/${id}`, input)
+    return ContractSchema.parse(data)
+  },
+  /** Kích hoạt một hợp đồng (tự động tắt các hợp đồng khác của cùng nhân viên) */
+  activate: async (id: string): Promise<Contract> => {
+    const { data } = await apiClient.patch(`/contracts/${id}/activate`)
+    return ContractSchema.parse(data)
+  },
+  /** Hủy hiệu lực một hợp đồng */
+  deactivate: async (id: string): Promise<Contract> => {
+    const { data } = await apiClient.patch(`/contracts/${id}/deactivate`)
+    return ContractSchema.parse(data)
+  },
 }
 
-export type { EmployeeDetail }
+export type { EmployeeDetail, Contract }

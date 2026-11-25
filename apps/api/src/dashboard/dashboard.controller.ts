@@ -28,9 +28,11 @@ export class DashboardController {
     @Query('year') year: string,
   ) {
     const { year: y, month: m } = vnMonth();
+    const parsedMonth = Number(month);
+    const parsedYear = Number(year);
     return this.dashboardService.getAttendanceChart(
-      month ? parseInt(month) : m,
-      year ? parseInt(year) : y,
+      Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : m,
+      Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : y,
     );
   }
 

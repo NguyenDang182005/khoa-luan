@@ -46,7 +46,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { RichText } from "@/components/ui/rich-text"
-import { todayVN, leaveTypeLabel, requestDurationLabel, payrollStatusLabel, vnd, fmtVNDate } from "@/lib/utils"
+import { todayVN, leaveTypeLabel, requestDurationLabel, payrollStatusLabel, vnd, fmtVNDate, apiErrorMessage } from "@/lib/utils"
 import { settingsApi } from "@/lib/api/settings.api"
 import { MonthlyTimesheetStrip } from "@/components/portal/monthly-timesheet-strip"
 
@@ -201,6 +201,10 @@ export function EmployeePortalView() {
   const [leaveErrors, setLeaveErrors] = useState<Record<string, string>>({})
   const [leaveSubmitting, setLeaveSubmitting] = useState(false)
   const [leaveSuccess, setLeaveSuccess] = useState<string | null>(null)
+  // Huỷ đơn: nhân viên chỉ huỷ được đơn của mình đang chờ duyệt (server kiểm tra lại)
+  const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const [showPayslipDetails, setShowPayslipDetails] = useState(false)
 
   const today = todayVN()
@@ -387,7 +391,23 @@ export function EmployeePortalView() {
     }
   }
 
-  const gross = payslip ? payslip.baseSalary + payslip.allowances + payslip.overtimePay + payslip.bonus : 0
+  const handleCancelLeave = async () => {
+    if (!cancelTarget) return
+    setCancelling(true)
+    setCancelError(null)
+    try {
+      await leaveApi.cancel(cancelTarget.id)
+      setLeaveSuccess(`Đã huỷ đơn ${leaveTypeLabel(cancelTarget.type)}.`)
+      setCancelTarget(null)
+      await loadAll()
+    } catch (e: unknown) {
+      setCancelError(apiErrorMessage(e, "Huỷ đơn thất bại. Vui lòng thử lại."))
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const gross = payslip ?payslip.baseSalary + payslip.allowances + payslip.overtimePay + payslip.bonus : 0
 
   // ── Hiển thị (chỉ phục vụ giao diện) ────────────────────────────────────
   const payslipRef = React.useRef<HTMLDivElement>(null)
@@ -657,7 +677,21 @@ export function EmployeePortalView() {
                         <p className="mt-1 break-words text-caption text-danger">Lý do từ chối: {leave.rejectionReason}</p>
                       )}
                     </div>
-                    <LeaveStatusBadge status={leave.status} />
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <LeaveStatusBadge status={leave.status} />
+                      {leave.status === "PENDING" && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="text-danger hover:bg-danger-tint hover:text-danger"
+                          onClick={() => { setCancelError(null); setCancelTarget(leave) }}
+                          aria-label={`Huỷ đơn ${leaveTypeLabel(leave.type)} ngày ${formatDateVN(leave.startDate)}`}
+                        >
+                          <X />
+                          Huỷ đơn
+                        </Button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -805,6 +839,45 @@ export function EmployeePortalView() {
           )}
         </Card>
       )}
+
+      {/* Xác nhận huỷ đơn đang chờ duyệt */}
+      <Dialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => { if (!open && !cancelling) setCancelTarget(null) }}
+        className="max-w-[440px]"
+      >
+        <DialogHeader>
+          <DialogTitle>Huỷ đơn này?</DialogTitle>
+          <DialogDescription>Đơn sẽ chuyển sang trạng thái &ldquo;Đã huỷ&rdquo; và quản lý không cần duyệt nữa.</DialogDescription>
+        </DialogHeader>
+        {cancelTarget && (
+          <div className="mt-4 rounded-md border border-border-subtle bg-sunken p-3 text-body-sm">
+            <p className="font-medium text-foreground">{leaveTypeLabel(cancelTarget.type)}</p>
+            <p className="tabular text-muted-foreground">
+              {cancelTarget.startDate === cancelTarget.endDate
+                ? formatDateVN(cancelTarget.startDate)
+                : `${formatDateVN(cancelTarget.startDate)} → ${formatDateVN(cancelTarget.endDate)}`}
+              {" · "}
+              {requestDurationLabel(cancelTarget)}
+            </p>
+          </div>
+        )}
+        {cancelError && (
+          <p role="alert" className="mt-3 flex items-start gap-1.5 text-body-sm text-danger">
+            <CircleAlert className="mt-0.5 size-4 shrink-0" />
+            {cancelError}
+          </p>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+            Giữ đơn
+          </Button>
+          <Button variant="destructive" onClick={handleCancelLeave} disabled={cancelling}>
+            {cancelling && <Loader2 className="animate-spin" />}
+            Huỷ đơn
+          </Button>
+        </DialogFooter>
+      </Dialog>
 
       {/* Modal tạo đơn — form hoạt động thật */}
       <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal} className="max-w-[520px]">

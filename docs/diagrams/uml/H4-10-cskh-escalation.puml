@@ -28,7 +28,7 @@ opt Cần leo thang
   activate A
   A -> A : isActive = false, escalatedAt = now
   A -> A : Tạo Notification cho từng ADMIN
-  A -> P : WebSocket notification:new\n(room user:<adminId> và admin)
+  A -> P : WebSocket notification:new\n(room user:<adminId>)
   deactivate A
   P -> P : Hiện cảnh báo, mở Tiếp quản CSKH
   P -> A : GET /agents/escalation-queue

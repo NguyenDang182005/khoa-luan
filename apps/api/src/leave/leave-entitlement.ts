@@ -49,9 +49,22 @@ export function computeBaseQuota(
   const seniorityBonus = 0;
   const base = policy.annualQuotaDays;
 
-  const isJoinYear = joinDate.getFullYear() === year;
+  const joinYear =
+    joinDate.getUTCHours() === 0 && joinDate.getUTCMinutes() === 0
+      ? joinDate.getUTCFullYear()
+      : joinDate.getFullYear();
+  const joinMonth =
+    joinDate.getUTCHours() === 0 && joinDate.getUTCMinutes() === 0
+      ? joinDate.getUTCMonth()
+      : joinDate.getMonth();
+
+  if (year < joinYear) {
+    return { quota: 0, seniorityBonus: 0, proratedMonths: 0 };
+  }
+
+  const isJoinYear = joinYear === year;
   if (policy.prorateByJoinMonth && isJoinYear) {
-    const proratedMonths = Math.max(1, 12 - joinDate.getMonth()); // tháng vào làm tính trọn
+    const proratedMonths = Math.max(1, 12 - joinMonth); // tháng vào làm tính trọn
     return { quota: round2((base * proratedMonths) / 12), seniorityBonus, proratedMonths };
   }
   return { quota: base, seniorityBonus, proratedMonths: null };

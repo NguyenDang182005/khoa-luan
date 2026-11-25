@@ -43,14 +43,18 @@ export class SlackService
         `[Slack] Nhận event: user=${msg.user ?? 'bot'} bot_id=${msg.bot_id ?? '-'} subtype=${msg.subtype ?? '-'} channel_type=${msg.channel_type ?? '-'} channel=${msg.channel ?? '-'}`,
       );
 
-      // Bỏ qua tin từ bot, subtypes (edit/delete), DM
-      // channel_type = 'channel' | undefined (một số Slack plan không gửi field này)
+      // Bỏ qua tin từ bot, subtypes (edit/delete), DM (chỉ nhận channel/group)
       if (
         msg.bot_id ||
         msg.subtype ||
-        (msg.channel_type && msg.channel_type !== 'channel')
+        (msg.channel_type && msg.channel_type !== 'channel' && msg.channel_type !== 'group')
       ) {
         this.logger.log(`[Slack] Bỏ qua event (bot/subtype/DM)`);
+        return;
+      }
+      const configuredChannel = this.config.get<string>('SLACK_CHANNEL_ID');
+      if (configuredChannel && msg.channel && msg.channel !== configuredChannel) {
+        this.logger.log(`[Slack] Bỏ qua event từ channel khác (${msg.channel} !== ${configuredChannel})`);
         return;
       }
       if (!msg.text) { this.logger.warn('[Slack] Message không có text, bỏ qua'); return; }
@@ -103,8 +107,15 @@ export class SlackService
       }
     });
 
-    await this.boltApp.start();
-    this.logger.log('✅ Slack Socket Mode client đã kết nối');
+    try {
+      await this.boltApp.start();
+      this.logger.log('✅ Slack Socket Mode client đã kết nối');
+    } catch (e) {
+      this.logger.error(
+        `Không thể khởi động Slack Socket Mode (${(e as Error).message}) — API vẫn tiếp tục chạy`,
+      );
+      this.boltApp = null;
+    }
   }
 
   async onApplicationShutdown() {

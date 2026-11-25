@@ -153,6 +153,131 @@ describe('EmployeesService.resetPassword — admin đặt lại mật khẩu nh�
   });
 });
 
+describe('EmployeesService.update & updateAccount — bảo mật & toàn vẹn dữ liệu', () => {
+  it('update: lọc bỏ các field lạ (chống mass-assignment) và không bật isActive cho tài khoản placeholder', async () => {
+    const tx = {
+      employee: {
+        update: jest.fn().mockImplementation(({ data }: any) =>
+          Promise.resolve({ id: 'e3', userId: 'u3', ...data }),
+        ),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          email: 'le.c@company.com.placeholder.12345678',
+        }),
+        update: jest.fn(),
+      },
+      refreshToken: { deleteMany: jest.fn() },
+      contract: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn().mockImplementation((fn: any) => fn(tx)),
+    };
+    const service = new EmployeesService(prisma as any, { logAction: jest.fn() } as any);
+
+    await service.update('e3', {
+      fullName: 'Lê C Mới',
+      status: 'ACTIVE',
+      // Các trường nhạy cảm cố tình chèn vào body
+      ...({ userId: 'hacked-user', employeeCode: 'EMP9999', role: 'ADMIN' } as any),
+    });
+
+    const passedData = tx.employee.update.mock.calls[0][0].data;
+    expect(passedData.fullName).toBe('Lê C Mới');
+    expect(passedData.status).toBe('ACTIVE');
+    expect(passedData.userId).toBeUndefined();
+    expect(passedData.employeeCode).toBeUndefined();
+    expect(passedData.role).toBeUndefined();
+    // Placeholder user KHÔNG được tự động bật isActive = true khi chuyển sang ACTIVE
+    expect(tx.user.update).not.toHaveBeenCalled();
+  });
+
+  it('update: chặn tự gán quản lý trực tiếp là chính mình (managerId === id)', async () => {
+    const service = new EmployeesService({} as any, {} as any);
+    await expect(service.update('e1', { managerId: 'e1' })).rejects.toThrow(
+      'quản lý trực tiếp của chính mình',
+    );
+  });
+
+  it('updateAccount: đồng bộ email cả bảng employees lẫn users, xóa OAuth UID cũ và không bật lại user của nhân viên TERMINATED', async () => {
+    const tx = {
+      employee: { update: jest.fn().mockResolvedValue({}) },
+      user: {
+        update: jest.fn().mockImplementation(({ data }: any) =>
+          Promise.resolve({ id: 'u1', ...data }),
+        ),
+      },
+      refreshToken: { deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    };
+    const prisma = {
+      employee: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: 'u1',
+          email: 'old@company.com',
+          status: 'TERMINATED',
+          user: { email: 'old@company.com' },
+        }),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      user: { findFirst: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn().mockImplementation((fn: any) => fn(tx)),
+    };
+    const service = new EmployeesService(prisma as any, {} as any);
+
+    await service.updateAccount('e1', { email: 'new@company.com' });
+
+    expect(tx.employee.update).toHaveBeenCalledWith({
+      where: { id: 'e1' },
+      data: { email: 'new@company.com' },
+    });
+    const userUpdateData = tx.user.update.mock.calls[0][0].data;
+    expect(userUpdateData.email).toBe('new@company.com');
+    expect(userUpdateData.firebaseUid).toBeNull();
+    expect(userUpdateData.googleId).toBeNull();
+    expect(userUpdateData.facebookId).toBeNull();
+    // Nhân viên đã TERMINATED → không được gán isActive = true
+    expect(userUpdateData.isActive).toBeUndefined();
+  });
+
+  it('update: chuyển trạng thái sang ACTIVE tự động kích hoạt lại hợp đồng gần nhất và nâng PROBATION -> FULL_TIME', async () => {
+    const tx = {
+      employee: {
+        update: jest.fn().mockImplementation(({ data }: any) =>
+          Promise.resolve({ id: 'e1', userId: 'u1', ...data }),
+        ),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ email: 'nva@company.com' }),
+        update: jest.fn(),
+      },
+      refreshToken: { deleteMany: jest.fn() },
+      contract: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(null) // hasActiveContract = null
+          .mockResolvedValueOnce({ id: 'ctr-1', type: 'PROBATION' }), // latestContract
+        update: jest.fn().mockResolvedValue({ id: 'ctr-1', isActive: true, type: 'FULL_TIME' }),
+        updateMany: jest.fn(),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn().mockImplementation((fn: any) => fn(tx)),
+    };
+    const service = new EmployeesService(prisma as any, { logAction: jest.fn() } as any);
+
+    await service.update('e1', { status: 'ACTIVE' });
+
+    expect(tx.contract.update).toHaveBeenCalledWith({
+      where: { id: 'ctr-1' },
+      data: { isActive: true, type: 'FULL_TIME' },
+    });
+  });
+});
+
 /** bcryptjs được service dùng nội bộ — test so khớp bằng chính thư viện này */
 async function bcryptCompare(plain: string, hash: string): Promise<boolean> {
   const bcrypt = await import('bcryptjs');

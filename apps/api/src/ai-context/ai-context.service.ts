@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException, Optional, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Optional,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,22 +13,35 @@ import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
 import { timingSafeEqual } from 'crypto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-
 import { LeaveService } from '../leave/leave.service';
+import { vnMonth } from '../common/vn-date';
 
 /** Guard: validates x-api-key header — used for n8n internal calls */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(private config: ConfigService) {}
+  constructor(
+    private config: ConfigService,
+    @Optional() private prisma?: PrismaService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
-    const key = req.headers['x-api-key'];
-    const expected = this.config.get<string>('N8N_API_KEY');
-    // So sánh hằng thời gian — tránh dò khóa qua thời gian phản hồi.
-    const a = Buffer.from(typeof key === 'string' ? key : '');
-    const b = Buffer.from(expected ?? '');
-    if (!expected || a.length !== b.length || !timingSafeEqual(a, b)) {
+    const key = typeof req.headers['x-api-key'] === 'string' ? req.headers['x-api-key'] : '';
+    const envKey = this.config.get<string>('N8N_API_KEY') ?? '';
+    let dbKey = '';
+    if (this.prisma) {
+      const cfg = await this.prisma.aiAgentConfig
+        .findUnique({ where: { id: 'default' }, select: { apiKey: true } })
+        .catch(() => null);
+      dbKey = cfg?.apiKey ?? '';
+    }
+    const candidates = [envKey, dbKey].filter((k) => k.length > 0);
+    const a = Buffer.from(key);
+    const matched = candidates.some((expected) => {
+      const b = Buffer.from(expected);
+      return a.length === b.length && timingSafeEqual(a, b);
+    });
+    if (!matched) {
       throw new UnauthorizedException('Invalid API Key');
     }
     return true;
@@ -52,6 +72,7 @@ export class AiContextService {
         manager: { select: { fullName: true, email: true } },
         contracts: {
           where: { isActive: true },
+          orderBy: { startDate: 'desc' },
           select: {
             type: true,
             baseSalary: true,
@@ -69,7 +90,7 @@ export class AiContextService {
     // Tính số ngày phép bằng đúng LeaveService (quota + pro-rate + ngày lễ) —
     // trước đây còn nhánh fallback đọc allowances.annualLeaveDays trong khi
     // allowances là Float nên luôn undefined (dead code).
-    const currentYear = new Date().getFullYear();
+    const currentYear = vnMonth().year;
     const balance = await this.leaveService.getBalance(
       employee.id,
       currentYear,
@@ -114,7 +135,10 @@ export class AiContextService {
     const payroll = await this.prisma.payroll.findUnique({
       where: { employeeId_month_year: { employeeId: resolvedId, month, year } },
     });
-    return payroll ?? { message: `Chưa có dữ liệu lương tháng ${month}/${year}` };
+    if (!payroll || payroll.status === 'CANCELLED') {
+      return { message: `Chưa có dữ liệu lương tháng ${month}/${year}` };
+    }
+    return payroll;
   }
 
   // ── Chat session management ──────────────────────────────────────────────
@@ -139,11 +163,14 @@ export class AiContextService {
     };
     dto = dto2;
 
-    // Resolve employeeCode (EMP003) → UUID nếu cần (chạy TRƯỚC để kiểm tra sở hữu phiên)
+    // Resolve employeeCode (EMP003) → UUID nếu cần (chạy TRƯỚC để kiểm tra sở hữu phiên).
+    // Nếu chuỗi truyền vào không tồn tại trong bảng employees (ví dụ 'settings-test' khi ping)
+    // thì đặt về null để tránh lỗi khóa ngoại P2003 khi tạo ai_chat_sessions.
     let resolvedEmployeeId: string | null = dto.employeeId ?? null;
-    if (resolvedEmployeeId && /^EMP\d+$/i.test(resolvedEmployeeId)) {
+    if (resolvedEmployeeId) {
+      const isCode = /^EMP\d+$/i.test(resolvedEmployeeId);
       const emp = await this.prisma.employee.findFirst({
-        where: { employeeCode: resolvedEmployeeId },
+        where: isCode ? { employeeCode: resolvedEmployeeId } : { id: resolvedEmployeeId },
         select: { id: true },
       });
       resolvedEmployeeId = emp?.id ?? null;
@@ -163,6 +190,15 @@ export class AiContextService {
         include: { messages: { orderBy: { createdAt: 'asc' } } },
       });
       if (explicit && this.vnDate(explicit.updatedAt) === this.vnDate(new Date())) {
+        // Nếu WF01 đã phân loại sang sub-workflow cụ thể (vd TRAINING) khác với loại tạm (HR_QA)
+        // lúc mở phiên thì đồng bộ lại session.type để TrainingService.loadServerQuizAnswers tìm đúng.
+        if (explicit.type !== dto.type && ['HR_QA', 'CSKH', 'TRAINING'].includes(dto.type)) {
+          return this.prisma.aiChatSession.update({
+            where: { id: explicit.id },
+            data: { type: dto.type as any },
+            include: { messages: { orderBy: { createdAt: 'asc' } } },
+          });
+        }
         return explicit;
       }
     }
@@ -305,13 +341,30 @@ export class AiContextService {
         `[encoding] Tin nhắn ${dto.role} của session ${dto.sessionId} chứa U+FFFD — kiểm tra charset nguồn gửi.`,
       );
     }
+    // Chuẩn hóa metadata cho tin nhắn đầu vào (role === 'user'): nếu workflow
+    // (như WF02/WF03) chưa đính kèm maskedMessage vào metadata thì tự động tính
+    // theo đúng bộ regex PII Masking của WF01 để phục vụ đối chiếu PII Audit.
+    let finalMetadata: Record<string, unknown> | undefined = dto.metadata
+      ? { ...(dto.metadata as Record<string, unknown>) }
+      : undefined;
+    if (dto.role === 'user') {
+      const existingMasked = finalMetadata?.maskedMessage;
+      if (typeof existingMasked !== 'string' || existingMasked.length === 0) {
+        const maskedMessage = String(dto.content ?? '')
+          .replace(/\b(\d{9}|\d{12})\b/g, '[MASKED_ID]')
+          .replace(/\b(0[35789]\d{8})\b/g, '[MASKED_PHONE]')
+          .replace(/[\w.-]+@[\w.-]+\.\w+/g, '[MASKED_EMAIL]');
+        finalMetadata = { ...(finalMetadata ?? {}), maskedMessage };
+      }
+    }
+
     // 1. Persist message
     const message = await this.prisma.aiChatMessage.create({
       data: {
         sessionId: dto.sessionId,
         role: dto.role,
         content: dto.content,
-        metadata: dto.metadata ?? undefined,
+        metadata: (finalMetadata as object | undefined) ?? undefined,
       },
       include: { session: { select: { type: true } } },
     });
@@ -418,15 +471,31 @@ export class AiContextService {
       if (!notification) continue;
       notificationIds.push(notification.id);
 
-      // Đẩy realtime tới đúng admin (và room admin cho màn hình tổng hợp).
-      // Trước đây chỉ ghi DB nên portal phải refresh mới thấy escalation.
+      // Đẩy realtime tới đúng admin sở hữu bản ghi notification này.
+      // (Không chain .to('admin') vì mỗi admin đã join user:${admin.id}; nếu emit vào room 'admin'
+      // trong vòng lặp thì mỗi admin sẽ nhận trùng N bản ghi của các admin khác).
       this.gateway?.server
         ?.to(`user:${admin.id}`)
-        .to('admin')
         .emit('notification:new', notification);
     }
 
     return { notified: notificationIds.length, notificationIds };
+  }
+
+  /**
+   * Nhân viên (không phải admin) chỉ được thao tác trên phiên CSKH của khách (Zalo) —
+   * chặn đọc/ghi phiên chat nội bộ (HR_QA, TRAINING) của người khác qua sessionId.
+   * Cùng phạm vi với getConversations / getEscalationQueue.
+   */
+  async assertCustomerCareSession(sessionId: string) {
+    const session = await this.prisma.aiChatSession.findUnique({
+      where: { id: sessionId },
+      select: { type: true, channel: true },
+    });
+    if (!session) throw new NotFoundException('Không tìm thấy phiên chat');
+    if (session.type !== 'CSKH' || session.channel !== 'zalo') {
+      throw new ForbiddenException('Chỉ được xem và xử lý hội thoại chăm sóc khách hàng');
+    }
   }
 
   /** Cho phép Admin chủ động bật lại Bot ngay trên Web Portal mà không cần chờ qua 12h đêm */
@@ -440,7 +509,7 @@ export class AiContextService {
   async deactivateSession(sessionId: string) {
     return this.prisma.aiChatSession.update({
       where: { id: sessionId },
-      data: { isActive: false },
+      data: { isActive: false, escalatedAt: new Date() },
     });
   }
 

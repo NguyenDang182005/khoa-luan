@@ -6,8 +6,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { vnDateFromParts, vnMonth, vnMonthRange } from '../common/vn-date';
-import { countWorkdays, dayKey, dayTypeFor, monthWorkdays } from '../common/workdays';
+import { countWorkdays, dayKey, dayTypeFor, eachDay, monthWorkdays } from '../common/workdays';
 import { loadHolidays } from '../common/holidays';
+import { workDaysFromTimestamps } from '../attendance/attendance.service';
 import { calculatePit, defaultSalaryConfigFor, insuranceCapFor, pitRuleFor } from './pit';
 
 /** Tỷ lệ hưởng trợ cấp BHXH (do cơ quan BHXH chi trả, không phải lương công ty) */
@@ -130,18 +131,19 @@ export class PayrollService {
     const { gte: startDate, lt: endDate } = vnMonthRange(year, month);
 
     const [contract, salaryConfig, employee, holidays] = await Promise.all([
-      // Hợp đồng HIỆU LỰC TRONG KỲ (không chỉ isActive): tính lại lương tháng cũ của
-      // người đã nghỉ việc vẫn phải dùng đúng hợp đồng lúc đó.
+      // Hợp đồng HIỆU LỰC TRONG KỲ (ưu tiên hợp đồng đang active để không bốc nhầm
+      // hợp đồng tạo nhầm đã bị deactivate; tính lại lương tháng cũ của người đã nghỉ việc
+      // vẫn lấy được hợp đồng lúc đó).
       this.prisma.contract.findFirst({
         where: {
           employeeId,
           startDate: { lt: endDate },
           OR: [{ endDate: null }, { endDate: { gte: startDate } }],
         },
-        orderBy: { startDate: 'desc' },
+        orderBy: [{ isActive: 'desc' }, { startDate: 'desc' }],
       }),
       this.prisma.salaryConfig.findFirst({
-        where: { year },
+        where: { year: { lte: year } },
         orderBy: { year: 'desc' },
       }),
       this.prisma.employee.findUniqueOrThrow({
@@ -176,22 +178,40 @@ export class PayrollService {
     }
 
     let actualWorkingDays = 0;
+    const workedDayKeys = new Set<string>();
     for (const a of attendances) {
-      if (a.status === 'ON_LEAVE') continue; // tính qua phép năm bên dưới
+      if (a.status === 'ON_LEAVE') continue; // tính qua đơn nghỉ có lương bên dưới
       const dayType = dayTypeFor(a.date, holidays);
       if (dayType !== 'NORMAL') continue; // cuối tuần/lễ: chỉ tính tăng ca
-      actualWorkingDays += a.workDays ?? (a.status === 'HALF_DAY' ? 0.5 : 1);
+      // Nếu bản ghi có đủ giờ checkIn và checkOut thật (không phải HALF_DAY sửa tay),
+      // tính trực tiếp từ [checkIn, checkOut] theo 2 ca (08:00-12:00 & 13:30-17:30) / 480
+      // để luôn chính xác kể cả với bản ghi cũ trước đây từng bị làm tròn 0.25.
+      const days =
+        a.checkIn && a.checkOut && a.status !== 'HALF_DAY'
+          ? workDaysFromTimestamps(a.date, a.checkIn, a.checkOut)
+          : a.workDays !== null && a.workDays !== undefined
+            ? a.workDays
+            : a.checkIn && !a.checkOut
+              ? 0 // mới check-in, chưa check-out → chưa chốt công
+              : a.status === 'HALF_DAY'
+                ? 0.5
+                : 1;
+      if (days > 0) workedDayKeys.add(dayKey(a.date));
+      actualWorkingDays += days;
     }
 
-    const annualLeaveDays = await this.countLeaveDays(
+    // Ngày công trả lương theo đơn: phép năm và đi công tác (vẫn là đang làm việc).
+    // Loại trừ những ngày đã được tính công trực tiếp trong `attendances` để không bao giờ cộng trùng 2 lần.
+    const paidLeaveDays = await this.countLeaveDays(
       employeeId,
       year,
       month,
-      ['ANNUAL'],
+      ['ANNUAL', 'BUSINESS_TRIP'],
       holidays,
+      workedDayKeys,
     );
-    actualWorkingDays += annualLeaveDays;
-    actualWorkingDays = Math.round(actualWorkingDays * 100) / 100;
+    actualWorkingDays += paidLeaveDays;
+    actualWorkingDays = Math.min(workingDays, Math.round(actualWorkingDays * 10000) / 10000);
 
     // ── 3. Nghỉ ốm / thai sản (BHXH chi trả) ────────────────────────────
     const sickDays = await this.countLeaveDays(
@@ -201,11 +221,12 @@ export class PayrollService {
       ['SICK'],
       holidays,
     );
+    // Thai sản gồm cả lao động nam nghỉ khi vợ sinh con (BHXH chi 100%)
     const maternityDays = await this.countLeaveDays(
       employeeId,
       year,
       month,
-      ['MATERNITY'],
+      ['MATERNITY', 'PATERNITY'],
       holidays,
     );
 
@@ -228,7 +249,11 @@ export class PayrollService {
         employeeId,
         type: 'OT',
         status: 'APPROVED',
-        overtimeDate: { gte: startDate, lt: endDate },
+        // Đơn OT cũ có thể thiếu overtimeDate → rơi về ngày bắt đầu của đơn
+        OR: [
+          { overtimeDate: { gte: startDate, lt: endDate } },
+          { overtimeDate: null, startDate: { gte: startDate, lt: endDate } },
+        ],
       },
       select: { overtimeDate: true, startDate: true, overtimeHours: true },
     });
@@ -258,7 +283,8 @@ export class PayrollService {
     const allowances = contract.allowances;
     const dailyRate = baseSalary / workingDays;
     const actualBaseSalary = dailyRate * actualWorkingDays;
-    const hourlyRate = baseSalary / (workingDays * config.standardWorkHours);
+    const standardHours = config.standardWorkHours > 0 ? config.standardWorkHours : 8;
+    const hourlyRate = baseSalary / (workingDays * standardHours);
     const overtimePay =
       hourlyRate *
       (otNormal * config.overtimeRate +
@@ -338,7 +364,7 @@ export class PayrollService {
         siBase,
         siCap,
         insuranceApplicable,
-        annualLeaveDays,
+        paidLeaveDays,
         sickDays,
         maternityDays,
         bhxhBenefit,
@@ -399,7 +425,7 @@ export class PayrollService {
     return { succeeded, failed, total: employees.length, errors };
   }
 
-  /** Chỉnh thưởng / tạm ứng / ghi chú của bảng lương nháp (tính lại net). */
+  /** Chỉnh thưởng / tạm ứng / ghi chú của bảng lương nháp (tính lại thuế TNCN và thực lĩnh). */
   async adjust(
     id: string,
     dto: { bonus?: number; advance?: number; note?: string },
@@ -412,30 +438,51 @@ export class PayrollService {
         'Chỉ chỉnh được bảng lương đang ở trạng thái nháp (DRAFT)',
       );
     }
-    if (dto.bonus !== undefined && dto.bonus < 0) {
-      throw new BadRequestException('Thưởng không được âm');
+    const bonusVal = dto.bonus !== undefined ? Number(dto.bonus) : payroll.bonus;
+    const advanceVal = dto.advance !== undefined ? Number(dto.advance) : payroll.advance;
+    if (!Number.isFinite(bonusVal) || bonusVal < 0) {
+      throw new BadRequestException('Thưởng không hợp lệ (không được âm)');
     }
-    if (dto.advance !== undefined && dto.advance < 0) {
-      throw new BadRequestException('Tạm ứng không được âm');
+    if (!Number.isFinite(advanceVal) || advanceVal < 0) {
+      throw new BadRequestException('Tạm ứng không hợp lệ (không được âm)');
     }
 
-    const bonus = dto.bonus ?? payroll.bonus;
-    const advance = dto.advance ?? payroll.advance;
+    const period = vnDateFromParts(payroll.year, payroll.month, 1);
+    const [salaryConfig, employee] = await Promise.all([
+      this.prisma.salaryConfig.findFirst({
+        where: { year: { lte: payroll.year } },
+        orderBy: { year: 'desc' },
+      }),
+      this.prisma.employee.findUnique({
+        where: { id: payroll.employeeId },
+        select: { dependents: true },
+      }),
+    ]);
+    const config = salaryConfig ?? defaultSalaryConfigFor(period);
+    const rule = pitRuleFor(period);
+    const personalDeduction = config.pitFreeAmount ?? rule.personalDeduction;
+    const dependentDeduction =
+      config.pitDependentDeduction ?? rule.dependentDeduction;
+    const dependents = employee?.dependents ?? 0;
+
+    const grossIncome =
+      payroll.baseSalary + payroll.allowances + payroll.overtimePay + bonusVal;
+    const taxableIncome =
+      grossIncome -
+      payroll.deductions -
+      personalDeduction -
+      dependents * dependentDeduction;
+    const tax = calculatePit(taxableIncome, rule);
     const netSalary = Math.round(
-      payroll.baseSalary +
-        payroll.allowances +
-        payroll.overtimePay +
-        bonus -
-        payroll.deductions -
-        payroll.tax -
-        advance,
+      grossIncome - payroll.deductions - tax - advanceVal,
     );
 
     return this.prisma.payroll.update({
       where: { id },
       data: {
-        bonus,
-        advance,
+        bonus: bonusVal,
+        advance: advanceVal,
+        tax,
         netSalary,
         ...(dto.note !== undefined ? { note: dto.note } : {}),
       },
@@ -535,8 +582,9 @@ export class PayrollService {
     employeeId: string,
     year: number,
     month: number,
-    types: ('ANNUAL' | 'SICK' | 'MATERNITY')[],
+    types: ('ANNUAL' | 'BUSINESS_TRIP' | 'SICK' | 'MATERNITY' | 'PATERNITY')[],
     holidays: ReadonlySet<string>,
+    excludeDays?: ReadonlySet<string>,
   ) {
     const { gte, lt } = vnMonthRange(year, month);
     const leaves = await this.prisma.leaveRequest.findMany({
@@ -550,13 +598,28 @@ export class PayrollService {
       select: { startDate: true, endDate: true },
     });
 
-    return leaves.reduce((sum, r) => {
+    if (!excludeDays || excludeDays.size === 0) {
+      return leaves.reduce((sum, r) => {
+        const from = r.startDate > gte ? r.startDate : gte;
+        // Lùi đúng 1 NGÀY (không phải 1ms): lt là 00:00 UTC ngày 1 tháng sau, trừ 1ms
+        // sẽ thành 23:59 UTC ngày cuối tháng = 06:59 sáng hôm sau theo giờ VN → đếm thừa 1 ngày.
+        const to =
+          r.endDate < lt ? r.endDate : new Date(lt.getTime() - DAY_MS);
+        return sum + countWorkdays(from, to, holidays);
+      }, 0);
+    }
+
+    const counted = new Set<string>();
+    for (const r of leaves) {
       const from = r.startDate > gte ? r.startDate : gte;
-      // Lùi đúng 1 NGÀY (không phải 1ms): lt là 00:00 UTC ngày 1 tháng sau, trừ 1ms
-      // sẽ thành 23:59 UTC ngày cuối tháng = 06:59 sáng hôm sau theo giờ VN → đếm thừa 1 ngày.
-      const to =
-        r.endDate < lt ? r.endDate : new Date(lt.getTime() - DAY_MS);
-      return sum + countWorkdays(from, to, holidays);
-    }, 0);
+      const to = r.endDate < lt ? r.endDate : new Date(lt.getTime() - DAY_MS);
+      for (const d of eachDay(from, to)) {
+        if (dayTypeFor(d, holidays) !== 'NORMAL') continue;
+        const key = dayKey(d);
+        if (excludeDays.has(key)) continue;
+        counted.add(key);
+      }
+    }
+    return counted.size;
   }
 }

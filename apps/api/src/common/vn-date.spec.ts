@@ -4,7 +4,10 @@ import {
   vnDateFromParts,
   vnMonth,
   vnMonthRange,
+  vnMinutesOfDay,
+  vnTimeOnDate,
 } from './vn-date';
+import { dayKey, isWeekend, countWorkdays, eachDay, dayTypeFor } from './workdays';
 
 describe('vnDateString', () => {
   it('lấy ngày theo giờ VN, không lệch sang hôm trước', () => {
@@ -50,5 +53,44 @@ describe('vnMonthRange', () => {
   it('tháng 12 vẫn sang đúng năm sau', () => {
     const { lt } = vnMonthRange(2026, 12);
     expect(lt.toISOString().slice(0, 10)).toBe('2027-01-01');
+  });
+});
+
+describe('vnMinutesOfDay & vnTimeOnDate', () => {
+  it('vnTimeOnDate luôn dựng đúng mốc +07:00 bất kể TZ máy chủ', () => {
+    const date = vnDateFromParts(2026, 9, 9);
+    const eightAm = vnTimeOnDate(date, 8, 0);
+    // 08:00 VN = 01:00 UTC
+    expect(eightAm.toISOString()).toBe('2026-09-09T01:00:00.000Z');
+    expect(vnMinutesOfDay(eightAm)).toBe(8 * 60);
+  });
+
+  it('vnMinutesOfDay tại 00:05 VN trả về 5 (không bị 24*60 = 1440)', () => {
+    const midnightPlus5 = new Date('2026-09-09T00:05:00.000+07:00');
+    expect(vnMinutesOfDay(midnightPlus5)).toBe(5);
+  });
+});
+
+describe('workdays — xử lý đồng nhất trên @db.Date (00:00 UTC)', () => {
+  it('dayKey và eachDay giữ nguyên 00:00 UTC cho các mốc @db.Date', () => {
+    const start = vnDateFromParts(2026, 9, 7); // T2
+    const end = vnDateFromParts(2026, 9, 9); // T4
+    const days = eachDay(start, end);
+    expect(days.map((d) => d.toISOString())).toEqual([
+      '2026-09-07T00:00:00.000Z',
+      '2026-09-08T00:00:00.000Z',
+      '2026-09-09T00:00:00.000Z',
+    ]);
+    expect(days.map(dayKey)).toEqual(['2026-09-07', '2026-09-08', '2026-09-09']);
+    expect(countWorkdays(start, end)).toBe(3);
+  });
+
+  it('isWeekend và dayTypeFor phân loại đúng T7/CN và ngày lễ từ @db.Date', () => {
+    const sat = vnDateFromParts(2026, 9, 5);
+    const wedHoliday = vnDateFromParts(2026, 9, 2);
+    const holidays = new Set(['2026-09-02']);
+    expect(isWeekend(sat)).toBe(true);
+    expect(dayTypeFor(sat, holidays)).toBe('WEEKEND');
+    expect(dayTypeFor(wedHoliday, holidays)).toBe('HOLIDAY');
   });
 });

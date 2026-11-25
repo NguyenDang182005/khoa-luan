@@ -292,7 +292,7 @@ export class SettingsService {
     const envWebhook = this.config.get<string>('N8N_WEBHOOK_URL') ?? 'http://localhost:5678/webhook/chat';
     const webhookUrl = cfg.webhookUrl || envWebhook;
     const apiKey = cfg.apiKey || this.config.get<string>('N8N_API_KEY') || '';
-    const n8nBase = webhookUrl.replace(/\/webhook\/.*$/, '');
+    const n8nBase = webhookUrl.replace(/\/webhook(-test)?\/.*$/, '');
 
     // 1) healthz ping
     const t0 = Date.now();

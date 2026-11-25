@@ -101,29 +101,11 @@ function shortTime(iso: string | null): string {
 export function CskhEscalationView() {
   const { user } = useAuth()
   const isAdmin = user ? isAdminRole(user.role) : false
-
-  if (!isAdmin) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center py-12 text-center">
-        <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-danger-tint text-danger">
-          <ShieldAlert className="size-5" />
-        </div>
-        <h2 className="text-body font-semibold text-foreground">Bạn không có quyền xem trang này</h2>
-        <p className="mt-1 text-body-sm text-muted-foreground">
-          Trang &ldquo;Tiếp quản CSKH &amp; PII&rdquo; chỉ dành cho Admin.
-        </p>
-        <p className="mt-3 text-caption text-muted-foreground">
-          Vui lòng dùng các trang trong mục Cổng nhân viên: Hồ sơ, Đào tạo, Trợ lý AI.
-        </p>
-      </div>
-    )
-  }
-
-  return <CskhEscalationPanel />
+  return <CskhEscalationPanel isAdmin={isAdmin} />
 }
 
-/** Tách khỏi phần kiểm tra quyền để hook luôn được gọi cùng thứ tự (rules-of-hooks). */
-function CskhEscalationPanel() {
+/** Nhân viên dùng bàn tiếp quản; tab Nhật ký PII (nội dung gốc chưa che) chỉ admin xem. */
+function CskhEscalationPanel({ isAdmin }: { isAdmin: boolean }) {
   const [escalationQueue, setEscalationQueue] = useState<EscalationCase[]>([])
   const [queueError, setQueueError] = useState<string | null>(null)
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null)
@@ -155,7 +137,7 @@ function CskhEscalationPanel() {
       const status = (e as { response?: { status?: number } })?.response?.status
       setQueueError(
         status === 403
-          ? "Tài khoản của bạn không có quyền xem hội thoại CSKH (yêu cầu Admin / HR Manager / HR Admin)."
+          ? "Tài khoản của bạn chưa được cấp quyền xem hội thoại CSKH."
           : "Không tải được dữ liệu hội thoại từ máy chủ.",
       )
     } finally {
@@ -212,12 +194,16 @@ function CskhEscalationPanel() {
 
   // Nhật ký PII thật từ database
   useEffect(() => {
+    if (!isAdmin) {
+      setAuditLoading(false)
+      return
+    }
     escalationApi
       .getPiiAudit(20)
       .then(setAuditItems)
       .catch((e) => console.error(e))
       .finally(() => setAuditLoading(false))
-  }, [])
+  }, [isAdmin])
 
   // Ref giữ phiên đang mở — để bỏ kết quả trả về muộn của phiên cũ
   const activeCaseIdRef = useRef<string | null>(activeCaseId)
@@ -453,9 +439,11 @@ function CskhEscalationPanel() {
           <TabsTrigger value="console">
             Hội thoại trực tiếp
           </TabsTrigger>
-          <TabsTrigger value="audit">
-            Nhật ký PII Masking
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="audit">
+              Nhật ký PII Masking
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Tab 1: Live Takeover Console ── */}
@@ -735,7 +723,7 @@ function CskhEscalationPanel() {
                     value={humanReply}
                     onChange={(e) => setHumanReply(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSendHuman()}
-                    placeholder="Nhập nội dung tiếp quản với tư cách Chuyên viên HR/Admin..."
+                    placeholder="Nhập nội dung trả lời khách hàng..."
                     className="h-9 flex-1 text-body-sm"
                     disabled={replyBusy}
                   />
@@ -752,6 +740,7 @@ function CskhEscalationPanel() {
         </TabsContent>
 
         {/* Tab 2: PII Audit — dữ liệu thật từ AiChatMessage, đối chiếu original ↔ masked */}
+        {isAdmin && (
         <TabsContent value="audit" className="mt-4">
           <Card>
             <CardHeader>
@@ -790,8 +779,9 @@ function CskhEscalationPanel() {
                     <TableBody>
                       {auditItems.map((item) => {
                         const maskedMessage = auditMasked(item)
-                        const hasRealMask = maskedMessage !== null && maskedMessage !== item.content
+                        const hasMaskMetadata = maskedMessage !== null
                         const piiTypes = maskedTypes(maskedMessage)
+                        const hasRealMask = hasMaskMetadata && (maskedMessage !== item.content || piiTypes.length > 0)
                         return (
                           <TableRow key={item.id} className="align-top">
                             <TableCell className="tabular whitespace-nowrap text-muted-foreground">
@@ -840,13 +830,31 @@ function CskhEscalationPanel() {
                               )}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              <Badge
-                                variant={hasRealMask ? "success" : "warning"}
-                                title={hasRealMask ? "Bản ghi đã lưu sau khi masking" : "Bản ghi cũ chưa được mask"}
-                              >
-                                {hasRealMask ? <ShieldCheck /> : <AlertTriangle />}
-                                {hasRealMask ? "Đã mask" : "Chưa mask"}
-                              </Badge>
+                              {hasRealMask ? (
+                                <Badge
+                                  variant="success"
+                                  title="Tin nhắn chứa thông tin nhạy cảm và đã được che trước khi gửi tới AI"
+                                >
+                                  <ShieldCheck />
+                                  Đã che PII
+                                </Badge>
+                              ) : hasMaskMetadata ? (
+                                <Badge
+                                  variant="info"
+                                  title="Tin nhắn đã đi qua bộ lọc PII Masking và không chứa thông tin nhạy cảm"
+                                >
+                                  <ShieldCheck />
+                                  An toàn (Không PII)
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="warning"
+                                  title="Bản ghi cũ chưa có dữ liệu mask trong metadata"
+                                >
+                                  <AlertTriangle />
+                                  Chưa qua bộ lọc
+                                </Badge>
+                              )}
                             </TableCell>
                           </TableRow>
                         )
@@ -858,6 +866,7 @@ function CskhEscalationPanel() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   )

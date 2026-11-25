@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException, NotFoundException, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { randomUUID } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginRequest, JwtPayload } from "@repo/shared-types";
@@ -61,16 +62,21 @@ export class AuthService {
   /** Tạo phiên đăng nhập: refresh token row (kèm IP/UA) → access token gắn sid + TTL theo SecurityPolicy */
   private async createSession(payload: JwtPayload, meta: LoginMeta) {
     const policy = await ensureDefaultSecurityPolicy(this.prisma);
+    const ttlHours = Math.max(1, policy.accessTokenTtlHours || 720);
+    const sessionMs = Math.max(30 * 24 * 60 * 60 * 1000, ttlHours * 60 * 60 * 1000);
 
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: requireSecret(this.configService, 'JWT_REFRESH_SECRET'),
-      expiresIn: "30d",
-    });
+    const refreshToken = this.jwtService.sign(
+      { ...payload, jti: randomUUID() },
+      {
+        secret: requireSecret(this.configService, 'JWT_REFRESH_SECRET'),
+        expiresIn: `${Math.ceil(sessionMs / (60 * 60 * 1000))}h`,
+      },
+    );
     const session = await this.prisma.refreshToken.create({
       data: {
         token: refreshToken,
         userId: payload.sub,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + sessionMs),
         ip: meta.ip ?? null,
         userAgent: meta.userAgent ? meta.userAgent.slice(0, 255) : null,
       },
@@ -78,7 +84,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { ...payload, sid: session.id },
-      { expiresIn: `${policy.accessTokenTtlHours}h` },
+      { expiresIn: `${ttlHours}h` },
     );
 
     return { accessToken, refreshToken };
@@ -99,7 +105,7 @@ export class AuthService {
       throw new UnauthorizedException(message);
     };
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || user.employee?.status === "TERMINATED") {
       return fail(
         !user ? "USER_NOT_FOUND" : "ACCOUNT_DISABLED",
         "Email hoặc mật khẩu không đúng",
@@ -201,8 +207,11 @@ export class AuthService {
     }
 
     // Whitelist check
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.isActive) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { employee: { select: { status: true } } },
+    });
+    if (!user || !user.isActive || user.employee?.status === "TERMINATED") {
       await this.recordLogin(user?.id, email, false, !user ? "USER_NOT_FOUND" : "ACCOUNT_DISABLED", meta);
       throw new ForbiddenException(
         "Tài khoản chưa được cấp quyền truy cập. Liên hệ HR Admin để được hỗ trợ.",
@@ -217,11 +226,22 @@ export class AuthService {
       );
     }
 
-    // Link Firebase UID on first OAuth login
+    // Link Firebase UID on first OAuth login (chỉ gán nếu UID chưa thuộc về user khác)
     const updates: Record<string, any> = { lastLoginAt: new Date(), failedLoginAttempts: 0, lockedUntil: null };
-    if (!(user as any).firebaseUid) updates.firebaseUid = uid;
-    if (isGoogle && !(user as any).googleId) updates.googleId = uid;
-    if (isFacebook && !(user as any).facebookId) updates.facebookId = uid;
+    if (uid) {
+      const uidOwner = await this.prisma.user.findFirst({
+        where: {
+          OR: [{ firebaseUid: uid }, { googleId: uid }, { facebookId: uid }],
+          NOT: { id: user.id },
+        },
+        select: { id: true },
+      });
+      if (!uidOwner) {
+        if (!(user as any).firebaseUid) updates.firebaseUid = uid;
+        if (isGoogle && !(user as any).googleId) updates.googleId = uid;
+        if (isFacebook && !(user as any).facebookId) updates.facebookId = uid;
+      }
+    }
     if (picture && !(user as any).avatarUrl) updates.avatarUrl = picture;
     if (name && !(user as any).displayName) updates.displayName = name;
 
@@ -262,6 +282,9 @@ export class AuthService {
     newPassword: string,
     currentSessionId?: string,
   ) {
+    if (!currentPassword || typeof currentPassword !== "string" || !newPassword || typeof newPassword !== "string") {
+      throw new BadRequestException("Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới");
+    }
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("Không tìm thấy người dùng");
     if (!user.passwordHash) {

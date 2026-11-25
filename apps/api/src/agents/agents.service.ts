@@ -86,17 +86,19 @@ export class AgentsService {
   }
 
   /** GET /agents/intent-stats — thống kê định tuyến của Router Agent (WF01):
-   *  đếm metadata.intent trên các tin nhắn assistant đã lưu. */
+   *  đếm metadata.intent (fallback theo session.type cho WF03/WF04) trên các tin nhắn assistant đã lưu. */
   async getIntentStats() {
     // Đếm trong DB thay vì tải toàn bộ tin nhắn về Node (bảng chỉ lớn dần).
+    // WF04 (CSKH) và nhánh Roleplay của WF03 có thể không ghi metadata.intent → fallback sang s.type.
     const rows = await this.prisma.$queryRaw<
       Array<{ intent: string; count: bigint; escalations: bigint }>
     >`
-      SELECT metadata->>'intent' AS intent,
+      SELECT COALESCE(m.metadata->>'intent', s.type::text) AS intent,
              COUNT(*) AS count,
-             COUNT(*) FILTER (WHERE metadata->>'escalated' = 'true') AS escalations
-      FROM ai_chat_messages
-      WHERE role = 'assistant' AND jsonb_typeof(metadata->'intent') = 'string'
+             COUNT(*) FILTER (WHERE m.metadata->>'escalated' = 'true') AS escalations
+      FROM ai_chat_messages m
+      JOIN ai_chat_sessions s ON s.id = m."sessionId"
+      WHERE m.role = 'assistant'
       GROUP BY 1`;
 
     const byIntent: Record<string, number> = { HR_QA: 0, CSKH: 0, TRAINING: 0, OTHER: 0 };
@@ -153,7 +155,11 @@ export class AgentsService {
     // type phải thuộc enum ChatSessionType (HR_QA|CSKH|TRAINING) — giá trị khác (vd OTHER)
     // chuẩn hóa về HR_QA để tránh Prisma lỗi enum (fix 500 có sẵn với sessionType lạ)
     const rawType = (sessionType ?? 'OTHER') as string;
-    const type = (['HR_QA', 'CSKH', 'TRAINING'] as string[]).includes(rawType) ? rawType : 'HR_QA';
+    const type = scenarioType
+      ? 'TRAINING'
+      : (['HR_QA', 'CSKH', 'TRAINING'] as string[]).includes(rawType)
+        ? rawType
+        : 'HR_QA';
 
     // ── Cấu hình AI Agent từ trang Cài Đặt (DB) — fallback env ──
     const aiCfg = await ensureDefaultAiAgentConfig(this.prisma);
@@ -276,6 +282,9 @@ export class AgentsService {
     // tự chấm 100% được. Lúc nộp bài (/training/submit) server đọc lại từ đây.
     if (questions) {
       await this.stashQuizAnswers(session.id, questions);
+    } else {
+      // Ghi nhận latency_ms vào message assistant gần nhất để getPerformance() có số liệu thực
+      await this.recordAssistantLatency(session.id, latencyMs);
     }
 
     // Không gửi đáp án đúng xuống trình duyệt (DevTools là thấy). Server đã giữ bản
@@ -296,7 +305,7 @@ export class AgentsService {
     };
   }
 
-    /** Ghi đáp án đúng của bài quiz vào metadata message assistant (tránh client tự chấm). */
+  /** Ghi đáp án đúng của bài quiz vào metadata message assistant (tránh client tự chấm). */
   private async stashQuizAnswers(
     sessionId: string,
     questions: Array<Record<string, unknown>>,
@@ -314,17 +323,47 @@ export class AgentsService {
     });
   }
 
+  /** Ghi latency_ms vào metadata của message assistant mới nhất trong phiên. */
+  private async recordAssistantLatency(sessionId: string, latencyMs: number) {
+    const latest = await this.prisma.aiChatMessage.findFirst({
+      where: { sessionId, role: 'assistant' },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, metadata: true },
+    });
+    if (!latest) return;
+    const existing = (latest.metadata ?? {}) as Record<string, unknown>;
+    if (typeof existing.latency_ms === 'number') return;
+    await this.prisma.aiChatMessage
+      .update({
+        where: { id: latest.id },
+        data: { metadata: { ...existing, latency_ms: latencyMs } as object },
+      })
+      .catch(() => null);
+  }
+
   /** POST /agents/chat-session/:id/reply — human reply lưu vào lịch sử session
    *  VÀ forward ra kênh khách hàng.
-   *  Ưu tiên channel mode (slackChannel + threadTs từ metadata message đầu tiên).
+   *  Ưu tiên channel mode (slackChannel + threadTs từ metadata message gần nhất).
    *  Fallback: Slack DM (legacy). */
   async replyToSession(sessionId: string, content: string) {
     const session = await this.prisma.aiChatSession.findUnique({
       where: { id: sessionId },
-      select: { id: true, externalId: true },
+      select: { id: true, externalId: true, isActive: true, escalatedAt: true },
     });
     if (!session) {
       throw new NotFoundException('Không tìm thấy phiên chat');
+    }
+    // Khi nhân viên trực tiếp trả lời → đảm bảo tắt bot cho phiên này
+    if (session.isActive || !session.escalatedAt) {
+      await this.prisma.aiChatSession
+        .update({
+          where: { id: sessionId },
+          data: {
+            isActive: false,
+            escalatedAt: session.escalatedAt ?? new Date(),
+          },
+        })
+        .catch(() => null);
     }
     const message = await this.aiContext.saveMessage({
       sessionId,
@@ -333,13 +372,13 @@ export class AgentsService {
       metadata: { sender: 'human', note: 'human_takeover' },
     });
 
-    // Lấy slackChannel + threadTs từ metadata của message đầu tiên (được lưu khi WF04 xử lý)
-    const firstUserMsg = await this.prisma.aiChatMessage.findFirst({
+    // Lấy slackChannel + threadTs từ metadata của message user gần nhất (được lưu khi WF04 xử lý)
+    const latestUserMsg = await this.prisma.aiChatMessage.findFirst({
       where: { sessionId, role: 'user' },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       select: { metadata: true },
     });
-    const meta = firstUserMsg?.metadata as Record<string, unknown> | null;
+    const meta = latestUserMsg?.metadata as Record<string, unknown> | null;
     const slackChannel = meta?.slackChannel as string | undefined;
     const threadTs = meta?.threadTs as string | undefined;
 
@@ -356,10 +395,11 @@ export class AgentsService {
     return { ...message, delivery };
   }
 
-  /** GET /agents/pii-audit — message AI gần nhất kèm session (phục vụ audit PII) */
+  /** GET /agents/pii-audit — tin nhắn đầu vào của người dùng gần nhất kèm session (phục vụ audit PII) */
   async getPiiAudit(limit = 20) {
     const take = Math.min(Math.max(limit, 1), 100);
     const messages = await this.prisma.aiChatMessage.findMany({
+      where: { role: 'user' },
       orderBy: { createdAt: 'desc' },
       take,
       include: {

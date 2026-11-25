@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { employeesApi } from "@/lib/api/employees.api"
-import type { CreateEmployeeInput, UpdateAccountInput, EmployeeDetail } from "@/lib/api/employees.api"
+import { employeesApi, contractsApi } from "@/lib/api/employees.api"
+import type { CreateEmployeeInput, UpdateAccountInput, EmployeeDetail, Contract, ContractType } from "@/lib/api/employees.api"
 import { leaveApi } from "@/lib/api/leave.api"
 import { attendanceApi } from "@/lib/api/attendance.api"
 import { payrollApi } from "@/lib/api/payroll.api"
@@ -129,9 +129,40 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
 
   // Add dialog
   const [showAdd, setShowAdd] = useState(false)
-  const [addForm, setAddForm] = useState<CreateEmployeeInput>({ fullName: "", email: "", joinDate: todayVN(), departmentId: "", positionId: "", role: "EMPLOYEE" })
+  const [addForm, setAddForm] = useState<CreateEmployeeInput>({
+    fullName: "",
+    email: "",
+    joinDate: todayVN(),
+    departmentId: "",
+    positionId: "",
+    role: "EMPLOYEE",
+    baseSalary: 12000000,
+    allowances: 0,
+  })
   const [addErrors, setAddErrors] = useState<Record<string, string>>({})
   const [addBusy, setAddBusy] = useState(false)
+
+  // Contract dialog — tạo mới hoặc cập nhật hợp đồng & đổi trạng thái active
+  const [contractOpen, setContractOpen] = useState(false)
+  const [contractMode, setContractMode] = useState<"create" | "edit">("create")
+  const [editingContractId, setEditingContractId] = useState<string | null>(null)
+  const [contractForm, setContractForm] = useState<{
+    type: ContractType
+    baseSalary: string
+    allowances: string
+    startDate: string
+    endDate: string
+    isActive: boolean
+  }>({
+    type: "FULL_TIME",
+    baseSalary: "12000000",
+    allowances: "0",
+    startDate: todayVN(),
+    endDate: "",
+    isActive: true,
+  })
+  const [contractBusy, setContractBusy] = useState(false)
+  const [contractError, setContractError] = useState<string | null>(null)
 
   // Debounce search 300ms — không fetch mỗi keystroke
   useEffect(() => {
@@ -212,15 +243,32 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
     if (!addForm.departmentId) errs.departmentId = "Vui lòng chọn phòng ban"
     if (!addForm.positionId) errs.positionId = "Vui lòng chọn chức vụ"
     if (!addForm.joinDate) errs.joinDate = "Vui lòng chọn ngày vào làm"
+    if (addForm.baseSalary !== undefined && !(addForm.baseSalary > 0)) {
+      errs.baseSalary = "Lương cơ bản phải lớn hơn 0"
+    }
     if (Object.keys(errs).length > 0) {
       setAddErrors(errs)
       return
     }
     setAddBusy(true)
     try {
-      await employeesApi.create({ ...addForm, fullName: addForm.fullName.trim() })
+      await employeesApi.create({
+        ...addForm,
+        fullName: addForm.fullName.trim(),
+        baseSalary: addForm.baseSalary && addForm.baseSalary > 0 ? Number(addForm.baseSalary) : undefined,
+        allowances: addForm.allowances && addForm.allowances >= 0 ? Number(addForm.allowances) : 0,
+      })
       setShowAdd(false)
-      setAddForm({ fullName: "", email: "", joinDate: todayVN(), departmentId: "", positionId: "" })
+      setAddForm({
+        fullName: "",
+        email: "",
+        joinDate: todayVN(),
+        departmentId: "",
+        positionId: "",
+        role: "EMPLOYEE",
+        baseSalary: 12000000,
+        allowances: 0,
+      })
       setPage(1)
       await fetchEmployees()
     } catch (e: unknown) {
@@ -228,6 +276,105 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
       setAddErrors({ form: Array.isArray(msg) ? msg.join(", ") : msg ?? "Tạo nhân viên thất bại." })
     } finally {
       setAddBusy(false)
+    }
+  }
+
+  /** Mở dialog tạo mới hoặc chỉnh sửa hợp đồng */
+  const openContractModal = (mode: "create" | "edit", contract?: Contract) => {
+    setContractError(null)
+    setContractMode(mode)
+    if (mode === "edit" && contract) {
+      setEditingContractId(contract.id)
+      setContractForm({
+        type: contract.type,
+        baseSalary: String(contract.baseSalary),
+        allowances: String(contract.allowances ?? 0),
+        startDate: contract.startDate.slice(0, 10),
+        endDate: contract.endDate ? contract.endDate.slice(0, 10) : "",
+        isActive: contract.isActive,
+      })
+    } else {
+      setEditingContractId(null)
+      const current = drawerDetail?.contracts?.[0]
+      setContractForm({
+        type: drawerDetail?.status === "PROBATION" ? "PROBATION" : "FULL_TIME",
+        baseSalary: current ? String(current.baseSalary) : "12000000",
+        allowances: current ? String(current.allowances ?? 0) : "0",
+        startDate: todayVN(),
+        endDate: "",
+        isActive: true,
+      })
+    }
+    setContractOpen(true)
+  }
+
+  const handleSaveContract = async () => {
+    if (!selectedEmployee) return
+    const salary = Number(contractForm.baseSalary)
+    const allowances = Number(contractForm.allowances || 0)
+    if (!Number.isFinite(salary) || salary <= 0) {
+      setContractError("Lương cơ bản phải lớn hơn 0.")
+      return
+    }
+    if (!Number.isFinite(allowances) || allowances < 0) {
+      setContractError("Phụ cấp không được âm.")
+      return
+    }
+    if (!contractForm.startDate) {
+      setContractError("Vui lòng chọn ngày bắt đầu hợp đồng.")
+      return
+    }
+    setContractBusy(true)
+    setContractError(null)
+    try {
+      if (contractMode === "edit" && editingContractId) {
+        await contractsApi.update(editingContractId, {
+          type: contractForm.type,
+          baseSalary: salary,
+          allowances,
+          startDate: contractForm.startDate,
+          endDate: contractForm.endDate ? contractForm.endDate : null,
+          isActive: contractForm.isActive,
+        })
+      } else {
+        await contractsApi.create({
+          employeeId: selectedEmployee.id,
+          type: contractForm.type,
+          baseSalary: salary,
+          allowances,
+          startDate: contractForm.startDate,
+          endDate: contractForm.endDate || undefined,
+          signedDate: contractForm.startDate,
+        })
+      }
+      const updated = await employeesApi.getById(selectedEmployee.id)
+      setDrawerDetail(updated)
+      setContractOpen(false)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+      setContractError(Array.isArray(msg) ? msg.join(", ") : msg ?? "Lưu hợp đồng thất bại.")
+    } finally {
+      setContractBusy(false)
+    }
+  }
+
+  const handleToggleContractActive = async (contract: Contract) => {
+    if (!selectedEmployee) return
+    setContractBusy(true)
+    setEditError(null)
+    try {
+      if (contract.isActive) {
+        await contractsApi.deactivate(contract.id)
+      } else {
+        await contractsApi.activate(contract.id)
+      }
+      const updated = await employeesApi.getById(selectedEmployee.id)
+      setDrawerDetail(updated)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+      setEditError(Array.isArray(msg) ? msg.join(", ") : msg ?? "Đổi trạng thái hợp đồng thất bại.")
+    } finally {
+      setContractBusy(false)
     }
   }
 
@@ -598,7 +745,33 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
 
               {/* 2. Nghề vụ & hợp đồng */}
               <section>
-                <SectionTitle>Nghề vụ & HĐLĐ</SectionTitle>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h4 className="text-body font-semibold text-foreground">Nghề vụ & HĐLĐ</h4>
+                  {isAdmin && drawerDetail && (
+                    <div className="flex items-center gap-1.5">
+                      {drawerDetail.contracts && drawerDetail.contracts.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2.5 text-caption"
+                          onClick={() => openContractModal("edit", drawerDetail.contracts![0]!)}
+                          disabled={contractBusy}
+                        >
+                          Sửa / Đổi trạng thái HĐ
+                        </Button>
+                      )}
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-7 px-2.5 text-caption"
+                        onClick={() => openContractModal("create")}
+                        disabled={contractBusy}
+                      >
+                        <Plus className="size-3.5" /> Hợp đồng mới
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <div className="flex flex-col">
                   <Row label="Phòng ban" value={selectedEmployee.department.name} />
                   <Row label="Chức danh" value={selectedEmployee.position.title} />
@@ -615,35 +788,79 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
                     }
                   />
                   <Row label="Ngày vào làm việc" value={fmtVNDate(selectedEmployee.joinDate)} tabular />
-                  <Row
-                    label="Loại hợp đồng (active)"
-                    value={
-                      !drawerDetail ? (
-                        drawerDetail === null ? (
-                          "—"
-                        ) : (
-                          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-                        )
-                      ) : drawerDetail.contracts && drawerDetail.contracts.length > 0 ? (
-                        CONTRACT_TYPE_LABEL[drawerDetail.contracts[0]!.type] ?? drawerDetail.contracts[0]!.type
-                      ) : (
-                        "Chưa có hợp đồng active"
-                      )
-                    }
-                  />
-                  {drawerDetail?.contracts && drawerDetail.contracts.length > 0 && (
-                    <Row label="Số hợp đồng" value={drawerDetail.contracts[0]!.contractNumber} mono />
-                  )}
-                  <Row
-                    label="Lương cơ bản (hợp đồng)"
-                    value={drawerDetail?.contracts?.length ? vnd(drawerDetail.contracts[0]!.baseSalary) : "--"}
-                    tabular
-                  />
-                  <Row
-                    label="Phụ cấp"
-                    value={drawerDetail?.contracts?.length ? vnd(drawerDetail.contracts[0]!.allowances) : "--"}
-                    tabular
-                  />
+                  {(() => {
+                    const activeContract = drawerDetail?.contracts?.find((c) => c.isActive)
+                    const latestContract = activeContract ?? drawerDetail?.contracts?.[0]
+                    return (
+                      <>
+                        <Row
+                          label="Trạng thái hợp đồng"
+                          value={
+                            !drawerDetail ? (
+                              drawerDetail === null ? (
+                                "—"
+                              ) : (
+                                <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                              )
+                            ) : activeContract ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="success">Đang hiệu lực (Active)</Badge>
+                                {isAdmin && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-micro"
+                                    disabled={contractBusy}
+                                    onClick={() => handleToggleContractActive(activeContract)}
+                                  >
+                                    Hủy hiệu lực
+                                  </Button>
+                                )}
+                              </div>
+                            ) : latestContract ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="destructive">Hết hiệu lực (Inactive)</Badge>
+                                {isAdmin && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="h-6 px-2 text-micro"
+                                    disabled={contractBusy}
+                                    onClick={() => handleToggleContractActive(latestContract)}
+                                  >
+                                    Kích hoạt lại (Active)
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <Badge variant="warning">Chưa có hợp đồng</Badge>
+                            )
+                          }
+                        />
+                        <Row
+                          label="Loại hợp đồng"
+                          value={
+                            latestContract
+                              ? CONTRACT_TYPE_LABEL[latestContract.type] ?? latestContract.type
+                              : "Chưa có hợp đồng active"
+                          }
+                        />
+                        {latestContract && (
+                          <Row label="Số hợp đồng" value={latestContract.contractNumber} mono />
+                        )}
+                        <Row
+                          label="Lương cơ bản (hợp đồng)"
+                          value={latestContract ? vnd(latestContract.baseSalary) : "--"}
+                          tabular
+                        />
+                        <Row
+                          label="Phụ cấp"
+                          value={latestContract ? vnd(latestContract.allowances) : "--"}
+                          tabular
+                        />
+                      </>
+                    )
+                  })()}
                 </div>
               </section>
 
@@ -842,6 +1059,40 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
               className={`mt-1.5 h-9 ${SELECT_CLASS}`}
             />
           </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Lương cơ bản (VNĐ)" error={addErrors.baseSalary}>
+              <Input
+                type="number"
+                min={0}
+                step={500000}
+                value={addForm.baseSalary ?? ""}
+                onChange={(e) =>
+                  setAddForm({
+                    ...addForm,
+                    baseSalary: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+                placeholder="12000000"
+                className="mt-1.5 h-9 tabular"
+              />
+            </Field>
+            <Field label="Phụ cấp hàng tháng (VNĐ)">
+              <Input
+                type="number"
+                min={0}
+                step={100000}
+                value={addForm.allowances ?? ""}
+                onChange={(e) =>
+                  setAddForm({
+                    ...addForm,
+                    allowances: e.target.value ? Number(e.target.value) : 0,
+                  })
+                }
+                placeholder="0"
+                className="mt-1.5 h-9 tabular"
+              />
+            </Field>
+          </div>
           <Field label="Role tài khoản">
             <select
               value={addForm.role ?? "EMPLOYEE"}
@@ -861,6 +1112,99 @@ export function EmployeesView({ initialSearch, onInitialSearchApplied }: Employe
           <Button variant="outline" onClick={() => setShowAdd(false)}>Hủy</Button>
           <Button variant="default" onClick={handleCreateEmployee} disabled={addBusy}>
             {addBusy && <Loader2 className="size-3.5 animate-spin" />} Tạo nhân viên
+          </Button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* Contract Create / Edit / Activate Dialog */}
+      <Dialog open={contractOpen} onOpenChange={setContractOpen}>
+        <DialogHeader>
+          <DialogTitle>
+            {contractMode === "edit" ? "Cập nhật & đổi trạng thái hợp đồng" : "Ký / Tạo hợp đồng mới"} — {selectedEmployee?.fullName}
+          </DialogTitle>
+          <DialogDescription>
+            {contractMode === "edit"
+              ? "Thay đổi loại hợp đồng (Thử việc → Chính thức), mức lương, phụ cấp hoặc trạng thái hiệu lực (Active)."
+              : "Tạo hợp đồng mới sẽ tự động được kích hoạt (Active) và hủy hiệu lực hợp đồng cũ của nhân viên."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-2 text-body-sm">
+          <Field label="Loại hợp đồng">
+            <select
+              value={contractForm.type}
+              onChange={(e) => setContractForm({ ...contractForm, type: e.target.value as ContractType })}
+              className={`mt-1.5 h-9 ${SELECT_CLASS}`}
+            >
+              <option value="FULL_TIME">Chính thức (Toàn thời gian)</option>
+              <option value="PROBATION">Thử việc</option>
+              <option value="PART_TIME">Bán thời gian</option>
+              <option value="FREELANCE">Freelance</option>
+              <option value="INTERNSHIP">Thực tập</option>
+            </select>
+          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Lương cơ bản (VNĐ)">
+              <Input
+                type="number"
+                min={0}
+                step={500000}
+                value={contractForm.baseSalary}
+                onChange={(e) => setContractForm({ ...contractForm, baseSalary: e.target.value })}
+                className="mt-1.5 h-9 tabular"
+              />
+            </Field>
+            <Field label="Phụ cấp hàng tháng (VNĐ)">
+              <Input
+                type="number"
+                min={0}
+                step={100000}
+                value={contractForm.allowances}
+                onChange={(e) => setContractForm({ ...contractForm, allowances: e.target.value })}
+                className="mt-1.5 h-9 tabular"
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Ngày bắt đầu hiệu lực">
+              <input
+                type="date"
+                value={contractForm.startDate}
+                onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })}
+                className={`mt-1.5 h-9 ${SELECT_CLASS}`}
+              />
+            </Field>
+            <Field label="Ngày kết thúc (bỏ trống nếu vô thời hạn)">
+              <input
+                type="date"
+                value={contractForm.endDate}
+                onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })}
+                className={`mt-1.5 h-9 ${SELECT_CLASS}`}
+              />
+            </Field>
+          </div>
+          {contractMode === "edit" && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-sunken p-3">
+              <div>
+                <p className="font-medium text-foreground">Trạng thái hiệu lực (Active)</p>
+                <p className="mt-0.5 text-caption text-muted-foreground">
+                  Bật để dùng hợp đồng này khi tính bảng lương hàng tháng
+                </p>
+              </div>
+              <Switch
+                checked={contractForm.isActive}
+                onCheckedChange={(v) => setContractForm({ ...contractForm, isActive: v })}
+              />
+            </div>
+          )}
+          {contractError && <p className="text-body-sm text-danger">{contractError}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setContractOpen(false)} disabled={contractBusy}>
+            Hủy
+          </Button>
+          <Button variant="default" onClick={handleSaveContract} disabled={contractBusy}>
+            {contractBusy && <Loader2 className="size-3.5 animate-spin" />}{" "}
+            {contractMode === "edit" ? "Lưu hợp đồng" : "Tạo & Kích hoạt"}
           </Button>
         </DialogFooter>
       </Dialog>
@@ -1041,7 +1385,7 @@ function genderLabel(g?: string | null): string {
 /** Tổng hợp công tháng hiện tại của 1 nhân viên (chấm công thật từ API) */
 function AttendanceSummaryMini({ employeeId }: { employeeId: string }) {
   const [summary, setSummary] = useState<{
-    present: number; late: number; remote: number; absent: number; otHours: number; total: number
+    workDays: number; late: number; remote: number; absent: number; otHours: number; total: number
   } | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -1052,12 +1396,18 @@ function AttendanceSummaryMini({ employeeId }: { employeeId: string }) {
       .listByEmployee(employeeId, month, year)
       .then((rows) => {
         if (cancelled) return
-        const s = { present: 0, late: 0, remote: 0, absent: 0, otHours: 0, total: rows.length }
+        const s = { workDays: 0, late: 0, remote: 0, absent: 0, otHours: 0, total: rows.length }
         for (const r of rows) {
           if (r.status === "LATE") s.late++
           else if (r.status === "REMOTE") s.remote++
           else if (r.status === "ABSENT") s.absent++
-          else s.present++
+          if (r.status !== "ABSENT" && (!r.dayType || r.dayType === "NORMAL")) {
+            if (typeof r.workDays === "number") {
+              s.workDays += r.status === "ON_LEAVE" ? 1 : r.workDays
+            } else if (!(r.checkIn && !r.checkOut)) {
+              s.workDays += r.status === "HALF_DAY" ? 0.5 : 1
+            }
+          }
           s.otHours += r.overtime ?? 0
         }
         setSummary(s)
@@ -1074,7 +1424,7 @@ function AttendanceSummaryMini({ employeeId }: { employeeId: string }) {
         Chấm công tháng hiện tại ({summary.total} bản ghi)
       </p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-        <Stat label="Ngày công" value={String(summary.present + summary.late + summary.remote)} />
+        <Stat label="Ngày công" value={summary.workDays.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} />
         <Stat label="Đi muộn" value={String(summary.late)} tone={summary.late > 0 ? "warning" : undefined} />
         <Stat label="Remote" value={String(summary.remote)} />
         <Stat label="Vắng" value={String(summary.absent)} tone={summary.absent > 0 ? "danger" : undefined} />

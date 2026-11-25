@@ -9,26 +9,18 @@ if (Trùng email hoặc mã?) then (có)
   stop
 else (không)
 endif
-:Sinh mã EMP#### kế tiếp
-(số lớn nhất hiện có + 1);
-if (Có truyền role?) then (có)
-  :Tạo User active
-  (email là whitelist OAuth);
-else (không)
-  :Tạo User giữ chỗ
-  (isActive = false);
-endif
-:Tạo hồ sơ Employee trạng thái PROBATION
-(phòng ban, chức danh, quản lý);
-if (Có baseSalary?) then (có)
-  :Tạo hợp đồng thử việc
-  (cùng transaction);
-else (không)
-endif
-:Gán toàn bộ OnboardingTask
-trạng thái PENDING;
+:Sinh mã EMP#### kế tiếp (số lớn nhất + 1);
+partition "Transaction ($transaction)" {
+  if (Có truyền role?) then (có)
+    :Tạo User active (whitelist OAuth);
+  else (không)
+    :Tạo User giữ chỗ (isActive = false);
+  endif
+  :Tạo hồ sơ Employee trạng thái PROBATION
+  (phòng ban, chức danh, quản lý) + Hợp đồng thử việc (nếu có baseSalary)
+  + Gán toàn bộ OnboardingTask trạng thái PENDING;
+}
 |ADMIN|
-:Xem hồ sơ nhân viên
-trên portal;
+:Xem hồ sơ nhân viên trên portal;
 stop
 @enduml

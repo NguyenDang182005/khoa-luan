@@ -115,6 +115,9 @@ export class NotificationsGateway
       const payload = await this.verifyToken(token);
       client.data.user = { sub: payload.sub, role: payload.role };
       client.join(`user:${payload.sub}`);
+      if (payload.role === 'ADMIN') {
+        client.join('admin');
+      }
       console.log(`WS client connected: ${client.id} (${payload.email})`);
     } catch {
       console.warn(`WS client rejected (token không hợp lệ): ${client.id}`);

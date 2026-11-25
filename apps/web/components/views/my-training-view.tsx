@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Award, TrendingUp, Calendar, Sparkles, ClipboardCheck, Target, UserX, Play } from "lucide-react"
+import { Award, TrendingUp, Calendar, Sparkles, ClipboardCheck, Target, UserX, Play, ChevronRight, ListChecks } from "lucide-react"
 import {
   RadarChart,
   PolarGrid,
@@ -27,6 +27,7 @@ import { useAuth } from '@/lib/auth-context'
 import { trainingApi } from '@/lib/api/training.api'
 import type { TrainingSession } from '@/lib/schemas/training.schema'
 import { cn, scenarioLabel } from '@/lib/utils'
+import { SessionAttempts } from '@/components/training/session-attempts'
 
 const BENCHMARK = { professional: 8.0, empathy: 8.0, problemSolving: 8.0, clarity: 8.0 }
 const AI_CRITERIA = [
@@ -56,6 +57,12 @@ export function MyTrainingView({ onStartTraining }: MyTrainingViewProps = {}) {
   const [sessions, setSessions] = useState<TrainingSession[]>([])
   const [selected, setSelected] = useState<TrainingSession | null>(null)
   const [loading, setLoading] = useState(true)
+  const detailRef = React.useRef<HTMLDivElement>(null)
+
+  const openDetail = (item: TrainingSession) => {
+    setSelected(item)
+    requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+  }
 
   useEffect(() => {
     const employeeId = user?.employee?.id
@@ -324,7 +331,7 @@ export function MyTrainingView({ onStartTraining }: MyTrainingViewProps = {}) {
           </CardTitle>
         </CardHeader>
         <div className="overflow-x-auto">
-          <Table className="min-w-[720px]">
+          <Table className="min-w-[820px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Ngày</TableHead>
@@ -333,6 +340,7 @@ export function MyTrainingView({ onStartTraining }: MyTrainingViewProps = {}) {
                 <TableHead className="text-right">Điểm AI</TableHead>
                 <TableHead className="text-right">Tổng</TableHead>
                 <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right"><span className="sr-only">Chi tiết</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,12 +402,48 @@ export function MyTrainingView({ onStartTraining }: MyTrainingViewProps = {}) {
                       <Badge variant="secondary"><span className="size-1.5 rounded-full bg-muted-foreground" />Đang làm</Badge>
                     )}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary hover:bg-primary-tint hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openDetail(item)
+                      }}
+                    >
+                      Xem bài làm
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       </Card>
+
+      {/* Chi tiết bài làm của lần đang xem */}
+      {selected && (
+        <Card ref={detailRef} className="min-w-0 scroll-mt-6">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-md bg-primary-tint text-primary">
+                <ListChecks className="size-4" />
+              </span>
+              Chi tiết bài làm
+            </CardTitle>
+            <p className="text-body-sm text-muted-foreground">
+              {scenarioLabel(selected.scenario)}
+              {selected.createdAt && ` · ${new Date(selected.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}`}
+              {` · Tổng ${selected.totalScore ?? 0}/100`}
+            </p>
+          </CardHeader>
+          <CardContent className="pt-5 sm:pt-6">
+            <SessionAttempts attempts={selected.attempts} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

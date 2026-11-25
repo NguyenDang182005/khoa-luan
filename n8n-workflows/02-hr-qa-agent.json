@@ -85,7 +85,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"user\", content: $(\"Normalize Input\").first().json.originalMessage, metadata: { intent: \"HR_QA\" } }) }}",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $(\"Get/Create Session\").first().json.id, role: \"user\", content: $(\"Normalize Input\").first().json.originalMessage, metadata: { intent: \"HR_QA\", maskedMessage: $(\"Normalize Input\").first().json.maskedMessage } }) }}",
         "options": {}
       },
       "id": "save-user-msg",

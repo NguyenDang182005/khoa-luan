@@ -33,22 +33,97 @@ function formatHours(h: number): string {
   return `${h.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} h`
 }
 
+function creditOfRecord(r: AttendanceRecord): number {
+  if (r.status === "ABSENT") return 0
+  if (r.dayType && r.dayType !== "NORMAL") return 0
+  if (typeof r.workDays === "number") {
+    // ON_LEAVE (nghỉ phép có duyệt) lưu workDays = 0 trong bảng attendance nhưng tính là 1 ngày nghỉ có phép trên lịch
+    if (r.status === "ON_LEAVE") return 1
+    return r.workDays
+  }
+  // Mới check-in mà chưa check-out → chưa chốt công (0 công)
+  if (r.checkIn && !r.checkOut) return 0
+  if (["PRESENT", "REMOTE", "LATE", "ON_LEAVE"].includes(r.status)) return 1
+  if (r.status === "HALF_DAY") return 0.5
+  return 0
+}
+
 // Trả về màu dot + nhãn trạng thái
-function getStatus(status: string | undefined, hasRecord: boolean, isWeekend: boolean, isFuture: boolean, isToday = false): {
+function getStatus(
+  record: AttendanceRecord | null,
+  isWeekend: boolean,
+  isFuture: boolean,
+  isToday = false,
+): {
   dot: string | null; label: string; credit: string; badge: BadgeVariant
 } {
-  if (isWeekend || isFuture || !hasRecord && isFuture) return { dot: null, label: "", credit: "", badge: "secondary" }
+  if (isWeekend || isFuture) return { dot: null, label: "", credit: "", badge: "secondary" }
   // Hôm nay chưa có bản ghi = chưa chấm công, chưa phải vắng
-  if (!hasRecord && isToday) return { dot: null, label: "Chưa chấm công", credit: "", badge: "secondary" }
-  if (!hasRecord) return { dot: "bg-danger", label: "Vắng", credit: "V", badge: "destructive" }
-  switch (status) {
-    case "PRESENT":  return { dot: "bg-success",          label: "Đủ công",   credit: "1.0", badge: "success" }
-    case "LATE":     return { dot: "bg-warning",          label: "Đi muộn",   credit: "1.0", badge: "warning" }
-    case "REMOTE":   return { dot: "bg-primary",          label: "Làm từ xa", credit: "1.0", badge: "default" }
-    case "HALF_DAY": return { dot: "bg-muted-foreground", label: "Nửa ngày",  credit: "0.5", badge: "secondary" }
-    case "ON_LEAVE": return { dot: "bg-info",             label: "Nghỉ phép", credit: "P",   badge: "info" }
-    case "ABSENT":   return { dot: "bg-danger",           label: "Vắng",      credit: "V",   badge: "destructive" }
-    default:         return { dot: null,                  label: "",          credit: "",    badge: "secondary" }
+  if (!record && isToday) return { dot: null, label: "Chưa chấm công", credit: "", badge: "secondary" }
+  if (!record) return { dot: "bg-danger", label: "Vắng", credit: "V", badge: "destructive" }
+  const inProgress = Boolean(record.checkIn && !record.checkOut)
+  const creditNum = creditOfRecord(record)
+  const creditStr = creditNum.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 4 })
+  switch (record.status) {
+    case "PRESENT":
+      if (inProgress) {
+        return {
+          dot: "bg-info",
+          label: "Đang làm việc (chưa check-out)",
+          credit: creditStr,
+          badge: "info",
+        }
+      }
+      if (creditNum <= 0) {
+        return {
+          dot: "bg-muted-foreground",
+          label: "Chưa phát sinh công (0 công)",
+          credit: creditStr,
+          badge: "secondary",
+        }
+      }
+      if (creditNum < 1) {
+        return {
+          dot: "bg-info",
+          label: `Công lẻ (${creditStr} công)`,
+          credit: creditStr,
+          badge: "info",
+        }
+      }
+      return {
+        dot: "bg-success",
+        label: "Đủ công",
+        credit: creditStr,
+        badge: "success",
+      }
+    case "LATE":
+      return {
+        dot: creditNum <= 0 && !inProgress ? "bg-muted-foreground" : "bg-warning",
+        label: inProgress
+          ? "Đi muộn (chưa check-out)"
+          : creditNum <= 0
+            ? "Đi muộn (0 công)"
+            : creditNum < 1
+              ? `Đi muộn (${creditStr} công)`
+              : "Đi muộn (Đủ công)",
+        credit: creditStr,
+        badge: creditNum <= 0 && !inProgress ? "secondary" : "warning",
+      }
+    case "REMOTE":
+      return {
+        dot: "bg-primary",
+        label: inProgress ? "Làm từ xa (chưa check-out)" : "Làm từ xa",
+        credit: creditStr,
+        badge: "default",
+      }
+    case "HALF_DAY":
+      return { dot: "bg-muted-foreground", label: "Nửa ngày", credit: creditStr, badge: "secondary" }
+    case "ON_LEAVE":
+      return { dot: "bg-info", label: "Nghỉ phép", credit: "P", badge: "info" }
+    case "ABSENT":
+      return { dot: "bg-danger", label: "Vắng", credit: "V", badge: "destructive" }
+    default:
+      return { dot: null, label: "", credit: "", badge: "secondary" }
   }
 }
 
@@ -111,6 +186,12 @@ function DayDetail({
               <dd className="font-medium tabular">{formatTime(record.checkOut)}</dd>
             </div>
             <div>
+              <dt className="text-caption text-muted-foreground">Số công</dt>
+              <dd className="font-medium tabular">
+                {creditOfRecord(record).toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 4 })} công
+              </dd>
+            </div>
+            <div>
               <dt className="text-caption text-muted-foreground">Tổng giờ</dt>
               <dd className="font-medium tabular">
                 {typeof record.workHours === "number" ? formatHours(record.workHours) : "—"}
@@ -162,8 +243,7 @@ export function MonthlyTimesheetStrip({
       if (ds > today) continue
       const r = recordMap.get(ds)
       if (!r) { if (dow !== 0 && dow !== 6 && ds !== today) absent++; continue }
-      if (["PRESENT","REMOTE","LATE","ON_LEAVE"].includes(r.status)) credits += 1
-      else if (r.status === "HALF_DAY") credits += 0.5
+      credits += creditOfRecord(r)
       if (r.status === "LATE") late++
       if (r.status === "ABSENT") absent++
     }
@@ -220,7 +300,7 @@ export function MonthlyTimesheetStrip({
             const isFuture  = dateStr > today
             const isWeekend = dow === 0 || dow === 6
             const record    = recordMap.get(dateStr) ?? null
-            const st        = getStatus(record?.status, !!record, isWeekend, isFuture, isToday)
+            const st        = getStatus(record, isWeekend, isFuture, isToday)
             const ariaStatus = st.label ? `: ${st.label}` : isWeekend ? ": cuối tuần" : isFuture ? ": chưa đến ngày" : ""
 
             return (
@@ -268,7 +348,7 @@ export function MonthlyTimesheetStrip({
         <div>
           <dt className="text-caption text-muted-foreground">Ngày công</dt>
           <dd className="text-h3 font-semibold tabular">
-            {stats.credits.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+            {stats.credits.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 4 })}
           </dd>
         </div>
         <div>

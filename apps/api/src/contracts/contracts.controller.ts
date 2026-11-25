@@ -13,6 +13,7 @@ import { ContractsService } from './contracts.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { vnDateUtc } from '../common/vn-date';
 
 @ApiTags('Contracts')
 @ApiBearerAuth()
@@ -48,40 +49,56 @@ export class ContractsController {
     @Body()
     dto: {
       employeeId: string;
-      contractNumber: string;
+      contractNumber?: string;
       type: string;
       startDate: string;
       endDate?: string;
       baseSalary: number;
       allowances?: number;
-      signedDate: string;
+      signedDate?: string;
       fileUrl?: string;
     },
   ) {
+    const start = vnDateUtc(new Date(dto.startDate));
     return this.contractsService.create({
       ...dto,
-      startDate: new Date(dto.startDate),
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      signedDate: new Date(dto.signedDate),
+      startDate: start,
+      endDate: dto.endDate ? vnDateUtc(new Date(dto.endDate)) : undefined,
+      signedDate: dto.signedDate ? vnDateUtc(new Date(dto.signedDate)) : start,
     });
   }
 
-  @ApiOperation({ summary: 'Cập nhật hợp đồng' })
+  @ApiOperation({ summary: 'Cập nhật hợp đồng (loại, lương, phụ cấp, ngày, trạng thái active)' })
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body()
     dto: {
+      type?: string;
       baseSalary?: number;
       allowances?: number;
-      endDate?: string;
+      startDate?: string;
+      endDate?: string | null;
       fileUrl?: string;
+      isActive?: boolean;
     },
   ) {
     return this.contractsService.update(id, {
       ...dto,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      startDate: dto.startDate ? vnDateUtc(new Date(dto.startDate)) : undefined,
+      endDate:
+        dto.endDate === null
+          ? null
+          : dto.endDate
+            ? vnDateUtc(new Date(dto.endDate))
+            : undefined,
     });
+  }
+
+  @ApiOperation({ summary: 'Kích hoạt hợp đồng (tự động tắt hợp đồng active khác của cùng nhân viên)' })
+  @Patch(':id/activate')
+  activate(@Param('id') id: string) {
+    return this.contractsService.activate(id);
   }
 
   @ApiOperation({ summary: 'Hủy hợp đồng' })

@@ -15,6 +15,26 @@ export const AiScoreSchema = z
   })
   .passthrough()
 
+export const TrainingAttemptItemSchema = z
+  .object({
+    id: z.string(),
+    answer: z.string(),
+    isCorrect: z.boolean().nullable().optional(),
+    aiEvaluation: z
+      .object({
+        question: z.string().nullish(),
+        type: z.string().nullish(),
+        feedback: z.string().nullish(),
+        score: z.number().nullish(),
+        correct_answer: z.string().nullish(),
+        criteria: z.record(z.string(), z.number().nullish()).nullish(),
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
+  })
+  .passthrough()
+
 export const TrainingSessionSchema = z.object({
   id: z.string(),
   scenario: z.string(),
@@ -25,6 +45,8 @@ export const TrainingSessionSchema = z.object({
   aiFeedback: z.string().nullable().optional(),
   completedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
+  // Từng câu đã làm (API my-sessions include attempts) — dùng cho phần "Chi tiết bài làm"
+  attempts: z.array(TrainingAttemptItemSchema).optional(),
 })
 export const TrainingSessionsSchema = z.array(TrainingSessionSchema)
 
@@ -44,6 +66,7 @@ export const AnalyticsSessionSchema = z.object({
   totalScore: z.number().nullable().optional(),
   aiFeedback: z.string().nullable().optional(),
   completedAt: z.string().nullable().optional(),
+  createdAt: z.string().nullable().optional(),
   employee: z
     .object({
       fullName: z.string(),
@@ -52,6 +75,7 @@ export const AnalyticsSessionSchema = z.object({
     })
     .nullable()
     .optional(),
+  attempts: z.array(TrainingAttemptItemSchema).optional(),
 })
 
 export const TrainingAnalyticsSchema = z.object({
@@ -67,5 +91,6 @@ export const TrainingAnalyticsSchema = z.object({
 
 export type AnalyticsSession = z.infer<typeof AnalyticsSessionSchema>
 export type TrainingSession = z.infer<typeof TrainingSessionSchema>
+export type TrainingAttemptItem = z.infer<typeof TrainingAttemptItemSchema>
 export type AiScore = z.infer<typeof AiScoreSchema>
 export type TrainingAnalytics = z.infer<typeof TrainingAnalyticsSchema>

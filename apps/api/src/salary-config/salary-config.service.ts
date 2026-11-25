@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsAuditService } from '../settings/settings-audit.service';
 import { defaultSalaryConfigFor } from '../payroll/pit';
@@ -20,14 +20,13 @@ export class SalaryConfigService {
   }
 
   async getCurrent() {
-    const year = new Date().getFullYear();
+    const { year, month } = vnMonth();
     const config = await this.prisma.salaryConfig.findFirst({
       where: { year: { lte: year } },
       orderBy: { year: 'desc' },
     });
     // Chưa có cấu hình: trả đúng mặc định mà Rule Engine sẽ dùng cho tháng hiện tại
-    const { year: y, month } = vnMonth();
-    return config ?? { year, ...defaultSalaryConfigFor(vnDateFromParts(y, month, 1)) };
+    return config ?? { year, ...defaultSalaryConfigFor(vnDateFromParts(year, month, 1)) };
   }
 
   async upsert(
@@ -37,6 +36,7 @@ export class SalaryConfigService {
       bhytRate?: number;
       bhtnRate?: number;
       pitFreeAmount?: number;
+      pitDependentDeduction?: number;
       overtimeRate?: number;
       otWeekendRate?: number;
       otHolidayRate?: number;
@@ -44,11 +44,39 @@ export class SalaryConfigService {
     },
     admin: { id?: string; email?: string },
   ) {
+    if (!Number.isInteger(dto.year) || dto.year < 2000 || dto.year > 2100) {
+      throw new BadRequestException('Năm cấu hình không hợp lệ');
+    }
+    if (dto.standardWorkHours !== undefined && !(dto.standardWorkHours > 0)) {
+      throw new BadRequestException('Số giờ làm việc tiêu chuẩn phải lớn hơn 0');
+    }
+    const cleanData: Record<string, number> = { year: dto.year };
+    const allowedFields = [
+      'bhxhRate',
+      'bhytRate',
+      'bhtnRate',
+      'pitFreeAmount',
+      'pitDependentDeduction',
+      'overtimeRate',
+      'otWeekendRate',
+      'otHolidayRate',
+      'standardWorkHours',
+    ] as const;
+    for (const key of allowedFields) {
+      if (dto[key] !== undefined) {
+        const val = Number(dto[key]);
+        if (!Number.isFinite(val) || val < 0) {
+          throw new BadRequestException(`Trường ${key} không hợp lệ`);
+        }
+        cleanData[key] = val;
+      }
+    }
+
     const before = await this.prisma.salaryConfig.findUnique({ where: { year: dto.year } });
     const after = await this.prisma.salaryConfig.upsert({
       where: { year: dto.year },
-      create: dto,
-      update: dto,
+      create: cleanData as any,
+      update: cleanData as any,
     });
 
     // Nhật ký thay đổi — so sánh trên các field đã gửi

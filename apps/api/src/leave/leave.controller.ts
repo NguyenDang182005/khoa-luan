@@ -104,9 +104,9 @@ export class LeaveController {
     return this.leaveService.reject(id, req.user.sub, dto.rejectionReason);
   }
 
-  @ApiOperation({ summary: 'Hủy đơn nghỉ phép (chỉ chủ đơn)' })
+  @ApiOperation({ summary: 'Hủy đơn nghỉ phép (chủ đơn hủy khi chờ duyệt, ADMIN hủy được cả đơn đã duyệt)' })
   @Patch(':id/cancel')
   cancel(@Param('id') id: string, @Request() req: any) {
-    return this.leaveService.cancel(id, req.user.sub);
+    return this.leaveService.cancel(id, req.user.sub, isAdminRole(req.user?.role));
   }
 }

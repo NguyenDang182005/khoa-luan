@@ -77,4 +77,57 @@ describe('PayrollService.calculatePayroll — kỳ 9/2026', () => {
     expect(r.actualWorkingDays).toBe(11); // 10 ngày làm + 1 ngày phép
     expect(r.deductions).toBe(0);
   });
+
+  it('không cộng trùng 2 lần (200% lương) nếu cùng 1 ngày vừa có chấm công PRESENT vừa có đơn ANNUAL leave đã duyệt', async () => {
+    const prisma = buildPrisma();
+    // Giả sử ngày 10/9 (đang có đơn ANNUAL leave) nhân viên vẫn đi làm hoặc HR sửa tay thành PRESENT
+    prisma.attendance.findMany.mockResolvedValue([
+      ...WORKED.map((d) => ({ date: day(d), status: 'PRESENT', workDays: 1, overtime: 0 })),
+      { date: day(10), status: 'PRESENT', workDays: 1, overtime: 0 },
+    ]);
+    const service = new PayrollService(prisma as any, {} as any);
+
+    const r = await service.calculatePayroll('emp-1', 9, 2026);
+
+    // 18 ngày WORKED + ngày 10/9 chỉ tính 1 lần = 19 ngày (không được nhảy lên 20)
+    expect(r.actualWorkingDays).toBe(19);
+    expect(r._breakdown.paidLeaveDays).toBe(0);
+  });
+
+  it('adjust() tính lại thuế TNCN (tax) khi thay đổi thưởng (bonus)', async () => {
+    const prisma: Record<string, any> = {
+      ...buildPrisma(),
+      payroll: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          id: 'p-1',
+          employeeId: 'emp-1',
+          month: 9,
+          year: 2026,
+          status: 'DRAFT',
+          baseSalary: 19_000_000,
+          allowances: 1_000_000,
+          overtimePay: 1_375_000,
+          bonus: 0,
+          advance: 500_000,
+          deductions: 2_100_000,
+          tax: 188_750,
+          netSalary: 18_586_250,
+        }),
+        update: jest.fn().mockImplementation(({ data }: any) => Promise.resolve(data)),
+      },
+      employee: {
+        findUnique: jest.fn().mockResolvedValue({ dependents: 0 }),
+      },
+    };
+    const service = new PayrollService(prisma as any, {} as any);
+
+    // Thêm thưởng 2.000.000 → chịu thuế tăng từ 3.775.000 lên 5.775.000 (vẫn bậc 1: 5%)
+    // Thuế mới = 5.775.000 * 5% = 288.750 (tăng 100.000 so với 188.750)
+    const updated = await service.adjust('p-1', { bonus: 2_000_000 });
+
+    expect(updated.bonus).toBe(2_000_000);
+    expect(updated.tax).toBe(288_750);
+    // Thực lĩnh = 23.375.000 - 2.100.000 - 288.750 - 500.000 = 20.486.250
+    expect(updated.netSalary).toBe(20_486_250);
+  });
 });

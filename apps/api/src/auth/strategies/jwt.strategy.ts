@@ -41,9 +41,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { isActive: true, role: true },
+      select: {
+        isActive: true,
+        role: true,
+        lockedUntil: true,
+        employee: { select: { status: true } },
+      },
     });
-    if (!user?.isActive) throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
+    if (!user?.isActive || user.employee?.status === 'TERMINATED') {
+      throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
+    }
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new UnauthorizedException('Tài khoản đang bị tạm khóa');
+    }
 
     // Trả role hiện tại trong DB (không tin role trong token): hạ quyền ADMIN có hiệu lực
     // ngay ở request kế tiếp thay vì chờ token hết hạn (tới 30 ngày).

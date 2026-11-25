@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SettingsAuditService } from '../settings/settings-audit.service';
 import { ensureDefaultSecurityPolicy } from '../settings/single-row.utils';
 import { validatePasswordPolicy } from '../auth/password-policy';
+import { vnDateUtc } from '../common/vn-date';
 
 const EMPLOYMENT_STATUSES = ['ACTIVE', 'ON_LEAVE', 'TERMINATED', 'PROBATION'];
 const GENDERS = ['MALE', 'FEMALE', 'OTHER'];
@@ -97,9 +98,7 @@ export class EmployeesService {
         ...(includePrivate
           ? {
               contracts: {
-                where: { isActive: true },
-                take: 1,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ isActive: 'desc' }, { startDate: 'desc' }, { createdAt: 'desc' }],
               },
             }
           : {}),
@@ -110,7 +109,7 @@ export class EmployeesService {
       },
     });
 
-    if (!includePrivate && viewerUserId && employee.userId !== viewerUserId) {
+    if (!includePrivate && (!viewerUserId || employee.userId !== viewerUserId)) {
       throw new ForbiddenException(
         'Chỉ xem được hồ sơ của chính mình',
       );
@@ -157,10 +156,7 @@ export class EmployeesService {
 
     // Nếu truyền role → tạo user active thật sự (email này là whitelist OAuth)
     // Không truyền role → tạo placeholder User inactive (không đăng nhập được)
-    let resolvedUserId: string;
-    if (dto.userId) {
-      resolvedUserId = dto.userId;
-    } else if (dto.role) {
+    if (!dto.userId && dto.role) {
       const emailTaken = await this.prisma.user.findUnique({
         where: { email: dto.email },
         select: { id: true },
@@ -168,15 +164,41 @@ export class EmployeesService {
       if (emailTaken) {
         throw new ConflictException('Email đã có tài khoản đăng nhập');
       }
-      resolvedUserId = await this.createActiveUser(dto.email, dto.role);
-    } else {
-      resolvedUserId = await this.createPlaceholderUser(dto.email);
     }
 
-    const { role: _role, baseSalary, allowances, ...employeeData } = dto;
+    const { role, baseSalary, allowances, ...employeeData } = dto;
+    const randomPassword = dto.userId ? null : await bcrypt.hash(randomUUID(), 10);
 
     const createEmployee = (employeeCode: string) =>
       this.prisma.$transaction(async (tx) => {
+        let resolvedUserId: string;
+        if (dto.userId) {
+          resolvedUserId = dto.userId;
+        } else if (role) {
+          const user = await tx.user.create({
+            data: {
+              email: dto.email,
+              passwordHash: randomPassword,
+              role: role as any,
+              isActive: true,
+              passwordChangedAt: new Date(),
+            },
+            select: { id: true },
+          });
+          resolvedUserId = user.id;
+        } else {
+          const placeholder = await tx.user.create({
+            data: {
+              email: `${dto.email}.placeholder.${randomUUID().slice(0, 8)}`,
+              passwordHash: randomPassword,
+              role: 'EMPLOYEE',
+              isActive: false,
+            },
+            select: { id: true },
+          });
+          resolvedUserId = placeholder.id;
+        }
+
         const created = await tx.employee.create({
           data: {
             ...employeeData,
@@ -248,39 +270,71 @@ export class EmployeesService {
 
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { userId: true },
+      select: {
+        userId: true,
+        email: true,
+        status: true,
+        user: { select: { email: true } },
+      },
     });
     if (!employee) throw new NotFoundException('Không tìm thấy nhân viên');
 
-    // Kiểm tra email unique (nếu đổi email)
+    // Kiểm tra email unique (nếu đổi email) trên cả bảng users và employees
     if (dto.email) {
-      const emailTaken = await this.prisma.user.findFirst({
-        where: { email: dto.email, NOT: { id: employee.userId } },
-      });
-      if (emailTaken) throw new ConflictException('Email đã được sử dụng bởi tài khoản khác');
+      const [userTaken, empTaken] = await Promise.all([
+        this.prisma.user.findFirst({
+          where: { email: dto.email, NOT: { id: employee.userId } },
+          select: { id: true },
+        }),
+        this.prisma.employee.findFirst({
+          where: { email: dto.email, NOT: { id: employeeId } },
+          select: { id: true },
+        }),
+      ]);
+      if (userTaken || empTaken) {
+        throw new ConflictException('Email đã được sử dụng bởi tài khoản hoặc hồ sơ khác');
+      }
     }
 
     const updates: Record<string, any> = {};
-    if (dto.email) updates.email = dto.email;
+    if (dto.email) {
+      updates.email = dto.email;
+      // Nếu đổi sang email khác, xóa liên kết OAuth cũ để tránh tài khoản Google/FB cũ vẫn đăng nhập được
+      if (employee.user?.email !== dto.email) {
+        updates.firebaseUid = null;
+        updates.googleId = null;
+        updates.facebookId = null;
+      }
+    }
     if (dto.role) updates.role = dto.role;
 
     if (Object.keys(updates).length === 0) {
       throw new BadRequestException('Không có trường nào để cập nhật');
     }
 
-    // Khi đổi email → kích hoạt user (có thể trước đây là placeholder inactive)
-    if (dto.email) updates.isActive = true;
+    // Khi đổi email → chỉ kích hoạt user nếu nhân viên chưa nghỉ việc (TERMINATED)
+    if (dto.email && employee.status !== 'TERMINATED') {
+      updates.isActive = true;
+    }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id: employee.userId },
-      data: updates,
-      select: { id: true, email: true, role: true, isActive: true, googleId: true, facebookId: true },
-    });
-
-    // Đổi email/role phải thu hồi phiên cũ: JWT cũ vẫn mang role/email trước đó
-    // (nếu chỉ hạ quyền mà không thu hồi, token ADMIN còn hiệu lực tới 30 ngày).
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId: employee.userId },
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      if (dto.email) {
+        await tx.employee.update({
+          where: { id: employeeId },
+          data: { email: dto.email },
+        });
+      }
+      const u = await tx.user.update({
+        where: { id: employee.userId },
+        data: updates,
+        select: { id: true, email: true, role: true, isActive: true, googleId: true, facebookId: true },
+      });
+      // Đổi email/role phải thu hồi phiên cũ: JWT cũ vẫn mang role/email trước đó
+      // (nếu chỉ hạ quyền mà không thu hồi, token ADMIN còn hiệu lực tới 30 ngày).
+      await tx.refreshToken.deleteMany({
+        where: { userId: employee.userId },
+      });
+      return u;
     });
 
     return updatedUser;
@@ -453,23 +507,29 @@ export class EmployeesService {
       );
     }
 
-    // Chỉ gán field được truyền rõ ràng (undefined bị Prisma bỏ qua tự nhiên)
-    const data: {
-      fullName?: string;
-      phone?: string;
-      address?: string;
-      avatarUrl?: string;
-      dateOfBirth?: Date;
-      nationalId?: string;
-      gender?: string;
-      departmentId?: string;
-      positionId?: string;
-      managerId?: string;
-      status?: string;
-    } = {};
-    for (const [key, value] of Object.entries(dto)) {
+    if (dto.managerId && dto.managerId === id) {
+      throw new BadRequestException('Nhân viên không thể là quản lý trực tiếp của chính mình');
+    }
+
+    // Chỉ gán đúng các field cho phép cập nhật (chống mass-assignment từ body chưa qua DTO whitelist)
+    const ALLOWED_UPDATE_KEYS = [
+      'fullName',
+      'phone',
+      'address',
+      'avatarUrl',
+      'dateOfBirth',
+      'nationalId',
+      'gender',
+      'departmentId',
+      'positionId',
+      'managerId',
+      'status',
+    ] as const;
+    const data: Partial<Record<(typeof ALLOWED_UPDATE_KEYS)[number], unknown>> = {};
+    for (const key of ALLOWED_UPDATE_KEYS) {
+      const value = dto[key];
       if (value !== undefined) {
-        data[key as keyof typeof data] = value as never;
+        data[key] = value;
       }
     }
     if (Object.keys(data).length === 0) {
@@ -479,7 +539,7 @@ export class EmployeesService {
     return this.prisma.$transaction(async (tx) => {
       const employee = await tx.employee.update({
         where: { id },
-        data: { ...data, status: data.status as any, gender: data.gender as any },
+        data: { ...(data as any), status: data.status as any, gender: data.gender as any },
       });
 
       // Nghỉ việc phải cắt quyền truy cập ngay: tắt tài khoản, thu hồi phiên,
@@ -492,18 +552,55 @@ export class EmployeesService {
         await tx.refreshToken.deleteMany({ where: { userId: employee.userId } });
         await tx.contract.updateMany({
           where: { employeeId: id, isActive: true },
-          data: { isActive: false, endDate: new Date() },
+          data: { isActive: false, endDate: vnDateUtc() },
         });
       } else if (
         data.status === 'ACTIVE' ||
         data.status === 'PROBATION' ||
         data.status === 'ON_LEAVE'
       ) {
-        // Quay lại làm việc → mở lại tài khoản (nếu trước đó bị tắt do nghỉ việc)
-        await tx.user.update({
+        // Quay lại làm việc → chỉ mở lại tài khoản nếu KHÔNG phải tài khoản placeholder
+        const linkedUser = await tx.user.findUnique({
           where: { id: employee.userId },
-          data: { isActive: true },
+          select: { email: true },
         });
+        if (linkedUser && !linkedUser.email.includes('.placeholder.')) {
+          await tx.user.update({
+            where: { id: employee.userId },
+            data: { isActive: true },
+          });
+        }
+        // Nếu nhân viên chưa có hợp đồng active (vd. vừa khôi phục từ TERMINATED),
+        // tự động kích hoạt lại hợp đồng gần nhất để bảng lương không bị lỗi thiếu HĐ active.
+        const hasActiveContract = await tx.contract.findFirst({
+          where: { employeeId: id, isActive: true },
+          select: { id: true },
+        });
+        if (!hasActiveContract) {
+          const latestContract = await tx.contract.findFirst({
+            where: { employeeId: id },
+            orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
+            select: { id: true, type: true },
+          });
+          if (latestContract) {
+            await tx.contract.update({
+              where: { id: latestContract.id },
+              data: {
+                isActive: true,
+                ...(data.status === 'ACTIVE' && latestContract.type === 'PROBATION'
+                  ? { type: 'FULL_TIME' }
+                  : {}),
+              },
+            });
+          }
+        } else if (data.status === 'ACTIVE') {
+          // Chuyển trạng thái từ Thử việc (PROBATION) → Đang làm (ACTIVE):
+          // nếu hợp đồng active hiện tại đang là PROBATION thì nâng lên FULL_TIME
+          await tx.contract.updateMany({
+            where: { employeeId: id, isActive: true, type: 'PROBATION' },
+            data: { type: 'FULL_TIME' },
+          });
+        }
       }
 
       return employee;

@@ -16,6 +16,7 @@ import { AiContextService } from '../ai-context/ai-context.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { isAdminRole } from '@repo/shared-types';
 import { AgentChatDto, SessionTypeDto } from './dto/agent-chat.dto';
 import { AgentReplyDto } from './dto/agent-reply.dto';
 import { PiiAuditQueryDto } from './dto/pii-audit-query.dto';
@@ -24,7 +25,9 @@ import { PiiAuditQueryDto } from './dto/pii-audit-query.dto';
  * Endpoints cho Web Portal — xác thực bằng JWT (browser KHÔNG gọi n8n trực tiếp).
  * Chat/session của nhân viên (chat, chat-session/latest, renew, onboarding/my) mở cho mọi
  * người đã đăng nhập — dùng chính hồ sơ trong JWT.
- * Các route quản trị (thống kê, hội thoại, escalate, PII audit) có RolesGuard + @Roles('ADMIN_GROUP').
+ * Bàn tiếp quản CSKH (hội thoại, hàng chờ, lịch sử, bật/tắt bot, trả lời) mở cho mọi nhân viên;
+ * nhân viên chỉ thao tác được phiên CSKH của khách (assertCustomerCareSession).
+ * Thống kê intent và PII audit vẫn chỉ cho admin (RolesGuard + @Roles('ADMIN_GROUP')).
  */
 @ApiTags('Agents (Portal)')
 @ApiBearerAuth()
@@ -71,6 +74,12 @@ export class PortalAgentsController {
     return this.aiContextService.getRehydratableWebSession(employee.id, type);
   }
 
+  /** Admin thao tác mọi phiên; nhân viên chỉ phiên CSKH của khách */
+  private async ensureSessionAccess(req: any, sessionId: string) {
+    if (isAdminRole(req.user?.role)) return;
+    await this.aiContextService.assertCustomerCareSession(sessionId);
+  }
+
   private async renewSessionFor(req: any, type: string) {
     const employee = await this.agentsService.resolveEmployee(req.user.sub);
     return this.aiContextService.renewWebSession(employee.id, type);
@@ -85,51 +94,43 @@ export class PortalAgentsController {
   }
 
   @Get('conversations')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Tất cả hội thoại CSKH (đang bot + đã escalate)' })
   conversations() {
     return this.aiContextService.getConversations();
   }
 
   @Get('escalation-queue')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Hàng đợi CSKH cần xử lý thủ công (Specialist / Employee)' })
   escalationQueue() {
     return this.aiContextService.getEscalationQueue();
   }
 
   @Get('chat-history/:sessionId')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Lịch sử hội thoại của một session' })
-  async chatHistory(@Param('sessionId') sessionId: string) {
+  async chatHistory(@Request() req: any, @Param('sessionId') sessionId: string) {
+    await this.ensureSessionAccess(req, sessionId);
     const messages = await this.aiContextService.getSessionHistory(sessionId);
     return { messages };
   }
 
   @Post('chat-session/:id/reactivate')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Bật lại bot cho session (hoàn thành hỗ trợ)' })
-  reactivateSession(@Param('id') id: string) {
+  async reactivateSession(@Request() req: any, @Param('id') id: string) {
+    await this.ensureSessionAccess(req, id);
     return this.aiContextService.reactivateSession(id);
   }
 
   @Post('chat-session/:id/deactivate')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Tắt bot cho session (tiếp quản thủ công)' })
-  deactivateSession(@Param('id') id: string) {
+  async deactivateSession(@Request() req: any, @Param('id') id: string) {
+    await this.ensureSessionAccess(req, id);
     return this.aiContextService.deactivateSession(id);
   }
 
   @Post('chat-session/:id/reply')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN_GROUP')
   @ApiOperation({ summary: 'Nhân viên phản hồi thủ công vào session (human takeover)' })
-  reply(@Param('id') id: string, @Body() dto: AgentReplyDto) {
+  async reply(@Request() req: any, @Param('id') id: string, @Body() dto: AgentReplyDto) {
+    await this.ensureSessionAccess(req, id);
     return this.agentsService.replyToSession(id, dto.content);
   }
 

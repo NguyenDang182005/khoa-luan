@@ -3,7 +3,7 @@
 hide empty description
 left to right direction
 [*] --> DRAFT : generate /\ngenerate-bulk
-DRAFT --> DRAFT : generate lại (tính lại toàn bộ)\nadjust thưởng, tạm ứng (giữ nguyên thuế, BH)
+DRAFT --> DRAFT : generate lại (tính lại toàn bộ)\nadjust thưởng, tạm ứng (tính lại thuế TNCN)
 DRAFT --> APPROVED : approve /\napprove-bulk
 APPROVED --> PAID : paid / paid-bulk\n[ghi paidAt]
 PAID --> [*]

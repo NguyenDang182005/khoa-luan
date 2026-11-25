@@ -95,59 +95,76 @@ export class KnowledgeService {
     if (!q) return { mode: 'fallback-cosine', results: [] };
     const k = Math.min(Math.max(topK, 1), 10);
 
-    const queryVec = await this.embed(q);
+    let queryVec: number[];
+    try {
+      queryVec = await this.embed(q);
+    } catch (e) {
+      this.logger.warn(`Không thể tạo embedding Gemini (${(e as Error).message}) — trả kết quả rỗng để không sập workflow`);
+      return { mode: 'fallback-cosine', results: [] };
+    }
 
     if (await this.isPgvector()) {
-      const vecLiteral = `[${queryVec.join(',')}]`;
+      try {
+        const vecLiteral = `[${queryVec.join(',')}]`;
+        const rows = (await this.prisma.$queryRawUnsafe(
+          `SELECT doc_title, chunk_index, content, source, 1 - (embedding <=> $1::vector) AS score
+           FROM policy_chunks
+           WHERE embedding IS NOT NULL
+           ORDER BY embedding <=> $1::vector
+           LIMIT $2`,
+          vecLiteral,
+          k,
+        )) as Array<{
+          doc_title: string;
+          chunk_index: number;
+          content: string;
+          source: string | null;
+          score: number;
+        }>;
+        if (rows.length > 0) {
+          return {
+            mode: 'pgvector',
+            results: rows.map((r) => ({
+              docTitle: r.doc_title,
+              chunkIndex: r.chunk_index,
+              content: r.content,
+              source: r.source,
+              score: Number(Number(r.score).toFixed(4)),
+            })),
+          };
+        }
+      } catch (e) {
+        this.logger.warn(`pgvector query lỗi (${(e as Error).message}) — chuyển sang fallback cosine JSONB`);
+      }
+    }
+
+    // Fallback: nạp toàn bộ chunk (nhỏ, ~vài chục) và tính cosine trong app
+    try {
       const rows = (await this.prisma.$queryRawUnsafe(
-        `SELECT doc_title, chunk_index, content, source, 1 - (embedding <=> $1::vector) AS score
-         FROM policy_chunks
-         WHERE embedding IS NOT NULL
-         ORDER BY embedding <=> $1::vector
-         LIMIT $2`,
-        vecLiteral,
-        k,
+        `SELECT doc_title, chunk_index, content, source, embedding_json
+         FROM policy_chunks`,
       )) as Array<{
         doc_title: string;
         chunk_index: number;
         content: string;
         source: string | null;
-        score: number;
+        embedding_json: unknown;
       }>;
-      return {
-        mode: 'pgvector',
-        results: rows.map((r) => ({
+      const scored = rows.map((r) => {
+        const emb = (r.embedding_json as number[]) ?? [];
+        return {
           docTitle: r.doc_title,
           chunkIndex: r.chunk_index,
           content: r.content,
           source: r.source,
-          score: Number(Number(r.score).toFixed(4)),
-        })),
-      };
+          score: Number(this.cosine(queryVec, emb).toFixed(4)),
+        };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      return { mode: 'fallback-cosine', results: scored.slice(0, k) };
+    } catch (e) {
+      this.logger.warn(`Fallback policy_chunks query lỗi (${(e as Error).message}) — trả kết quả rỗng`);
+      return { mode: 'fallback-cosine', results: [] };
     }
-
-    // Fallback: nạp toàn bộ chunk (nhỏ, ~vài chục) và tính cosine trong app
-    const rows = (await this.prisma.$queryRawUnsafe(
-      `SELECT doc_title, chunk_index, content, source, embedding_json
-       FROM policy_chunks`,
-    )) as Array<{
-      doc_title: string;
-      chunk_index: number;
-      content: string;
-      source: string | null;
-      embedding_json: unknown;
-    }>;
-    const scored = rows.map((r) => {
-      const emb = (r.embedding_json as number[]) ?? [];
-      return {
-        docTitle: r.doc_title,
-        chunkIndex: r.chunk_index,
-        content: r.content,
-        source: r.source,
-        score: Number(this.cosine(queryVec, emb).toFixed(4)),
-      };
-    });
-    scored.sort((a, b) => b.score - a.score);
-    return { mode: 'fallback-cosine', results: scored.slice(0, k) };
   }
 }

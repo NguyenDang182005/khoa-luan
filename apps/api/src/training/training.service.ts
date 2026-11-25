@@ -75,7 +75,8 @@ export class TrainingService {
     const quiz = (msg?.metadata as any)?.quiz;
     if (!Array.isArray(quiz)) return map;
     for (const q of quiz) {
-      if (q?.correct) map.set(Number(q.id), String(q.correct));
+      const ans = q?.correct ?? q?.correctAnswer;
+      if (ans) map.set(Number(q.id), String(ans));
     }
     return map;
   }
@@ -153,6 +154,7 @@ export class TrainingService {
       where: {
         employeeId: employee.id,
         scenario,
+        status: 'GRADED',
         createdAt: { gte: vnDateUtc() },
       },
     });
@@ -162,16 +164,28 @@ export class TrainingService {
       );
     }
 
-    const n8nBase = this.config.get<string>('N8N_WEBHOOK_URL') ?? 'http://localhost:5678/webhook';
-    const webhookUrl = n8nBase.replace(/\/webhook\/chat$/, '/webhook') + '/training-quiz';
-    const apiKey = this.config.get<string>('N8N_API_KEY');
+    const aiCfg = await this.prisma.aiAgentConfig
+      ?.findUnique?.({ where: { id: 'default' } })
+      .catch(() => null);
+    const n8nBase =
+      aiCfg?.webhookUrl ||
+      this.config.get<string>('N8N_WEBHOOK_URL') ||
+      'http://localhost:5678/webhook';
+    const webhookUrl = n8nBase.replace(/\/webhook(\/chat)?$/, '/webhook') + '/training-quiz';
+    const apiKey = aiCfg?.apiKey || this.config.get<string>('N8N_API_KEY');
+    const timeoutMs = aiCfg?.timeoutMs || N8N_QUIZ_TIMEOUT_MS;
 
     // Đáp án đúng lấy từ bản WF03 đã stash server-side khi sinh bài.
-    // Phải load TRƯỚC khi gọi grader để gửi correctAnswer cho WF03 chấm MCQ.
+    // Phải load TRƯỚC khi gọi grader và LUÔN ghi đè correctAnswer do client gửi (chống spoofing).
     const correctById = await this.loadServerQuizAnswers(employee, scenario);
     const answersForGrade = answers.map((a) =>
-      a.type === 'mcq' && !a.correctAnswer
-        ? { ...a, correctAnswer: correctById.get(a.questionId) ?? undefined }
+      a.type === 'mcq'
+        ? {
+            ...a,
+            correctAnswer: correctById.has(a.questionId)
+              ? correctById.get(a.questionId)
+              : a.correctAnswer,
+          }
         : a,
     );
 
@@ -190,7 +204,7 @@ export class TrainingService {
           employeeId: employee.employeeCode,
           answers: answersForGrade,
         }),
-        signal: AbortSignal.timeout(N8N_QUIZ_TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (resp.ok) {
@@ -357,7 +371,8 @@ export class TrainingService {
             type: ans.type,
             feedback: resultItem.feedback ?? '',
             score: resultItem.score ?? null,
-            correct_answer: ans.correctAnswer ?? null,
+            criteria: resultItem.criteria ?? null,
+            correct_answer: resultItem.correct_answer ?? ans.correctAnswer ?? null,
           },
         },
       });
@@ -379,9 +394,11 @@ export class TrainingService {
   }
 
   /** Tự tính điểm offline khi WF03 không khả dụng */
-  private fallbackGrade(answers: Array<{ type: string; answer: string; correctAnswer?: string }>) {
+  private fallbackGrade(
+    answers: Array<{ questionId?: number; type: string; answer: string; correctAnswer?: string }>,
+  ) {
     const results = answers.map((a, i) => ({
-      id: i + 1,
+      id: a.questionId ?? i + 1,
       type: a.type,
       correct: a.type === 'mcq' ? a.answer.toUpperCase() === (a.correctAnswer ?? '').toUpperCase() : undefined,
       score: a.type === 'essay' ? 6 : undefined,
@@ -541,6 +558,15 @@ export class TrainingService {
             department: { select: { name: true } },
           },
         },
+        attempts: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            answer: true,
+            isCorrect: true,
+            aiEvaluation: true,
+          },
+        },
       },
     });
 
@@ -559,7 +585,7 @@ export class TrainingService {
         const fallback = ai.essay_avg ?? 0;
         totals.professional += ai.professional ?? fallback;
         totals.empathy += ai.empathy ?? fallback;
-        totals.problemSolving += ai.problemSolving ?? fallback;
+        totals.problemSolving += ai.problemSolving ?? ai.problem_solving ?? fallback;
         totals.clarity += ai.clarity ?? fallback;
         count++;
       }

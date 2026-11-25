@@ -59,6 +59,9 @@ function buildService(gradeResponse: unknown, stashedQuiz: unknown = STASHED_QUI
       findFirst: jest.fn().mockResolvedValue(
         stashedQuiz ? { metadata: stashedQuiz } : null,
       ),
+      findMany: jest.fn().mockResolvedValue(
+        stashedQuiz ? [{ metadata: stashedQuiz }] : [],
+      ),
     },
     trainingSession: {
       create: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 's1', ...data })),

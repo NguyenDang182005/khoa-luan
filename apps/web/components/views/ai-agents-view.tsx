@@ -1381,6 +1381,7 @@ export function AiAgentsView({ onNavigate, initialAgentId }: AiAgentsViewProps =
                       <div className="max-h-[calc(100vh-28rem)] divide-y divide-border-subtle overflow-y-auto">
                         {auditItems.map((item) => {
                           const masked = auditMasked(item)
+                          const hasPiiMasked = masked !== null && masked !== item.content
                           return (
                             <div key={item.id} className="space-y-1.5 p-3 text-body-sm transition-colors hover:bg-sunken">
                               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1401,10 +1402,15 @@ export function AiAgentsView({ onNavigate, initialAgentId }: AiAgentsViewProps =
                               <div className="text-foreground">
                                 {masked ? highlightMaskedTokens(masked) : item.content}
                               </div>
+                              {hasPiiMasked && (
+                                <div className="text-caption text-muted-foreground">
+                                  Bản gốc (DB): <span className="font-mono text-foreground">{item.content}</span>
+                                </div>
+                              )}
                               {masked && (
                                 <div className="flex items-center gap-1 text-caption text-success">
                                   <ShieldCheck className="size-3.5" />
-                                  <span>Đã qua PII Masking</span>
+                                  <span>{hasPiiMasked ? "Đã che PII nhạy cảm" : "Đã quét PII Masking (Không có PII)"}</span>
                                 </div>
                               )}
                             </div>

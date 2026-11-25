@@ -12,7 +12,7 @@ alt Đăng nhập email và mật khẩu
   activate W
   W -> A : POST /auth/login
   activate A
-  A -> DB : Tìm User, kiểm tra isActive, lockedUntil
+  A -> DB : Tìm User, kiểm tra isActive,\nlockedUntil, Employee chưa TERMINATED
   A -> A : bcrypt.compare
   opt Sai mật khẩu
     A -> DB : Tăng failedLoginAttempts,\nkhóa 15 phút khi đủ 5 lần

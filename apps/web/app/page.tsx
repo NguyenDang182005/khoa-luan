@@ -144,11 +144,12 @@ function AppShell() {
         "employee-portal",
         "my-training",
         "ai-agents",
+        "cskh-escalation",
       ]
       return empOrder
         .map((id) => ALL_NAV_ITEMS.find((item) => item.id === id))
         .filter((item): item is NavItem => item !== undefined)
-        .map((item) => ({ ...item, group: "Của tôi" }))
+        .map((item) => ({ ...item, group: item.id === "cskh-escalation" ? "Công việc" : "Của tôi" }))
     }
     return ALL_NAV_ITEMS.filter((i) => i.id !== "my-training")
   }, [user])
@@ -222,7 +223,7 @@ function AppShell() {
     const quickLinks = [
       { key: "q-wf02",   label: "Giám sát WF02 - Tra cứu ngày phép", hint: "AI Agent",   tab: "ai-agents"       as NavigationTab, adminOnly: false },
       { key: "q-payroll",label: "Mở bảng lương & chạy Rule Engine",   hint: "Bảng lương", tab: "payroll"         as NavigationTab, adminOnly: true },
-      { key: "q-cskh",   label: "Tiếp quản khiếu nại Zalo khẩn cấp",  hint: "Cảnh báo",   tab: "cskh-escalation" as NavigationTab, adminOnly: true },
+      { key: "q-cskh",   label: "Tiếp quản khiếu nại Zalo khẩn cấp",  hint: "Cảnh báo",   tab: "cskh-escalation" as NavigationTab, adminOnly: false },
     ]
       .filter((i) => !i.adminOnly || (user && isAdminRole(user.role)))
       .filter((i) => !q || i.label.toLowerCase().includes(q))
